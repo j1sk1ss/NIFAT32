@@ -122,18 +122,18 @@ typedef struct fat_file {
 	char name[8];
 	char extension[4];
 	unsigned int data_head;
-    struct FATFile* next;
+	struct FATFile* next;
 } file_t;
 
 typedef struct fat_directory {
 	char name[11];
-    unsigned int next_cluster;
-    unsigned int files_cluster;
-    unsigned int subdir_cluster;
+	unsigned int next_cluster;
+	unsigned int files_cluster;
+	unsigned int subdir_cluster;
 
 	struct FATDirectory* next;
-    struct FATFile*      files;
-    struct FATDirectory* sub_directory;
+	struct FATFile*      files;
+	struct FATDirectory* sub_directory;
 } directory_t;
 
 typedef enum {
