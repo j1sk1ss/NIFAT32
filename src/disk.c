@@ -31,6 +31,10 @@ int DSK_read_sectors(sector_addr_t sa, unsigned char* buffer, int buff_size, int
     return 1;
 }
 
+int DSK_readoff_sectors(sector_addr_t sa, unsigned int offset, unsigned char* buffer, int buff_size, int sc) {
+    return 1;
+}
+
 int DSK_write_sector(sector_addr_t sa, unsigned char* data, int data_size) {
     return disk_io.write_sector(sa, data, data_size);
 }
@@ -42,5 +46,9 @@ int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int 
         data_size -= write_size;
     }
 
+    return 1;
+}
+
+int DSK_writeoff_sectors(sector_addr_t sa, unsigned int offset, unsigned char* data, int data_size, int sc) {
     return 1;
 }
