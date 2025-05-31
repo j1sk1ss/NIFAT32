@@ -1,36 +1,43 @@
 #ifndef FAT_H_
 #define FAT_H_
 
+#include "mm.h"
+#include "disk.h"
 #include "fatinfo.h"
+#include "logging.h"
 
-#define END_CLUSTER_32      0x0FFFFFF8
-#define BAD_CLUSTER_32      0x0FFFFFF7
-#define FREE_CLUSTER_32     0x00000000
+#define END_CLUSTER_32  0x0FFFFFF8
+#define BAD_CLUSTER_32  0x0FFFFFF7
+#define FREE_CLUSTER_32 0x0
 
-int read_fat(unsigned int cluster, fat_data_t* fi);
-int write_fat(unsigned int cluster, unsigned int value, fat_data_t* fi);
+typedef unsigned int cluster_addr_t;
+typedef unsigned int cluster_status_t;
+typedef unsigned int cluster_val_t;
 
-inline int is_cluster_free(unsigned int cluster) {
+cluster_val_t read_fat(cluster_addr_t cluster, fat_data_t* fi);
+int write_fat(cluster_addr_t cluster, cluster_status_t value, fat_data_t* fi);
+
+inline int is_cluster_free(cluster_val_t cluster) {
     return !cluster;
 }
 
-inline int set_cluster_free(unsigned int cluster, fat_data_t* fi) {
+inline int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
     return write_fat(cluster, 0, fi);
 }
 
-inline int is_cluster_end(unsigned int cluster) {
+inline int is_cluster_end(cluster_val_t cluster) {
     return cluster == END_CLUSTER_32 ? 1 : 0;
 }
 
-inline int set_cluster_end(unsigned int cluster, fat_data_t* fi) {
+inline int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
     return write_fat(cluster, END_CLUSTER_32, fi);
 }
 
-inline int is_cluster_bad(unsigned int cluster) {
+inline int is_cluster_bad(cluster_val_t cluster) {
     return cluster == BAD_CLUSTER_32 ? 1 : 0;
 }
 
-inline int set_cluster_bad(unsigned int cluster, fat_data_t* fi) {
+inline int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
     return write_fat(cluster, BAD_CLUSTER_32, fi);
 }
 
