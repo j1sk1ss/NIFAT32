@@ -65,6 +65,9 @@
 
 #define CONTENT_TABLE_SIZE	50
 
+/* Content Index - ci */
+typedef int ci_t;
+
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
 	unsigned int   table_size_32;
@@ -151,5 +154,22 @@ typedef struct {
 	directory_entry_t meta;
 	content_type_t content_type;
 } content_t;
+
+#define NOT_PRESENT	0x00
+#define STAT_FILE	0x01
+#define STAT_DIR	0x02
+
+typedef struct {
+	unsigned char full_name[11];
+	char file_name[8];
+	char file_extension[4];
+	int  type;
+	int  size;
+	unsigned short creation_time;
+	unsigned short creation_date;
+	unsigned short last_accessed;
+	unsigned short last_modification_time;
+	unsigned short last_modification_date;
+} cinfo_t;
 
 #endif
