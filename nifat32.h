@@ -1,6 +1,7 @@
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
 
+#include <stddef.h>
 #include "include/fat.h"
 #include "include/fatinfo.h"
 #include "include/mm.h"
@@ -8,33 +9,7 @@
 #include "include/disk.h"
 #include "include/str.h"
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <assert.h>
-
-
 #define SECTOR_OFFSET 23000
-
-#define CLEAN_EXIT_BMASK_16 0x8000
-#define HARD_ERR_BMASK_16   0x4000
-#define CLEAN_EXIT_BMASK_32 0x08000000
-#define HARD_ERR_BMASK_32   0x04000000
-
-#define FILE_LONG_NAME 	    (FILE_READ_ONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_VOLUME_ID)
-#define FILE_LONG_NAME_MASK (FILE_READ_ONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_VOLUME_ID | FILE_DIRECTORY | FILE_ARCHIVE)
-
-#define FILE_LAST_LONG_ENTRY 0x40
-#define ENTRY_FREE           0xE5
-#define ENTRY_END            0x00
-#define ENTRY_JAPAN          0x05
-#define LAST_LONG_ENTRY      0x40
-
-#define LOWERCASE_ISSUE	  0x01
-#define BAD_CHARACTER	  0x02
-#define BAD_TERMINATION   0x04
-#define NOT_CONVERTED_YET 0x08
-#define TOO_MANY_DOTS     0x10
 
 #define FILE_READ_ONLY 0x01
 #define FILE_HIDDEN    0x02
@@ -170,5 +145,7 @@ typedef struct {
 	unsigned short last_modification_time;
 	unsigned short last_modification_date;
 } cinfo_t;
+
+int NIFAT32_init();
 
 #endif

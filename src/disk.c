@@ -58,3 +58,7 @@ int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int 
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* data, int data_size, int sc) {
     return 1;
 }
+
+int DSK_get_sector_size() {
+    return disk_io.sector_size;
+}

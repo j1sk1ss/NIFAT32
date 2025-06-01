@@ -87,7 +87,7 @@ void* realloc_s(void* ptr, size_t elem) {
         if(!ptr) return malloc_s(elem);
         new_data = malloc_s(elem);
         if(new_data) {
-            memcpy_s(new_data, ptr, elem);
+            str_memcpy(new_data, ptr, elem);
             free_s(ptr);
         }
     }

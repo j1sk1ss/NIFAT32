@@ -37,7 +37,7 @@ int write_fat(cluster_addr_t cluster, cluster_status_t value, fat_data_t* fi) {
 
     cluster_data[fat_offset % fi->cluster_size] = value;
     if (!DSK_write_sectors(fat_sector, cluster_data, fi->bytes_per_sector * fi->sectors_per_cluster, fi->sectors_per_cluster)) {
-        kprintf("Function __write_fat: Could not write new FAT32 cluster number to sector.");
+        print_error("Could not write new FAT32 cluster number to sector.");
         free_s(cluster_data);
         return 0;
     }

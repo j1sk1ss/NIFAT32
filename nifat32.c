@@ -15,8 +15,47 @@ static fat_data_t _fs_data = {
 
 static const content_t* _content_table[CONTENT_TABLE_SIZE] = { NULL };
 
-int FAT_initialize() {
-    return 0;
+int NIFAT32_init() {
+    mm_init();
+    unsigned char* sector_data = (unsigned char*)malloc_s(DSK_get_sector_size());
+    if (!sector_data) {
+        print_error("malloc_s() error!");
+        return 0;
+    }
+
+    if (!DSK_read_sector(0, sector_data, DSK_get_sector_size())) {
+        print_error("DSK_read_sector() error!");
+        free_s(sector_data);
+        return 0;
+    }
+
+    fat_BS_t* bootstruct = (fat_BS_t*)sector_data;
+    _fs_data.total_sectors = bootstruct->total_sectors_32;
+    _fs_data.fat_size = ((fat_extBS_32_t*)(bootstruct->extended_section))->table_size_32; 
+
+    int root_dir_sectors = ((bootstruct->root_entry_count * 32) + (bootstruct->bytes_per_sector - 1)) / bootstruct->bytes_per_sector;
+    int data_sectors = _fs_data.total_sectors - (bootstruct->reserved_sector_count + (bootstruct->table_count * _fs_data.fat_size) + root_dir_sectors);
+
+    if (!data_sectors || !bootstruct->sectors_per_cluster) {
+        _fs_data.total_clusters = bootstruct->total_sectors_32 / bootstruct->sectors_per_cluster;
+    }
+    else {
+        _fs_data.total_clusters = data_sectors / bootstruct->sectors_per_cluster;
+    }
+
+    _fs_data.fat_type = 32;
+	_fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ((fat_extBS_32_t*)(bootstruct->extended_section))->table_size_32;
+    _fs_data.sectors_per_cluster = bootstruct->sectors_per_cluster;
+    _fs_data.bytes_per_sector = bootstruct->bytes_per_sector;
+    _fs_data.first_fat_sector = bootstruct->reserved_sector_count;
+    _fs_data.ext_root_cluster = ((fat_extBS_32_t*)(bootstruct->extended_section))->root_cluster;
+    _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
+    for (int i = 0; i < CONTENT_TABLE_SIZE; i++) {
+        _content_table[i] = NULL;
+    }
+
+    free_s(sector_data);
+    return 1;
 }
 
 static cluster_addr_t last_allocated_cluster = SECTOR_OFFSET;
@@ -163,6 +202,16 @@ static int _directory_search(
 
     free_s(cluster_data);
     return -4;
+}
+
+static unsigned short _current_time() {
+    /* TODO */
+    return 0;
+}
+
+static unsigned short _current_date() {
+    /* TODO */
+    return 0;
 }
 
 static int _directory_add(const cluster_addr_t cluster, directory_entry_t* file_to_add) {
@@ -656,16 +705,6 @@ int FAT_stat_content(int ci, cinfo_t* info) {
     info->last_modification_time = content->meta.last_modification_time;
 
     return 1;
-}
-
-unsigned short _current_time() {
-    /* TODO */
-    return 0;
-}
-
-unsigned short _current_date() {
-    /* TODO */
-    return 0;
 }
 
 int _name_check(const char* input) {

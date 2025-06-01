@@ -24,5 +24,6 @@ int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char*
 int DSK_write_sector(sector_addr_t sa, unsigned char* data, int data_size);
 int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int sc);
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* data, int data_size, int sc);
+int DSK_get_sector_size();
 
 #endif

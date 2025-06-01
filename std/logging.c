@@ -8,7 +8,7 @@ void _write_log(const char* level, const char* file, int line, const char* messa
         if (file == NULL) file = "(null)";
         if (message == NULL) message = "(null)";
 
-        fprintf(stdout, "[%s] [%s] (%s:%i) ", level, get_current_time(), file, line);
+        fprintf(stdout, "[%s] (%s:%i) ", level, file, line);
         vfprintf(stdout, message, args);
         fprintf(stdout, "\n");
     }

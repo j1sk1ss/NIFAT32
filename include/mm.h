@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "logging.h"
+#include "str.h"
 
 #define ALLOC_BUFFER_SIZE   65536
 #define ALIGNMENT           8  
