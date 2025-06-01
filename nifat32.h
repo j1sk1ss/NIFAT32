@@ -6,11 +6,10 @@
 #include "include/mm.h"
 #include "include/logging.h"
 #include "include/disk.h"
+#include "include/str.h"
 
 #include <stddef.h>
-#include <memory.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <assert.h>
 

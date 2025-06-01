@@ -1,7 +1,7 @@
 #include "../include/fat.h"
 
 cluster_val_t read_fat(cluster_addr_t cluster, fat_data_t* fi) {
-    unsigned int fat_offset  = cluster * 4;
+    cluster_offset_t fat_offset  = cluster * 4;
     sector_addr_t fat_sector = fi->first_fat_sector + (fat_offset / fi->cluster_size);
     unsigned char* cluster_data = malloc_s(fi->bytes_per_sector * fi->sectors_per_cluster);
     if (!cluster_data) {
@@ -21,7 +21,7 @@ cluster_val_t read_fat(cluster_addr_t cluster, fat_data_t* fi) {
 }
 
 int write_fat(cluster_addr_t cluster, cluster_status_t value, fat_data_t* fi) {
-    unsigned int fat_offset  = cluster * 4;
+    cluster_offset_t fat_offset  = cluster * 4;
     sector_addr_t fat_sector = fi->first_fat_sector + (fat_offset / fi->cluster_size);
     unsigned char* cluster_data = malloc_s(fi->bytes_per_sector * fi->sectors_per_cluster);
     if (!cluster_data) {

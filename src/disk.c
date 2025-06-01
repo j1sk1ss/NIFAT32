@@ -7,8 +7,8 @@ static io_t disk_io = {
 };
 
 int DSK_setup(
-    int (*read)(unsigned int, unsigned char*, int), 
-    int (*write)(unsigned int, unsigned char*, int), 
+    int (*read)(sector_addr_t, unsigned char*, int), 
+    int (*write)(sector_addr_t, unsigned char*, int), 
     int sector_size
 ) {
     disk_io.read_sector  = read;
@@ -24,14 +24,17 @@ int DSK_read_sector(sector_addr_t sa, unsigned char* buffer, int buff_size) {
 int DSK_read_sectors(sector_addr_t sa, unsigned char* buffer, int buff_size, int sc) {
     for (int i = 0; i < sc && buff_size > 0; i++) {
         int read_size = buff_size > disk_io.sector_size ? disk_io.sector_size : buff_size;
-        disk_io.read_sector(sa + i, buffer + (i * disk_io.sector_size), read_size);
+        if (!disk_io.read_sector(sa + i, buffer + (i * disk_io.sector_size), read_size)) {
+            return 0;
+        }
+
         buff_size -= read_size;
     }
 
     return 1;
 }
 
-int DSK_readoff_sectors(sector_addr_t sa, unsigned int offset, unsigned char* buffer, int buff_size, int sc) {
+int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* buffer, int buff_size, int sc) {
     return 1;
 }
 
@@ -42,13 +45,16 @@ int DSK_write_sector(sector_addr_t sa, unsigned char* data, int data_size) {
 int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int sc) {
     for (int i = 0; i < sc && data_size > 0; i++) {
         int write_size = data_size > disk_io.sector_size ? disk_io.sector_size : data_size;
-        disk_io.read_sector(sa + i, data + (i * disk_io.sector_size), write_size);
+        if (!disk_io.read_sector(sa + i, data + (i * disk_io.sector_size), write_size)) {
+            return 0;
+        }
+        
         data_size -= write_size;
     }
 
     return 1;
 }
 
-int DSK_writeoff_sectors(sector_addr_t sa, unsigned int offset, unsigned char* data, int data_size, int sc) {
+int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* data, int data_size, int sc) {
     return 1;
 }

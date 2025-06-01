@@ -10,6 +10,7 @@
 #define BAD_CLUSTER_32  0x0FFFFFF7
 #define FREE_CLUSTER_32 0x0
 
+typedef unsigned int cluster_offset_t;
 typedef unsigned int cluster_addr_t;
 typedef unsigned int cluster_status_t;
 typedef unsigned int cluster_val_t;
