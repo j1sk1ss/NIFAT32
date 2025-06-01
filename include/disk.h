@@ -2,6 +2,8 @@
 #define DISK_H_
 
 #include <stddef.h>
+#include "str.h"
+#include "mm.h"
 
 typedef unsigned int sector_offset_t;
 typedef unsigned int sector_addr_t;

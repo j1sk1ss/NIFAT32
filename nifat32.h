@@ -93,7 +93,7 @@ typedef struct directory_entry {
 typedef struct fat_file {
 	char name[8];
 	char extension[4];
-	unsigned int data_head;
+	cluster_addr_t data_head;
 	struct FATFile* next;
 } file_t;
 
@@ -142,9 +142,11 @@ typedef struct {
 } cinfo_t;
 
 int NIFAT32_init();
+int FAT_content_exists(const char* path);
 ci_t FAT_open_content(const char* path);
-int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, unsigned int buff_size);
-int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, unsigned int data_size);
+int FAT_stat_content(int ci, cinfo_t* info);
+int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, int buff_size);
+int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, int data_size);
 int FAT_close_content(ci_t ci);
 
 #endif

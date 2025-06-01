@@ -35,6 +35,29 @@ int DSK_read_sectors(sector_addr_t sa, unsigned char* buffer, int buff_size, int
 }
 
 int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* buffer, int buff_size, int sc) {
+    for (int i = 0; i < sc && buff_size > 0; i++) {
+        if (offset > (unsigned int)disk_io.sector_size) {
+            offset -= disk_io.sector_size;
+            continue;
+        }
+
+        unsigned char* temp_buf = (unsigned char*)malloc_s(disk_io.sector_size);
+        if (!temp_buf) return 0;
+
+        int read_size = ((unsigned int)buff_size < (disk_io.sector_size - offset)) ? (unsigned int)buff_size : disk_io.sector_size - offset;
+        if (!disk_io.read_sector(sa + i, temp_buf, disk_io.sector_size)) {
+            print_error("read_sector() error! sa=%u", sa + i);
+            free_s(temp_buf);
+            return 0;
+        }
+
+        str_memcpy(buffer, temp_buf + offset, read_size);
+        buffer    += read_size;
+        buff_size -= read_size;
+        offset    = 0;
+        free_s(temp_buf);
+    }
+
     return 1;
 }
 
@@ -56,6 +79,35 @@ int DSK_write_sectors(sector_addr_t sa, const unsigned char* data, int data_size
 }
 
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc) {
+    for (int i = 0; i < sc && data_size > 0; i++) {
+        if (offset > (unsigned int)disk_io.sector_size) {
+            offset -= disk_io.sector_size;
+            continue;
+        }
+
+        unsigned char* temp_buf = (unsigned char*)malloc_s(disk_io.sector_size);
+        if (!temp_buf) return 0;
+
+        if (!disk_io.read_sector(sa + i, temp_buf, disk_io.sector_size)) {
+            print_error("read_sector() error! sa=%u", sa + i);
+            free_s(temp_buf);
+            return 0;
+        }
+
+        int write_size = ((unsigned int)data_size < (disk_io.sector_size - offset)) ? (unsigned int)data_size : disk_io.sector_size - offset;
+        str_memcpy(temp_buf + offset, data, write_size);
+        if (!disk_io.write_sector(sa + i, temp_buf, disk_io.sector_size)) {
+            print_error("write_sector() error! sa=%u", sa + i);
+            free_s(temp_buf);
+            return 0;
+        }
+
+        data      += write_size;
+        data_size -= write_size;
+        offset     = 0;
+        free_s(temp_buf);
+    }
+
     return 1;
 }
 

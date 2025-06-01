@@ -54,6 +54,23 @@ int NIFAT32_init() {
         _content_table[i] = NULL;
     }
 
+    print_debug("NIFAT32 init success! Stats from boot sector:");
+    print_debug("FAT type:                  %i", _fs_data.fat_type);
+    print_debug("Bytes per sector:          %u", _fs_data.bytes_per_sector);
+    print_debug("Sectors per cluster:       %u", _fs_data.sectors_per_cluster);
+    print_debug("Reserved sectors:          %u", bootstruct->reserved_sector_count);
+    print_debug("Number of FATs:            %u", bootstruct->table_count);
+    print_debug("FAT size (in sectors):     %u", _fs_data.fat_size);
+    print_debug("Total sectors:             %u", _fs_data.total_sectors);
+    print_debug("Root entry count:          %u", bootstruct->root_entry_count);
+    print_debug("Root dir sectors:          %d", root_dir_sectors);
+    print_debug("Data sectors:              %d", data_sectors);
+    print_debug("Total clusters:            %u", _fs_data.total_clusters);
+    print_debug("First FAT sector:          %u", _fs_data.first_fat_sector);
+    print_debug("First data sector:         %u", _fs_data.first_data_sector);
+    print_debug("Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
+    print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
+
     free_s(sector_data);
     return 1;
 }
@@ -102,8 +119,10 @@ static int _cluster_deallocate(const cluster_addr_t cluster) {
 }
 
 static int _cluster_readoff(cluster_addr_t cluster, cluster_offset_t offset, unsigned char* buffer, int buff_size) {
+    print_debug("_cluster_readoff(cluster=%u, offset=%u)", cluster, offset);
     sector_addr_t start_sect = (cluster - 2) * (unsigned short)_fs_data.sectors_per_cluster + _fs_data.first_data_sector;
-    return DSK_readoff_sectors(start_sect, offset, buffer, buff_size, _fs_data.sectors_per_cluster);
+    if (!offset) return DSK_read_sectors(start_sect, buffer, buff_size, _fs_data.sectors_per_cluster);
+    else return DSK_readoff_sectors(start_sect, offset, buffer, buff_size, _fs_data.sectors_per_cluster);
 }
 
 static int _cluster_read(cluster_addr_t cluster, unsigned char* buffer, int buff_size) {
@@ -112,7 +131,8 @@ static int _cluster_read(cluster_addr_t cluster, unsigned char* buffer, int buff
 
 static int _cluster_writeoff(cluster_addr_t cluster, cluster_offset_t offset, const unsigned char* data, int data_size) {
     sector_addr_t start_sect = (cluster - 2) * (unsigned short)_fs_data.sectors_per_cluster + _fs_data.first_data_sector;
-    return DSK_writeoff_sectors(start_sect, offset, data, data_size, _fs_data.sectors_per_cluster);
+    if (!offset) return DSK_write_sectors(start_sect, data, data_size, _fs_data.sectors_per_cluster);
+    else return DSK_writeoff_sectors(start_sect, offset, data, data_size, _fs_data.sectors_per_cluster);
 }
 
 static int _cluster_write(cluster_addr_t cluster, const unsigned char* data, int data_size) {
@@ -129,6 +149,7 @@ static int _directory_search(
     const cluster_addr_t cluster, 
     directory_entry_t* file
 ) {
+    print_debug("_directory_search(entry_name=%s, cluster=%u)", entry_name, cluster);
     unsigned char* cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
     if (!cluster_data) {
         print_error("malloc_s() error!");
@@ -480,16 +501,17 @@ static content_t* _get_content_from_table(ci_t ci) {
 }
 
 static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* entry) {
+    print_debug("_get_cluster_by_path(path=%s)", path);
     unsigned int start = 0;
     char fileNamePart[256] = { 0 };
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
 
     directory_entry_t file_info;
     for (unsigned int iterator = 0; iterator <= str_strlen(path); iterator++) {
-        if (path[iterator] == '\\' || path[iterator] == '\0') {
+        if (path[iterator] == '/' || path[iterator] == '\0') {
             str_memset(fileNamePart, 0, 256);
             str_memcpy(fileNamePart, path + start, iterator - start);
-            if (_directory_search(fileNamePart, active_cluster, &file_info) < 0) return -1;
+            if (_directory_search(fileNamePart, active_cluster, &file_info) < 0) return BAD_CLUSTER_32;
             start = iterator + 1;
 
             active_cluster = GET_CLUSTER_FROM_ENTRY(file_info, _fs_data.fat_type);
@@ -504,10 +526,11 @@ static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* 
 }
 
 int FAT_content_exists(const char* path) {
-    return _get_cluster_by_path(path, NULL) > 0 ? 1 : 0;
+    return _get_cluster_by_path(path, NULL) != BAD_CLUSTER_32;
 }
 
 ci_t FAT_open_content(const char* path) {
+    print_debug("FAT_open_content(path=%s)", path);
     content_t* fat_content = _create_content();
     if (!fat_content) {
         print_error("_create_content() error!");
@@ -520,6 +543,9 @@ ci_t FAT_open_content(const char* path) {
         _unload_content_system(fat_content);
         return -2;
     }
+    else {
+        print_debug("FAT_open_content: Content cluster is: %u", cluster);
+    }
     
     if ((fat_content->meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY) {
         fat_content->file = _create_file();
@@ -531,8 +557,7 @@ ci_t FAT_open_content(const char* path) {
 
         fat_content->content_type = CONTENT_TYPE_FILE;        
         fat_content->file->data_head = cluster;        
-        str_strncpy(fat_content->file->name, (char*)fat_content->meta.file_name, 13);
-        /* TODO tool for fat2name and name2fat or change struct*/
+        str_memcpy(fat_content->file->name, fat_content->meta.file_name, 11);
     }
     else {
         fat_content->directory = _create_directory();
@@ -542,8 +567,7 @@ ci_t FAT_open_content(const char* path) {
         }
 
         fat_content->content_type = CONTENT_TYPE_DIRECTORY;
-        str_strncpy(fat_content->directory->name, (char*)fat_content->meta.file_name, 10);
-        /* TODO tool for fat2name and name2fat or change struct*/
+        str_memcpy(fat_content->directory->name, fat_content->meta.file_name, 11);
     }
 
     ci_t ci = _add_content2table(fat_content);
@@ -560,7 +584,8 @@ int FAT_close_content(ci_t ci) {
     return _remove_content_from_table(ci);
 }
 
-int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, unsigned int buff_size) {
+int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, int buff_size) {
+    print_debug("FAT_read_content2buffer(ci=%i, offset=%u)", ci, offset);
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");
@@ -615,7 +640,7 @@ static cluster_addr_t _add_cluster_to_content(ci_t ci) {
     return BAD_CLUSTER_32;
 }
 
-int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, unsigned int data_size) {
+int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, int data_size) {
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");
@@ -787,13 +812,14 @@ int FAT_stat_content(int ci, cinfo_t* info) {
 
     if (content->content_type == CONTENT_TYPE_DIRECTORY) {
         info->size = 0;
-        str_strcpy((char*)info->full_name, (char*)content->directory->name);
+        str_memcpy(info->full_name, content->directory->name, 11);
         info->type = STAT_DIR;
     }
     else if (content->content_type == CONTENT_TYPE_FILE) {
-        str_strcpy((char*)info->full_name, (char*)content->meta.file_name);
-        str_strcpy(info->file_name, content->file->name);
-        str_strcpy(info->file_extension, content->file->extension);
+        str_memcpy(info->full_name, content->meta.file_name, 11);
+        str_memcpy(info->file_name, content->meta.file_name, 8);
+        info->file_name[7] = 0;
+        str_memcpy(info->file_extension, content->meta.file_name + 8, 3);
         info->type = STAT_FILE;
     }
     else {

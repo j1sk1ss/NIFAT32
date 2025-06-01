@@ -91,39 +91,21 @@ int fatname_to_name(const char* fatname, char* name) {
 }
 
 int name_to_fatname(const char* name, char* fatname) {
-    int has_ext            = 0;
-    unsigned short dot_pos = 0;
-    unsigned int counter   = 0;
-
-    while (counter++ <= 8) {
-        if (name[counter] == '.' || name[counter] == '\0') {
-            if (name[counter] == '.') has_ext = 1;
-            dot_pos = counter;
-            break;
-        }
-        else {
-            fatname[counter] = name[counter];
-        }
-    }
-
-    if (counter > 9) {
-        counter = 8;
-        dot_pos = 8;
+    int i = 0, j = 0;
+    while (name[i] != '\0' && name[i] != '.' && j < 8) {
+        fatname[j++] = name[i++];
     }
     
-    unsigned short extCount = 8;
-    while (extCount < 11) {
-        if (name[counter] && has_ext) fatname[extCount] = name[counter];
-        else fatname[extCount] = ' ';
+    while (j < 8) fatname[j++] = ' ';
+    if (name[i] == '.') i++;
 
-        counter++;
-        extCount++;
+    int ext = 0;
+    while (name[i] != '\0' && ext < 3) {
+        fatname[j++] = name[i++];
+        ext++;
     }
 
-    counter = dot_pos;
-    while (counter < 8) {
-        fatname[counter++] = ' ';
-    }
-
+    while (j < 11) fatname[j++] = ' ';
+    str_uppercase(fatname);
     return 1;
 }

@@ -28,5 +28,9 @@ ctype special functions.
 */
 int is_number(char* s);
 int str_isdigit(int c);
+int str_islower(int c);
+int str_tolower(int c);
+int str_toupper(int c);
+int str_uppercase(char* str);
 
 #endif

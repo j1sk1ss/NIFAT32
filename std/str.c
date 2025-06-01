@@ -133,3 +133,26 @@ int is_number(char* s) {
 int str_isdigit(int c) {
     return (c >= '0' && c <= '9');
 }
+
+int str_islower(int c) {
+    return c >= 'a' && c <= 'z';
+}
+
+int str_tolower(int c) {
+	if (!str_islower(c)) return c | 32;
+	return c;
+}
+
+int str_toupper(int c) {
+    if (str_islower(c)) return c - 'a' + 'A';
+    else return c;
+}
+
+int str_uppercase(char* str) {
+    if (!str) return 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        str[i] = str_toupper(str[i]);
+    }
+
+    return 1;
+}
