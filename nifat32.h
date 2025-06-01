@@ -2,6 +2,7 @@
 #define NIFAT32_H_
 
 #include <stddef.h>
+#include "include/fatname.h"
 #include "include/fat.h"
 #include "include/fatinfo.h"
 #include "include/mm.h"
@@ -23,12 +24,6 @@
 #define ENTRY_END            0x00
 #define ENTRY_JAPAN          0x05
 #define LAST_LONG_ENTRY      0x40
-
-#define LOWERCASE_ISSUE	  0x01
-#define BAD_CHARACTER	  0x02
-#define BAD_TERMINATION   0x04
-#define NOT_CONVERTED_YET 0x08
-#define TOO_MANY_DOTS     0x10
 
 #define GET_CLUSTER_FROM_ENTRY(x, fat_type)  (x.low_bits | (x.high_bits << (fat_type / 2)))
 #define GET_CLUSTER_FROM_PENTRY(x, fat_type) (x->low_bits | (x->high_bits << (fat_type / 2)))
@@ -147,5 +142,9 @@ typedef struct {
 } cinfo_t;
 
 int NIFAT32_init();
+ci_t FAT_open_content(const char* path);
+int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, unsigned int buff_size);
+int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, unsigned int data_size);
+int FAT_close_content(ci_t ci);
 
 #endif

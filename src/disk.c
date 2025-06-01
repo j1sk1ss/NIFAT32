@@ -8,7 +8,7 @@ static io_t disk_io = {
 
 int DSK_setup(
     int (*read)(sector_addr_t, unsigned char*, int), 
-    int (*write)(sector_addr_t, unsigned char*, int), 
+    int (*write)(sector_addr_t, const unsigned char*, int), 
     int sector_size
 ) {
     disk_io.read_sector  = read;
@@ -38,14 +38,14 @@ int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char*
     return 1;
 }
 
-int DSK_write_sector(sector_addr_t sa, unsigned char* data, int data_size) {
+int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size) {
     return disk_io.write_sector(sa, data, data_size);
 }
 
-int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int sc) {
+int DSK_write_sectors(sector_addr_t sa, const unsigned char* data, int data_size, int sc) {
     for (int i = 0; i < sc && data_size > 0; i++) {
         int write_size = data_size > disk_io.sector_size ? disk_io.sector_size : data_size;
-        if (!disk_io.read_sector(sa + i, data + (i * disk_io.sector_size), write_size)) {
+        if (!disk_io.write_sector(sa + i, data + (i * disk_io.sector_size), write_size)) {
             return 0;
         }
         
@@ -55,7 +55,7 @@ int DSK_write_sectors(sector_addr_t sa, unsigned char* data, int data_size, int 
     return 1;
 }
 
-int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* data, int data_size, int sc) {
+int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc) {
     return 1;
 }
 

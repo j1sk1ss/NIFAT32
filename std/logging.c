@@ -1,6 +1,5 @@
 #include "../include/logging.h"
 
-
 void _write_log(const char* level, const char* file, int line, const char* message, va_list args) {
     #pragma omp critical
     {

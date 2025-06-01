@@ -1,1 +1,4 @@
 /.vscode
+builds
+formatter/nifat32
+*.img
