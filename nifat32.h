@@ -39,6 +39,7 @@
 typedef int ci_t;
 typedef unsigned int checksum_t;
 typedef unsigned char* buffer_t;
+typedef const unsigned char* const_buffer_t;
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -152,7 +153,7 @@ int NIFAT32_content_exists(const char* path);
 ci_t NIFAT32_open_content(const char* path);
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info);
 int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
-int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffer_t data, int data_size);
+int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const_buffer_t data, int data_size);
 int NIFAT32_close_content(ci_t ci);
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info);

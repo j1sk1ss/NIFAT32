@@ -149,13 +149,21 @@ static int _cluster_read(cluster_addr_t cluster, buffer_t buffer, int buff_size)
     return _cluster_readoff(cluster, 0, buffer, buff_size);
 }
 
-static int _cluster_writeoff(cluster_addr_t cluster, cluster_offset_t offset, const buffer_t data, int data_size) {
+static int _cluster_writeoff(cluster_addr_t cluster, cluster_offset_t offset, const_buffer_t data, int data_size) {
     sector_addr_t start_sect = (cluster - 2) * (unsigned short)_fs_data.sectors_per_cluster + _fs_data.first_data_sector;
     return DSK_writeoff_sectors(start_sect, offset, data, data_size, _fs_data.sectors_per_cluster);
 }
 
-static int _cluster_write(cluster_addr_t cluster, const buffer_t data, int data_size) {
+static int _cluster_write(cluster_addr_t cluster, const_buffer_t data, int data_size) {
     return _cluster_writeoff(cluster, 0, data, data_size);
+}
+
+static int _validate_entry(directory_entry_t* entry) {
+    checksum_t entry_checksum = entry->checksum;
+    entry->checksum = 0;
+    if (crc32(0, (buffer_t)entry, sizeof(directory_entry_t)) != entry_checksum) return 0;
+    else entry->checksum = entry_checksum;
+    return 1;
 }
 
 static int _entry_search(
@@ -177,9 +185,14 @@ static int _entry_search(
 
     unsigned int iterator = 0;
     directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    while (1) {
+    for (;;) {
         if (file_metadata->file_name[0] == ENTRY_END) break;
-        else if (str_strncmp((char*)file_metadata->file_name, entry_name, 11)) {
+        if (!_validate_entry(file_metadata)) {
+            print_warn("directory_entry_t checksum validation error!");
+            break;
+        }
+
+        if (str_strncmp((char*)file_metadata->file_name, entry_name, 11)) {
             if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1) {
                 iterator++;
                 file_metadata++;
@@ -222,8 +235,12 @@ static int _entry_add(const cluster_addr_t cluster, directory_entry_t* meta) {
 
     unsigned int iterator = 0;
     directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    while (1) {
-        if (file_metadata->file_name[0] != ENTRY_FREE && file_metadata->file_name[0] != ENTRY_END) {
+    for (;;) {
+        if (
+            _validate_entry(file_metadata) &&
+            file_metadata->file_name[0] != ENTRY_FREE && 
+            file_metadata->file_name[0] != ENTRY_END
+        ) {
             if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1) {
                 file_metadata++;
                 iterator++;
@@ -254,7 +271,7 @@ static int _entry_add(const cluster_addr_t cluster, directory_entry_t* meta) {
             if (iterator + 1 < _fs_data.cluster_size / sizeof(directory_entry_t)) {
                 (file_metadata + 1)->file_name[0] = ENTRY_END;
             }
-            
+
             if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing new directory entry failed. Aborting...");
                 free_s(cluster_data);
@@ -290,8 +307,11 @@ static int _entry_edit(const cluster_addr_t cluster, directory_entry_t* old_meta
 
     unsigned int iterator = 0;
     directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    while (1) {
-        if (!str_strcmp((char*)file_metadata->file_name, (char*)old_meta->file_name)) {
+    for (;;) {
+        if (
+            _validate_entry(file_metadata) &&
+            !str_strcmp((char*)file_metadata->file_name, (char*)old_meta->file_name)
+        ) {
             str_memcpy(file_metadata, new_meta, sizeof(directory_entry_t));
             if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing updated directory entry failed. Aborting...");
@@ -338,8 +358,11 @@ static int _entry_remove(const cluster_addr_t cluster, const directory_entry_t* 
 
     unsigned int iterator = 0;
     directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    while (1) {
-        if (!str_strcmp((char*)file_metadata->file_name, (char*)meta->file_name)) {
+    for (;;) {
+        if (
+            _validate_entry(file_metadata) &&
+            !str_strcmp((char*)file_metadata->file_name, (char*)meta->file_name)
+        ) {
             file_metadata->file_name[0] = ENTRY_FREE;
             if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing updated directory entry failed. Aborting...");
@@ -404,11 +427,10 @@ static int _create_entry(
     entry->creation_date = _current_date();
     entry->creation_time = _current_time();
     entry->creation_time_tenths = _current_time();
+    name_to_fatname(tmp_filename, (char*)entry->file_name);
 
     entry->checksum = 0;
     entry->checksum = crc32(0, (buffer_t)entry, sizeof(directory_entry_t));
-
-    name_to_fatname(tmp_filename, (char*)entry->file_name);
     print_debug("_create_entry=%s/%u", entry->file_name, entry->attributes);
     return 1; 
 }
@@ -625,7 +647,7 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci) {
     return BAD_CLUSTER_32;
 }
 
-int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffer_t data, int data_size) {
+int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const_buffer_t data, int data_size) {
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");

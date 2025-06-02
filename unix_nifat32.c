@@ -15,11 +15,11 @@ On embedded system it will much faster.
 
 static int disk_fd = 0;
 
-int _mock_sector_read_(sector_addr_t sa, unsigned int offset, unsigned char* buffer, int buff_size) {
+int _mock_sector_read_(sector_addr_t sa, sector_offset_t offset, buffer_t buffer, int buff_size) {
     return pread(disk_fd, buffer, buff_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
-int _mock_sector_write_(sector_addr_t sa, unsigned int offset, const unsigned char* data, int data_size) {
+int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t data, int data_size) {
     return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
         /* Writing test */
         {
             fprintf(stdout, "Trying to write data to content\n");
-            if (NIFAT32_write_buffer2content(ci, 5, (const buffer_t)"nax!", 5) < 0) {
+            if (NIFAT32_write_buffer2content(ci, 5, (const_buffer_t)"nax!", 5) < 0) {
                 fprintf(stderr, "Can't write file %s!\n", fatname_buffer);
                 NIFAT32_close_content(ci);
                 close(disk_fd);
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (NIFAT32_write_buffer2content(ci, 0, (const buffer_t)"Hello from new file!", 21) < 0) {
+        if (NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)"Hello from new file!", 21) < 0) {
             NIFAT32_close_content(ci);
             close(disk_fd);
             return EXIT_FAILURE;
