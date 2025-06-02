@@ -47,52 +47,61 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    const char* test_file = argv[1];
-    char fatname_buffer[13] = { 0 };
-    name_to_fatname(test_file, fatname_buffer);
-
-    if (!NIFAT32_content_exists(fatname_buffer)) {
-        fprintf(stderr, "File %s not found!\n", fatname_buffer);
-        return EXIT_FAILURE;
-    }
-    else {
-        fprintf(stdout, "File %s found!\n", fatname_buffer);
-    }
-
-    unsigned char content[512] = { 0 };
-    fprintf(stdout, "Trying to open file: %s\n", fatname_buffer);
-    ci_t ci = NIFAT32_open_content(fatname_buffer);
-    if (ci < 0) {
-        fprintf(stderr, "Can't open file %s!\n", fatname_buffer);
-        return EXIT_FAILURE;
-    }
-
-    cinfo_t info;
-    NIFAT32_stat_content(ci, &info);
-    fprintf(stdout, "Opened content name: %s.%s\n", info.file_name, info.file_extension);
-
-    /* Reading test */
+    /* Base file read / write test */
     {
-        fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
-        if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
-            fprintf(stderr, "Can't read file %s!\n", fatname_buffer);
-            NIFAT32_close_content(ci);
+        const char* test_file = argv[1];
+        char fatname_buffer[13] = { 0 };
+        name_to_fatname(test_file, fatname_buffer);
+
+        if (!NIFAT32_content_exists(fatname_buffer)) {
+            fprintf(stderr, "File %s not found!\n", fatname_buffer);
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+        else {
+            fprintf(stdout, "File %s found!\n", fatname_buffer);
+        }
+
+        unsigned char content[512] = { 0 };
+        fprintf(stdout, "Trying to open file: %s\n", fatname_buffer);
+        ci_t ci = NIFAT32_open_content(fatname_buffer);
+        if (ci < 0) {
+            fprintf(stderr, "Can't open file %s!\n", fatname_buffer);
+            close(disk_fd);
             return EXIT_FAILURE;
         }
 
-        fprintf(stdout, "Content data: %s\n", content);
-    }
+        cinfo_t info;
+        NIFAT32_stat_content(ci, &info);
+        fprintf(stdout, "Opened content name: %s.%s\n", info.file_name, info.file_extension);
 
-    /* Writing test */
-    {
-        fprintf(stdout, "Trying to write data to content\n");
-        if (NIFAT32_write_buffer2content(ci, 5, (const buffer_t)"nax!", 5) < 0) {
-            fprintf(stderr, "Can't write file %s!\n", fatname_buffer);
-            NIFAT32_close_content(ci);
-            return EXIT_FAILURE;
+        /* Reading test */
+        {
+            fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
+            if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
+                fprintf(stderr, "Can't read file %s!\n", fatname_buffer);
+                NIFAT32_close_content(ci);
+                close(disk_fd);
+                return EXIT_FAILURE;
+            }
+
+            fprintf(stdout, "Content data: %s\n", content);
         }
 
-        fprintf(stdout, "Writing complete!\n");
+        /* Writing test */
+        {
+            fprintf(stdout, "Trying to write data to content\n");
+            if (NIFAT32_write_buffer2content(ci, 5, (const buffer_t)"nax!", 5) < 0) {
+                fprintf(stderr, "Can't write file %s!\n", fatname_buffer);
+                NIFAT32_close_content(ci);
+                close(disk_fd);
+                return EXIT_FAILURE;
+            }
+
+            fprintf(stdout, "Writing complete!\n");
+        }
+
+        NIFAT32_close_content(ci);
     }
 
     /* File creating test */
@@ -114,6 +123,7 @@ int main(int argc, char* argv[]) {
 
         ci_t root_ci = NIFAT32_open_content(path_buffer);
         if (root_ci < 0) {
+            close(disk_fd);
             return EXIT_FAILURE;
         }
 
@@ -123,6 +133,7 @@ int main(int argc, char* argv[]) {
         name_to_fatname("root/tdir", path_buffer);
         ci_t tdir_ci = NIFAT32_open_content(path_buffer);
         if (tdir_ci < 0) {
+            close(disk_fd);
             return EXIT_FAILURE;
         }
 
@@ -130,7 +141,47 @@ int main(int argc, char* argv[]) {
         NIFAT32_close_content(tdir_ci);
     }
 
-    NIFAT32_close_content(ci);
+    /* Write to created file test */
+    {
+        char path_buffer[128] = { 0 };
+        name_to_fatname("root/tdir/", path_buffer);
+        name_to_fatname("tfile.txt", path_buffer + 10);
+        ci_t ci = NIFAT32_open_content(path_buffer);
+        if (ci < 0) {
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+
+        if (NIFAT32_write_buffer2content(ci, 0, (const buffer_t)"Hello from new file!", 21) < 0) {
+            NIFAT32_close_content(ci);
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+
+        NIFAT32_close_content(ci);
+    }
+
+    /* Read from new file */
+    {
+        char path_buffer[128] = { 0 };
+        name_to_fatname("root/tdir/", path_buffer);
+        name_to_fatname("tfile.txt", path_buffer + 10);
+        ci_t ci = NIFAT32_open_content(path_buffer);
+        if (ci < 0) {
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+
+        char content[512] = { 0 };
+        if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
+            NIFAT32_close_content(ci);
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+
+        fprintf(stdout, "Content from new file: %s\n", content);
+        NIFAT32_close_content(ci);
+    }
 
     close(disk_fd);
     return EXIT_SUCCESS;
