@@ -108,6 +108,7 @@ int main(int argc, char* argv[]) {
     {
         const char* new_directory = "tdir";
         const char* new_file = "tfile.txt";
+        fprintf(stdout, "Trying to create new file %s in directory %s\n", new_file, new_directory);
 
         cinfo_t dir_info = { .type = STAT_DIR };
         str_memcpy(dir_info.file_name, "tdir", 4);
@@ -142,7 +143,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* Write to created file test */
-    {
+    if (0) {
         char path_buffer[128] = { 0 };
         name_to_fatname("root/tdir/", path_buffer);
         name_to_fatname("tfile.txt", path_buffer + 10);
@@ -162,7 +163,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* Read from new file */
-    {
+    if (0) {
         char path_buffer[128] = { 0 };
         name_to_fatname("root/tdir/", path_buffer);
         name_to_fatname("tfile.txt", path_buffer + 10);
@@ -181,6 +182,20 @@ int main(int argc, char* argv[]) {
 
         fprintf(stdout, "Content from new file: %s\n", content);
         NIFAT32_close_content(ci);
+    }
+
+    /* Deleting file */
+    if (0) {
+        // char path_buffer[128] = { 0 };
+        // name_to_fatname("root/tdir/", path_buffer);
+        // name_to_fatname("tfile.txt", path_buffer + 10);
+        // ci_t ci = NIFAT32_open_content(path_buffer);
+        // if (ci < 0) {
+        //     close(disk_fd);
+        //     return EXIT_FAILURE;
+        // }
+
+        // NIFAT32_delete_content(ci);
     }
 
     close(disk_fd);

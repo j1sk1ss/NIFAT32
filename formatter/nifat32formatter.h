@@ -42,6 +42,7 @@ typedef struct fat_extBS_32 {
 	unsigned int   volume_id;
 	unsigned char  volume_label[11];
 	unsigned char  fat_type_label[8];
+	unsigned int   checksum;
 } __attribute__((packed)) fat_extBS_32_t;
 
 typedef struct fat_BS {
@@ -59,7 +60,8 @@ typedef struct fat_BS {
 	unsigned short head_side_count;
 	unsigned int   hidden_sector_count;
 	unsigned int   total_sectors_32;
-	unsigned char  extended_section[54];
+	unsigned char  extended_section[sizeof(fat_extBS_32_t)];
+	unsigned int   checksum;
 } __attribute__((packed)) fat_BS_t;
 
 /* from http://wiki.osdev.org/FAT */
@@ -78,6 +80,7 @@ typedef struct directory_entry {
 	unsigned short last_modification_date;
 	unsigned short low_bits;
 	unsigned int   file_size;
+	unsigned int   checksum;
 } __attribute__((packed)) directory_entry_t;
 
 #endif

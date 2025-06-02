@@ -30,8 +30,29 @@ int NIFAT32_init() {
     }
 
     fat_BS_t* bootstruct = (fat_BS_t*)sector_data;
+    fat_extBS_32_t* ext_bootstruct = (fat_extBS_32_t*)bootstruct->extended_section;
+
+    checksum_t bcheck = bootstruct->checksum;
+    bootstruct->checksum = 0;
+    checksum_t exbcheck = ext_bootstruct->checksum;
+    ext_bootstruct->checksum = 0;
+    
+    ext_bootstruct->checksum = crc32(0, (buffer_t)ext_bootstruct, sizeof(fat_extBS_32_t));
+    bootstruct->checksum     = crc32(0, (buffer_t)bootstruct, sizeof(fat_BS_t));
+    if (bootstruct->checksum != bcheck || ext_bootstruct->checksum != exbcheck) {
+        print_error(
+            "Checksum check error! %u != %u or %u != %u", 
+            bootstruct->checksum, bcheck, ext_bootstruct->checksum, exbcheck
+        );
+        return 0;
+    }
+    else {
+        bootstruct->checksum     = bcheck;
+        ext_bootstruct->checksum = exbcheck;
+    }
+
     _fs_data.total_sectors = bootstruct->total_sectors_32;
-    _fs_data.fat_size = ((fat_extBS_32_t*)(bootstruct->extended_section))->table_size_32; 
+    _fs_data.fat_size = ext_bootstruct->table_size_32; 
 
     int root_dir_sectors = ((bootstruct->root_entry_count * 32) + (bootstruct->bytes_per_sector - 1)) / bootstruct->bytes_per_sector;
     int data_sectors = _fs_data.total_sectors - (bootstruct->reserved_sector_count + (bootstruct->table_count * _fs_data.fat_size) + root_dir_sectors);
@@ -44,11 +65,11 @@ int NIFAT32_init() {
     }
 
     _fs_data.fat_type = 32;
-	_fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ((fat_extBS_32_t*)(bootstruct->extended_section))->table_size_32;
+	_fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ext_bootstruct->table_size_32;
     _fs_data.sectors_per_cluster = bootstruct->sectors_per_cluster;
     _fs_data.bytes_per_sector = bootstruct->bytes_per_sector;
     _fs_data.first_fat_sector = bootstruct->reserved_sector_count;
-    _fs_data.ext_root_cluster = ((fat_extBS_32_t*)(bootstruct->extended_section))->root_cluster;
+    _fs_data.ext_root_cluster = ext_bootstruct->root_cluster;
     _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
     for (int i = 0; i < CONTENT_TABLE_SIZE; i++) {
         _content_table[i] = NULL;
@@ -381,6 +402,9 @@ static int _create_entry(
     entry->creation_date = _current_date();
     entry->creation_time = _current_time();
     entry->creation_time_tenths = _current_time();
+
+    entry->checksum = 0;
+    entry->checksum = crc32(0, (buffer_t)entry, sizeof(directory_entry_t));
 
     name_to_fatname(tmp_filename, (char*)entry->file_name);
     print_debug("_create_entry=%s/%u", entry->file_name, entry->attributes);

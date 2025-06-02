@@ -2,6 +2,7 @@
 #define NIFAT32_H_
 
 #include <stddef.h>
+#include "include/checksum.h"
 #include "include/fatname.h"
 #include "include/fat.h"
 #include "include/fatinfo.h"
@@ -36,6 +37,7 @@
 
 /* Content Index - ci */
 typedef int ci_t;
+typedef unsigned int checksum_t;
 typedef unsigned char* buffer_t;
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
@@ -53,6 +55,7 @@ typedef struct fat_extBS_32 {
 	unsigned int   volume_id;
 	unsigned char  volume_label[11];
 	unsigned char  fat_type_label[8];
+	checksum_t checksum;
 } __attribute__((packed)) fat_extBS_32_t;
 
 typedef struct fat_BS {
@@ -70,7 +73,8 @@ typedef struct fat_BS {
 	unsigned short head_side_count;
 	unsigned int   hidden_sector_count;
 	unsigned int   total_sectors_32;
-	unsigned char  extended_section[54];
+	unsigned char  extended_section[sizeof(fat_extBS_32_t)];
+	checksum_t checksum;
 } __attribute__((packed)) fat_BS_t;
 
 /* from http://wiki.osdev.org/FAT */
@@ -89,6 +93,7 @@ typedef struct directory_entry {
 	unsigned short last_modification_date;
 	unsigned short low_bits;
 	unsigned int   file_size;
+	checksum_t checksum;
 } __attribute__((packed)) directory_entry_t;
 
 typedef struct fat_file {
@@ -151,5 +156,6 @@ int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffe
 int NIFAT32_close_content(ci_t ci);
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
+int NIFAT32_delete_content(ci_t ci);
 
 #endif
