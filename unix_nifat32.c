@@ -24,11 +24,6 @@ int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <path>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
     disk_fd = open(DISK_PATH, O_RDWR);
     if (disk_fd < 0) {
         fprintf(stderr, "%s not found!\n", DISK_PATH);
@@ -49,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     /* Base file read / write test */
     if (1) {
-        const char* test_file = argv[1];
+        const char* test_file = "test.txt";
         char fatname_buffer[13] = { 0 };
         name_to_fatname(test_file, fatname_buffer);
 
@@ -78,7 +73,7 @@ int main(int argc, char* argv[]) {
         /* Reading test */
         {
             fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
-            if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
+            if (!NIFAT32_read_content2buffer(ci, 0, content, 512)) {
                 fprintf(stderr, "Can't read file %s!\n", fatname_buffer);
                 NIFAT32_close_content(ci);
                 close(disk_fd);
@@ -91,7 +86,7 @@ int main(int argc, char* argv[]) {
         /* Writing test */
         {
             fprintf(stdout, "Trying to write data to content\n");
-            if (NIFAT32_write_buffer2content(ci, 5, (const_buffer_t)"nax!", 5) < 0) {
+            if (!NIFAT32_write_buffer2content(ci, 5, (const_buffer_t)"nax!", 5)) {
                 fprintf(stderr, "Can't write file %s!\n", fatname_buffer);
                 NIFAT32_close_content(ci);
                 close(disk_fd);
@@ -99,6 +94,23 @@ int main(int argc, char* argv[]) {
             }
 
             fprintf(stdout, "Writing complete!\n");
+        }
+
+        /* Renaming test */
+        {
+            cinfo_t new_info = { .type = STAT_FILE };
+            str_memcpy(new_info.file_name, "sest", 6);
+            str_memcpy(new_info.file_extension, "dxd", 4);
+            name_to_fatname("sest.dxd", new_info.full_name);
+
+            if (!NIFAT32_change_meta(ci, &new_info)) {
+                fprintf(stderr, "Can't change file %s!\n", fatname_buffer);
+                NIFAT32_close_content(ci);
+                close(disk_fd);
+                return EXIT_FAILURE;
+            }
+
+            fprintf(stdout, "Metachange complete!\n");
         }
 
         NIFAT32_close_content(ci);
@@ -155,7 +167,7 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)"Hello from new file!", 21) < 0) {
+        if (!NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)"Hello from new file!", 21)) {
             NIFAT32_close_content(ci);
             close(disk_fd);
             return EXIT_FAILURE;
@@ -178,7 +190,7 @@ int main(int argc, char* argv[]) {
         }
 
         char content[512] = { 0 };
-        if (NIFAT32_read_content2buffer(ci, 0, (buffer_t)content, 512) < 0) {
+        if (!NIFAT32_read_content2buffer(ci, 0, (buffer_t)content, 512)) {
             NIFAT32_close_content(ci);
             close(disk_fd);
             return EXIT_FAILURE;

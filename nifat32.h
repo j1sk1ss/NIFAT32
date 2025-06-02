@@ -28,11 +28,6 @@
 
 #define GET_CLUSTER_FROM_ENTRY(x, fat_type)  (x.low_bits | (x.high_bits << (fat_type / 2)))
 #define GET_CLUSTER_FROM_PENTRY(x, fat_type) (x->low_bits | (x->high_bits << (fat_type / 2)))
-
-#define GET_ENTRY_LOW_BITS(x, fat_type)           ((x) & ((1 << (fat_type / 2)) - 1))
-#define GET_ENTRY_HIGH_BITS(x, fat_type)          ((x) >> (fat_type / 2))
-#define CONCAT_ENTRY_HL_BITS(high, low, fat_type) ((high << (fat_type / 2)) | low)
-
 #define CONTENT_TABLE_SIZE	50
 
 /* Content Index - ci */
@@ -148,15 +143,72 @@ typedef struct {
 	unsigned short last_modification_date;
 } cinfo_t;
 
+/*
+Init function. 
+Note: This function also init memory manager.
+Return 1 if init success.
+Return 0 if init was interrupted by error.
+*/
 int NIFAT32_init();
+
+/*
+Return 1 if content exists.
+Return 0 if content not exists.
+*/
 int NIFAT32_content_exists(const char* path);
+
+/*
+Open content to content table.
+Params:
+- path - Path to content (dir or file).
+
+Return content index or negative error code.
+*/
 ci_t NIFAT32_open_content(const char* path);
+
+/*
+Get summary info about content.
+Params:
+- ci - Content index.
+- info - Pointer to info struct that will be filled by info.
+
+Return 1 if stat success.
+Return 0 if something goes wrong.
+*/
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info);
+
+/*
+Change meta data of content.
+Note: This function will change creation date, file and extention.
+Note 2: This function can't change filesize and base cluster.
+Params:
+- ci - Targer content index.
+- info - New meta data.
+         Note: required fields is file_name, file_extension and type.
+
+Return 1 if change success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info);
+
+/*
+*/
 int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
+
+/*
+*/
 int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const_buffer_t data, int data_size);
+
+/*
+*/
 int NIFAT32_close_content(ci_t ci);
 
+/*
+*/
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
+
+/*
+*/
 int NIFAT32_delete_content(ci_t ci);
 
 #endif
