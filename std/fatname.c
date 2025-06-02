@@ -69,7 +69,7 @@ int fatname_to_name(const char* fatname, char* name) {
         name[j++] = fatname[i];
     }
 
-    name[j] = '\0';
+    name[j] = 0;
     return 1;
 }
 
@@ -90,5 +90,6 @@ int name_to_fatname(const char* name, char* fatname) {
 
     while (j < 11) fatname[j++] = ' ';
     str_uppercase(fatname);
+    fatname[j] = 0;
     return 1;
 }

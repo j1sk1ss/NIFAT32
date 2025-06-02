@@ -101,15 +101,33 @@ int main(int argc, char* argv[]) {
         const char* new_file = "tfile.txt";
 
         cinfo_t dir_info = { .type = STAT_DIR };
-        str_memcpy(dir_info.full_name, new_directory, 5);
-        str_memcpy(dir_info.file_name, new_directory, 5);
+        str_memcpy(dir_info.file_name, "tdir", 4);
+        name_to_fatname("tdir", dir_info.full_name);
+
         cinfo_t file_info = { .type = STAT_FILE };
         str_memcpy(file_info.file_name, "tfile", 6);
         str_memcpy(file_info.file_extension, "txt", 4);
-        str_memcpy(file_info.full_name, new_file, 10);
+        name_to_fatname("tfile.txt", file_info.full_name);
 
-        NIFAT32_put_content("/", &dir_info);
-        NIFAT32_put_content("tdir", &file_info);
+        char path_buffer[100] = { 0 };
+        name_to_fatname("root", path_buffer);
+
+        ci_t root_ci = NIFAT32_open_content(path_buffer);
+        if (root_ci < 0) {
+            return EXIT_FAILURE;
+        }
+
+        NIFAT32_put_content(root_ci, &dir_info);
+        NIFAT32_close_content(root_ci);
+
+        name_to_fatname("root/tdir", path_buffer);
+        ci_t tdir_ci = NIFAT32_open_content(path_buffer);
+        if (tdir_ci < 0) {
+            return EXIT_FAILURE;
+        }
+
+        NIFAT32_put_content(tdir_ci, &file_info);
+        NIFAT32_close_content(tdir_ci);
     }
 
     NIFAT32_close_content(ci);

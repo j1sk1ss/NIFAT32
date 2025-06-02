@@ -157,6 +157,7 @@ static int _directory_search(
     unsigned int iterator = 0;
     directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
     while (1) {
+        print_spec("file_metadata->file_name=[%s] and [%s]", file_metadata->file_name, entry_name);
         if (file_metadata->file_name[0] == ENTRY_END) break;
         else if (str_strncmp((char*)file_metadata->file_name, entry_name, 11)) {
             if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1) {
@@ -192,6 +193,7 @@ static int _directory_search(
 }
 
 static int _directory_add(const cluster_addr_t cluster, directory_entry_t* file_to_add) {
+    print_debug("_directory_add(cluster=%u, file=%s)", cluster, file_to_add->file_name);
     buffer_t cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
     if (!_cluster_read(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
         print_error("_cluster_read() encountered an error. Aborting...");
@@ -362,7 +364,7 @@ static int _create_entry(
 ) {
     char tmp_filename[25] = { 0 };
     str_strcpy(tmp_filename, name);
-    if (ext) {
+    if (!is_dir) {
         str_strcat(tmp_filename, ".");
         str_strcat(tmp_filename, ext);
     }
@@ -380,10 +382,8 @@ static int _create_entry(
     entry->creation_time = _current_time();
     entry->creation_time_tenths = _current_time();
 
-    if (!is_fatname(tmp_filename)) {
-        name_to_fatname(tmp_filename, (char*)entry->file_name);
-    }
-
+    name_to_fatname(tmp_filename, (char*)entry->file_name);
+    print_debug("_create_entry=%s/%u", entry->file_name, entry->attributes);
     return 1; 
 }
 
@@ -446,22 +446,24 @@ static int _remove_content_from_table(ci_t ci) {
     return result;
 }
 
-static content_t* _get_content_from_table(ci_t ci) {
+static content_t* _get_content_from_table(const ci_t ci) {
     return _content_table[ci];
 }
 
 static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* entry) {
     print_debug("_get_cluster_by_path(path=%s)", path);
     unsigned int start = 0;
-    char fileNamePart[256] = { 0 };
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
 
     directory_entry_t file_info;
     for (unsigned int iterator = 0; iterator <= str_strlen(path); iterator++) {
         if (path[iterator] == '/' || path[iterator] == '\0') {
-            str_memset(fileNamePart, 0, 256);
-            str_memcpy(fileNamePart, path + start, iterator - start);
-            if (_directory_search(fileNamePart, active_cluster, &file_info) < 0) return BAD_CLUSTER_32;
+            char name_buffer[256] = { 0 };
+            str_memcpy(name_buffer, path + start, iterator - start);
+
+            char fatname_buffer[128] = { 0 };
+            name_to_fatname(name_buffer, fatname_buffer);
+            if (_directory_search(fatname_buffer, active_cluster, &file_info) < 0) return BAD_CLUSTER_32;
             start = iterator + 1;
 
             active_cluster = GET_CLUSTER_FROM_ENTRY(file_info, _fs_data.fat_type);
@@ -534,7 +536,7 @@ int NIFAT32_close_content(ci_t ci) {
     return _remove_content_from_table(ci);
 }
 
-int NIFAT32_read_content2buffer(ci_t ci, unsigned int offset, buffer_t buffer, int buff_size) {
+int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size) {
     print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u)", ci, offset);
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
@@ -563,7 +565,7 @@ int NIFAT32_read_content2buffer(ci_t ci, unsigned int offset, buffer_t buffer, i
     return 1;
 }
 
-static cluster_addr_t _add_cluster_to_content(ci_t ci) {
+static cluster_addr_t _add_cluster_to_content(const ci_t ci) {
     directory_entry_t content_meta = _get_content_from_table(ci)->meta;
     cluster_addr_t cluster = GET_CLUSTER_FROM_ENTRY(content_meta, _fs_data.fat_type);
     while (!is_cluster_end(cluster) && !is_cluster_bad(cluster)) {
@@ -590,7 +592,7 @@ static cluster_addr_t _add_cluster_to_content(ci_t ci) {
     return BAD_CLUSTER_32;
 }
 
-int NIFAT32_write_buffer2content(ci_t ci, unsigned int offset, const buffer_t data, int data_size) {
+int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffer_t data, int data_size) {
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");
@@ -645,22 +647,13 @@ int NIFAT32_change_meta(const char* path, const directory_entry_t* new_meta) {
     return 1;
 }
 
-int NIFAT32_put_content(const char* path, cinfo_t* info) {
-    print_debug("NIFAT32_put_content(path=%s, info=%s/%s/%s)", path, info->full_name, info->file_name, info->file_extension);
-    ci_t root_ci = NIFAT32_open_content(path);
-    if (root_ci < 0) {
-        print_error("Content not found!");
-        return -1;
-    }
-
-    directory_entry_t file_info = _get_content_from_table(root_ci)->meta;
+int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
+    print_debug("NIFAT32_put_content(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
+    directory_entry_t file_info = _get_content_from_table(ci)->meta;
     unsigned int active_cluster = GET_CLUSTER_FROM_ENTRY(file_info, _fs_data.fat_type);
-    NIFAT32_close_content(root_ci);
 
-    char output[13] = { 0 };
-    fatname_to_name((char*)info->full_name, output);
-    int is_found = _directory_search(output, active_cluster, NULL);
-    if (is_found < 0 && is_found != -2) {
+    int is_found = _directory_search((char*)info->full_name, active_cluster, NULL);
+    if (is_found < 0 && is_found != -4) {
         print_error("_directory_search() encountered an error. Aborting...");
         return -1;
     }

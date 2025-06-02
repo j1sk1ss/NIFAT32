@@ -130,7 +130,7 @@ typedef struct {
 #define STAT_DIR	0x02
 
 typedef struct {
-	unsigned char full_name[11];
+	char full_name[12];
 	char file_name[8];
 	char file_extension[4];
 	int  type;
@@ -145,11 +145,11 @@ typedef struct {
 int NIFAT32_init();
 int NIFAT32_content_exists(const char* path);
 ci_t NIFAT32_open_content(const char* path);
-int NIFAT32_stat_content(int ci, cinfo_t* info);
-int NIFAT32_read_content2buffer(ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
-int NIFAT32_write_buffer2content(ci_t ci, unsigned int offset, const buffer_t data, int data_size);
+int NIFAT32_stat_content(const ci_t ci, cinfo_t* info);
+int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
+int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffer_t data, int data_size);
 int NIFAT32_close_content(ci_t ci);
 
-int NIFAT32_put_content(const char* path, cinfo_t* info);
+int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
 
 #endif

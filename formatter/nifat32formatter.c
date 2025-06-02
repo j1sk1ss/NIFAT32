@@ -4,6 +4,7 @@ static int write_bs(int, uint32_t, uint32_t);
 static int write_fats(int, uint32_t*, uint32_t, uint32_t);
 static int initialize_fat(uint32_t*, uint32_t);
 static int write_root_directory(int, uint32_t, uint32_t);
+static int create_directory(int fd, uint32_t* fat_table, uint32_t* start_cluster, uint32_t data_start, uint32_t total_clusters, int* last_alloc);
 static int copy_files_to_fs(int, const char*, uint32_t*, uint32_t, uint32_t, uint32_t);
 static int copy_file(int, FILE*, uint32_t*, uint32_t*, size_t*, uint32_t, uint32_t, int*);
 static void to_83_name(const char*, char*);
@@ -252,36 +253,54 @@ static int copy_files_to_fs(
     int last_alloc = 3;
 
     while ((entry = readdir(dir))) {
-        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) 
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) 
             continue;
 
         char full_path[1024] = { 0 };
         snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, entry->d_name);
 
         struct stat st;
-        if (stat(full_path, &st) != 0 || !S_ISREG(st.st_mode)) continue;
-
-        FILE* src_file = fopen(full_path, "rb");
-        if (!src_file) {
-            perror("Error opening source file");
+        if (stat(full_path, &st) != 0) 
             continue;
-        }
 
-        uint32_t start_cluster = 0;
-        size_t file_size = 0;
-        if (!copy_file(fd, src_file, fat_table, &start_cluster, &file_size, data_start, total_clusters, &last_alloc)) {
+        if (S_ISDIR(st.st_mode)) {
+            uint32_t start_cluster = 0;
+            if (!create_directory(fd, fat_table, &start_cluster, data_start, total_clusters, &last_alloc)) {
+                fprintf(stderr, "Failed to create directory: %s\n", full_path);
+                continue;
+            }
+
+            to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
+            root_dir[entry_count].attributes = 0x10;
+            root_dir[entry_count].high_bits = (start_cluster >> 16) & 0xFFFF;
+            root_dir[entry_count].low_bits = start_cluster & 0xFFFF;
+            root_dir[entry_count].file_size = 0;
+            entry_count++;
+        }
+        else if (S_ISREG(st.st_mode)) {
+            FILE* src_file = fopen(full_path, "rb");
+            if (!src_file) {
+                perror("Error opening source file");
+                continue;
+            }
+
+            uint32_t start_cluster = 0;
+            size_t file_size = 0;
+            if (!copy_file(fd, src_file, fat_table, &start_cluster, &file_size, 
+                         data_start, total_clusters, &last_alloc)) {
+                fclose(src_file);
+                continue;
+            }
+
             fclose(src_file);
-            continue;
+
+            to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
+            root_dir[entry_count].attributes = 0x20;
+            root_dir[entry_count].high_bits = (start_cluster >> 16) & 0xFFFF;
+            root_dir[entry_count].low_bits = start_cluster & 0xFFFF;
+            root_dir[entry_count].file_size = file_size;
+            entry_count++;
         }
-
-        fclose(src_file);
-
-        to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
-        root_dir[entry_count].attributes = 0x20;
-        root_dir[entry_count].high_bits  = (start_cluster >> 16) & 0xFFFF;
-        root_dir[entry_count].low_bits   = start_cluster & 0xFFFF;
-        root_dir[entry_count].file_size  = file_size;
-        entry_count++;
     }
 
     closedir(dir);
@@ -300,6 +319,38 @@ static int copy_files_to_fs(
     return 1;
 }
 
+static int create_directory(
+    int fd, uint32_t* fat_table, uint32_t* start_cluster, uint32_t data_start, uint32_t total_clusters, int* last_alloc
+) {
+    for (int i = *last_alloc; i < total_clusters; i++) {
+        if (fat_table[i] == FAT_ENTRY_FREE) {
+            fat_table[i] = FAT_ENTRY_END;
+            *last_alloc = i + 1;
+            *start_cluster = i;
+
+            directory_entry_t entries[2] = {0};
+
+            to_83_name(".", (char*)entries[0].file_name);
+            entries[0].attributes = 0x10;
+            entries[0].high_bits = (i >> 16) & 0xFFFF;
+            entries[0].low_bits = i & 0xFFFF;
+
+            to_83_name("..", (char*)entries[1].file_name);
+            entries[1].attributes = 0x10;
+            entries[1].high_bits = 0;
+            entries[1].low_bits = 0;
+
+            off_t cluster_offset = data_start + (i - 2) * CLUSTER_SIZE;
+            if (lseek(fd, cluster_offset, SEEK_SET) != cluster_offset) return 0;
+            if (write(fd, entries, sizeof(entries)) != sizeof(entries)) return 0;
+
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int copy_file(
     int fd, FILE* src_file, uint32_t* fat_table, uint32_t* start_cluster, 
     size_t* file_size, uint32_t data_start, uint32_t total_clusters, int* last_alloc
@@ -315,6 +366,7 @@ static int copy_file(
             if (fat_table[i] == FAT_ENTRY_FREE) {
                 cluster_found = i;
                 *last_alloc = i + 1;
+                fat_table[i] = FAT_ENTRY_END;
                 break;
             }
         }
@@ -324,9 +376,12 @@ static int copy_file(
             return 0;
         }
 
-        fat_table[cluster_found] = FAT_ENTRY_END;
-        if (prev_cluster != -1) fat_table[prev_cluster] = cluster_found;
-        else *start_cluster = cluster_found;
+        if (prev_cluster != -1) {
+            fat_table[prev_cluster] = cluster_found;
+        } 
+        else {
+            *start_cluster = cluster_found;
+        }
 
         off_t cluster_offset = data_start + (cluster_found - 2) * CLUSTER_SIZE;
         if (lseek(fd, cluster_offset, SEEK_SET) != cluster_offset) return 0;
