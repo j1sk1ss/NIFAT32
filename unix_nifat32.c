@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* Base file read / write test */
-    {
+    if (1) {
         const char* test_file = argv[1];
         char fatname_buffer[13] = { 0 };
         name_to_fatname(test_file, fatname_buffer);
@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* File creating test */
-    {
+    if (1) {
         const char* new_directory = "tdir";
         const char* new_file = "tfile.txt";
         fprintf(stdout, "Trying to create new file %s in directory %s\n", new_file, new_directory);
@@ -143,10 +143,12 @@ int main(int argc, char* argv[]) {
     }
 
     /* Write to created file test */
-    if (0) {
+    if (1) {
         char path_buffer[128] = { 0 };
         name_to_fatname("root/tdir/", path_buffer);
         name_to_fatname("tfile.txt", path_buffer + 10);
+        
+        fprintf(stdout, "Trying to write to a new file: %s\n", path_buffer);
         ci_t ci = NIFAT32_open_content(path_buffer);
         if (ci < 0) {
             close(disk_fd);
@@ -163,10 +165,12 @@ int main(int argc, char* argv[]) {
     }
 
     /* Read from new file */
-    if (0) {
+    if (1) {
         char path_buffer[128] = { 0 };
         name_to_fatname("root/tdir/", path_buffer);
         name_to_fatname("tfile.txt", path_buffer + 10);
+
+        fprintf(stdout, "Trying to read from new file: %s\n", path_buffer);
         ci_t ci = NIFAT32_open_content(path_buffer);
         if (ci < 0) {
             close(disk_fd);
@@ -174,7 +178,7 @@ int main(int argc, char* argv[]) {
         }
 
         char content[512] = { 0 };
-        if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
+        if (NIFAT32_read_content2buffer(ci, 0, (buffer_t)content, 512) < 0) {
             NIFAT32_close_content(ci);
             close(disk_fd);
             return EXIT_FAILURE;
@@ -185,17 +189,19 @@ int main(int argc, char* argv[]) {
     }
 
     /* Deleting file */
-    if (0) {
-        // char path_buffer[128] = { 0 };
-        // name_to_fatname("root/tdir/", path_buffer);
-        // name_to_fatname("tfile.txt", path_buffer + 10);
-        // ci_t ci = NIFAT32_open_content(path_buffer);
-        // if (ci < 0) {
-        //     close(disk_fd);
-        //     return EXIT_FAILURE;
-        // }
+    if (1) {
+        char path_buffer[128] = { 0 };
+        name_to_fatname("root/tdir/", path_buffer);
+        name_to_fatname("tfile.txt", path_buffer + 10);
 
-        // NIFAT32_delete_content(ci);
+        fprintf(stdout, "Trying to delete new file: %s\n", path_buffer);
+        ci_t ci = NIFAT32_open_content(path_buffer);
+        if (ci < 0) {
+            close(disk_fd);
+            return EXIT_FAILURE;
+        }
+
+        NIFAT32_delete_content(ci);
     }
 
     close(disk_fd);

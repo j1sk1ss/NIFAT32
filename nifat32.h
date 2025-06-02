@@ -11,7 +11,7 @@
 #include "include/disk.h"
 #include "include/str.h"
 
-#define SECTOR_OFFSET 23000
+#define SECTOR_OFFSET 128
 
 #define FILE_READ_ONLY 0x01
 #define FILE_HIDDEN    0x02
@@ -125,7 +125,7 @@ typedef struct {
 		file_t*      file;
 	};
 	
-	unsigned int parent_cluster;
+	cluster_addr_t parent_cluster;
 	directory_entry_t meta;
 	content_type_t content_type;
 } content_t;
