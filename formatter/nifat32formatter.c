@@ -252,15 +252,14 @@ static int copy_files_to_fs(
     int last_alloc = 3;
 
     while ((entry = readdir(dir))) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) 
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) 
             continue;
 
         char full_path[1024] = { 0 };
         snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, entry->d_name);
 
         struct stat st;
-        if (stat(full_path, &st) != 0 || !S_ISREG(st.st_mode)) 
-            continue;
+        if (stat(full_path, &st) != 0 || !S_ISREG(st.st_mode)) continue;
 
         FILE* src_file = fopen(full_path, "rb");
         if (!src_file) {

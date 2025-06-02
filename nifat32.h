@@ -36,6 +36,7 @@
 
 /* Content Index - ci */
 typedef int ci_t;
+typedef unsigned char* buffer_t;
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -142,11 +143,13 @@ typedef struct {
 } cinfo_t;
 
 int NIFAT32_init();
-int FAT_content_exists(const char* path);
-ci_t FAT_open_content(const char* path);
-int FAT_stat_content(int ci, cinfo_t* info);
-int FAT_read_content2buffer(ci_t ci, unsigned int offset, unsigned char* buffer, int buff_size);
-int FAT_write_buffer2content(ci_t ci, unsigned int offset, const unsigned char* data, int data_size);
-int FAT_close_content(ci_t ci);
+int NIFAT32_content_exists(const char* path);
+ci_t NIFAT32_open_content(const char* path);
+int NIFAT32_stat_content(int ci, cinfo_t* info);
+int NIFAT32_read_content2buffer(ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
+int NIFAT32_write_buffer2content(ci_t ci, unsigned int offset, const buffer_t data, int data_size);
+int NIFAT32_close_content(ci_t ci);
+
+int NIFAT32_put_content(const char* path, cinfo_t* info);
 
 #endif

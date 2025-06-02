@@ -44,49 +44,32 @@ int is_fatname(const char* name) {
 int fatname_to_name(const char* fatname, char* name) {
     if (fatname[0] == '.') {
         if (fatname[1] == '.') {
-            str_strncpy(name, "..", 2);
+            str_strncpy(name, "..", 3);
             return 1;
         }
-
-        str_strncpy(name, ".", 1);
+        str_strncpy(name, ".", 2);
         return 1;
     }
 
-    unsigned short counter = 0;
-    for (counter = 0; counter < 8; counter++) {
-        if (fatname[counter] == 0x20) {
-            name[counter] = '.';
+    int i, j = 0;
+    for (i = 0; i < 8 && fatname[i] != ' '; ++i) {
+        name[j++] = fatname[i];
+    }
+
+    int has_ext = 0;
+    for (int k = 8; k < 11; ++k) {
+        if (fatname[k] != ' ') {
+            has_ext = 1;
             break;
         }
-
-        name[counter] = fatname[counter];
     }
 
-    if (counter == 8) {
-        name[counter] = '.';
+    if (has_ext) name[j++] = '.';
+    for (i = 8; i < 11 && fatname[i] != ' '; ++i) {
+        name[j++] = fatname[i];
     }
 
-    unsigned short sec_counter = 8;
-    for (sec_counter = 8; sec_counter < 11; sec_counter++) {
-        ++counter;
-        if (fatname[sec_counter] == 0x20 || fatname[sec_counter] == 0x20) {
-            if (sec_counter == 8) {
-                counter -= 2;
-            }
-
-            break;
-        }
-        
-        name[counter] = fatname[sec_counter];		
-    }
-
-    ++counter;
-    while (counter < 12) {
-        name[counter] = ' ';
-        ++counter;
-    }
-
-    name[12] = '\0';
+    name[j] = '\0';
     return 1;
 }
 

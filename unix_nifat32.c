@@ -15,15 +15,20 @@ On embedded system it will much faster.
 
 static int disk_fd = 0;
 
-int _mock_sector_read_(sector_addr_t sa, unsigned char* buffer, int buff_size) {
-    return pread(disk_fd, buffer, buff_size, sa * SECTOR_SIZE) > 0;
+int _mock_sector_read_(sector_addr_t sa, unsigned int offset, unsigned char* buffer, int buff_size) {
+    return pread(disk_fd, buffer, buff_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
-int _mock_sector_write_(sector_addr_t sa, const unsigned char* data, int data_size) {
-    return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE) > 0;
+int _mock_sector_write_(sector_addr_t sa, unsigned int offset, const unsigned char* data, int data_size) {
+    return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <path>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
     disk_fd = open(DISK_PATH, O_RDWR);
     if (disk_fd < 0) {
         fprintf(stderr, "%s not found!\n", DISK_PATH);
@@ -42,11 +47,11 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    const char* test_file = "test2.tst";
+    const char* test_file = argv[1];
     char fatname_buffer[13] = { 0 };
     name_to_fatname(test_file, fatname_buffer);
 
-    if (!FAT_content_exists(fatname_buffer)) {
+    if (!NIFAT32_content_exists(fatname_buffer)) {
         fprintf(stderr, "File %s not found!\n", fatname_buffer);
         return EXIT_FAILURE;
     }
@@ -56,25 +61,58 @@ int main(int argc, char* argv[]) {
 
     unsigned char content[512] = { 0 };
     fprintf(stdout, "Trying to open file: %s\n", fatname_buffer);
-    ci_t ci = FAT_open_content(fatname_buffer);
+    ci_t ci = NIFAT32_open_content(fatname_buffer);
     if (ci < 0) {
         fprintf(stderr, "Can't open file %s!\n", fatname_buffer);
         return EXIT_FAILURE;
     }
 
     cinfo_t info;
-    FAT_stat_content(ci, &info);
+    NIFAT32_stat_content(ci, &info);
     fprintf(stdout, "Opened content name: %s.%s\n", info.file_name, info.file_extension);
 
-    fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
-    if (FAT_read_content2buffer(ci, 0, content, 512) < 0) {
-        fprintf(stderr, "Can't read file %s!\n", fatname_buffer);
-        FAT_close_content(ci);
-        return EXIT_FAILURE;
+    /* Reading test */
+    {
+        fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
+        if (NIFAT32_read_content2buffer(ci, 0, content, 512) < 0) {
+            fprintf(stderr, "Can't read file %s!\n", fatname_buffer);
+            NIFAT32_close_content(ci);
+            return EXIT_FAILURE;
+        }
+
+        fprintf(stdout, "Content data: %s\n", content);
     }
 
-    printf("Content data: %s\n", content);
-    FAT_close_content(ci);
+    /* Writing test */
+    {
+        fprintf(stdout, "Trying to write data to content\n");
+        if (NIFAT32_write_buffer2content(ci, 5, (const buffer_t)"nax!", 5) < 0) {
+            fprintf(stderr, "Can't write file %s!\n", fatname_buffer);
+            NIFAT32_close_content(ci);
+            return EXIT_FAILURE;
+        }
+
+        fprintf(stdout, "Writing complete!\n");
+    }
+
+    /* File creating test */
+    {
+        const char* new_directory = "tdir";
+        const char* new_file = "tfile.txt";
+
+        cinfo_t dir_info = { .type = STAT_DIR };
+        str_memcpy(dir_info.full_name, new_directory, 5);
+        str_memcpy(dir_info.file_name, new_directory, 5);
+        cinfo_t file_info = { .type = STAT_FILE };
+        str_memcpy(file_info.file_name, "tfile", 6);
+        str_memcpy(file_info.file_extension, "txt", 4);
+        str_memcpy(file_info.full_name, new_file, 10);
+
+        NIFAT32_put_content("/", &dir_info);
+        NIFAT32_put_content("tdir", &file_info);
+    }
+
+    NIFAT32_close_content(ci);
 
     close(disk_fd);
     return EXIT_SUCCESS;
