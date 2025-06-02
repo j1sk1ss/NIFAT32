@@ -36,7 +36,7 @@ int NIFAT32_init() {
     bootstruct->checksum = 0;
     checksum_t exbcheck = ext_bootstruct->checksum;
     ext_bootstruct->checksum = 0;
-    
+
     ext_bootstruct->checksum = crc32(0, (buffer_t)ext_bootstruct, sizeof(fat_extBS_32_t));
     bootstruct->checksum     = crc32(0, (buffer_t)bootstruct, sizeof(fat_BS_t));
     if (bootstruct->checksum != bcheck || ext_bootstruct->checksum != exbcheck) {
@@ -164,13 +164,13 @@ static int _directory_search(
     directory_entry_t* file
 ) {
     print_debug("_directory_search(entry_name=%s, cluster=%u)", entry_name, cluster);
-    buffer_t cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
+    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
     if (!cluster_data) {
         print_error("malloc_s() error!");
         return -1;
     }
 
-    if (!_cluster_read(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+    if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
         return -2;
     }
@@ -215,8 +215,8 @@ static int _directory_search(
 
 static int _directory_add(const cluster_addr_t cluster, directory_entry_t* file_to_add) {
     print_debug("_directory_add(cluster=%u, file=%s)", cluster, file_to_add->file_name);
-    buffer_t cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
-    if (!_cluster_read(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
+    if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
         return -1;
     }
@@ -254,7 +254,7 @@ static int _directory_add(const cluster_addr_t cluster, directory_entry_t* file_
             file_to_add->low_bits  = GET_ENTRY_LOW_BITS(cluster, _fs_data.fat_type);
             file_to_add->high_bits = GET_ENTRY_HIGH_BITS(cluster, _fs_data.fat_type);
             str_memcpy(file_metadata, file_to_add, sizeof(directory_entry_t));
-            if (!_cluster_write(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+            if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing new directory entry failed. Aborting...");
                 free_s(cluster_data);
                 return -5;
@@ -275,13 +275,13 @@ static int _directory_edit(const cluster_addr_t cluster, directory_entry_t* old_
         return -1;
     }
 
-    buffer_t cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
+    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
     if (!cluster_data) {
         print_error("malloc_s() error!");
         return -2;
     }
 
-    if (!_cluster_read(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+    if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
         free_s(cluster_data);
         return -3;
@@ -292,7 +292,7 @@ static int _directory_edit(const cluster_addr_t cluster, directory_entry_t* old_
     while (1) {
         if (!str_strcmp((char*)file_metadata->file_name, (char*)old_meta->file_name)) {
             str_memcpy(file_metadata, new_meta, sizeof(directory_entry_t));
-            if (!_cluster_write(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+            if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing updated directory entry failed. Aborting...");
                 free_s(cluster_data);
                 return -4;
@@ -323,13 +323,13 @@ static int _directory_edit(const cluster_addr_t cluster, directory_entry_t* old_
 }
 
 static int _directory_remove(const cluster_addr_t cluster, const directory_entry_t* file_to_add) {
-    buffer_t cluster_data = malloc_s(_fs_data.bytes_per_sector * _fs_data.sectors_per_cluster);
+    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
     if (!cluster_data) {
         print_error("malloc_s() error!");
         return -1;
     }
 
-    if (!_cluster_read(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+    if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
         return -2;
     }
@@ -339,7 +339,7 @@ static int _directory_remove(const cluster_addr_t cluster, const directory_entry
     while (1) {
         if (!str_strcmp((char*)file_metadata->file_name, (char*)file_to_add->file_name)) {
             file_metadata->file_name[0] = ENTRY_FREE;
-            if (!_cluster_write(cluster, cluster_data, _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster)) {
+            if (!_cluster_write(cluster, cluster_data, _fs_data.cluster_size)) {
                 print_error("Writing updated directory entry failed. Aborting...");
                 free_s(cluster_data);
                 return -3;
@@ -570,16 +570,15 @@ int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buf
 
     unsigned int clusters = 0;
     cluster_addr_t ca = content->file->data_head;
-    unsigned int cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0) {
-        if (offset > cluster_size) offset -= cluster_size;
+        if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            if (!_cluster_readoff(ca, offset, buffer + (cluster_size * clusters++), buff_size)) {
+            if (!_cluster_readoff(ca, offset, buffer + (_fs_data.cluster_size * clusters++), buff_size)) {
                 print_error("_cluster_readoff() error. Aborting...");
                 return -2;
             }
 
-            buff_size -= cluster_size - offset;
+            buff_size -= _fs_data.cluster_size - offset;
             offset = 0;
         }
 
@@ -625,16 +624,15 @@ int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffe
 
     unsigned int clusters = 0;
     cluster_addr_t ca = content->file->data_head;
-    unsigned int cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0) {
-        if (offset > cluster_size) offset -= cluster_size;
+        if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            if (!_cluster_writeoff(ca, offset, data + (cluster_size * clusters++), data_size)) {
+            if (!_cluster_writeoff(ca, offset, data + (_fs_data.cluster_size * clusters++), data_size)) {
                 print_error("_cluster_readoff() error. Aborting...");
                 return -2;
             }
 
-            data_size -= cluster_size - offset;
+            data_size -= _fs_data.cluster_size - offset;
             offset = 0;
         }
 
@@ -648,8 +646,8 @@ int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const buffe
             return -3;
         }
 
-        _cluster_write(ca, data + (cluster_size * clusters++), data_size);
-        data_size -= cluster_size;
+        _cluster_write(ca, data + (_fs_data.cluster_size * clusters++), data_size);
+        data_size -= _fs_data.cluster_size;
     }
 
     return 1;
