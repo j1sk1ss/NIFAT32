@@ -33,38 +33,49 @@ static int __coalesce_memory() {
     return 1;
 }
 
+lock_t _malloc_lock = NULL_LOCK;
+
 static void* __malloc_s(size_t size, size_t offset, int prepare_mem) {
-    if (size == 0) return NULL;
+    if (!size) return NULL;
     if (prepare_mem) __coalesce_memory();
 
     size = (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
     offset = (offset + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
     mm_block_t* current = _mm_head;
     
-    while (current) {
-        void* aligned_addr = (unsigned char*)current + sizeof(mm_block_t);
-        size_t position = (size_t)((unsigned char*)aligned_addr - _buffer);
-        if (current->free && current->size >= size && position >= offset) {
-            if (current->size >= size + sizeof(mm_block_t)) {
-                mm_block_t* new_block = (mm_block_t*)((unsigned char*)current + sizeof(mm_block_t) + size);
-                new_block->magic = MM_BLOCK_MAGIC;
-                new_block->size = current->size - size - sizeof(mm_block_t);
-                new_block->free = 1;
-                new_block->next = current->next;
+    if (THR_require_write(&_malloc_lock, get_thread_num())) {
+        while (current) {
+            void* aligned_addr = (unsigned char*)current + sizeof(mm_block_t);
+            size_t position = (size_t)((unsigned char*)aligned_addr - _buffer);
+            if (current->free && current->size >= size && position >= offset) {
+                if (current->size >= size + sizeof(mm_block_t)) {
+                    mm_block_t* new_block = (mm_block_t*)((unsigned char*)current + sizeof(mm_block_t) + size);
+                    new_block->magic = MM_BLOCK_MAGIC;
+                    new_block->size = current->size - size - sizeof(mm_block_t);
+                    new_block->free = 1;
+                    new_block->next = current->next;
 
-                current->next = new_block;
-                current->size = size;
+                    current->next = new_block;
+                    current->size = size;
+                }
+
+                current->free = 0;
+                _allocated += current->size + sizeof(mm_block_t);
+
+                THR_release_write(&_malloc_lock, get_thread_num());
+                print_mm("Allocated node [%p] with [%i] size / [%i]", (unsigned char*)current + sizeof(mm_block_t), current->size, _allocated);
+                return (unsigned char*)current + sizeof(mm_block_t);
             }
 
-            current->free = 0;
-            _allocated += current->size + sizeof(mm_block_t);
-            print_mm("Allocated node [%p] with [%i] size / [%i]", (unsigned char*)current + sizeof(mm_block_t), current->size, _allocated);
-            return (unsigned char*)current + sizeof(mm_block_t);
+            current = current->next;
         }
-
-        current = current->next;
+    }
+    else {
+        print_error("Can't lock _malloc_lock!");
+        return NULL;
     }
 
+    THR_release_write(&_malloc_lock, get_thread_num());
     print_mm("Allocation error! I can't allocate [%i]!", size);
     return prepare_mem ? NULL : __malloc_s(size, offset, 1);
 }
