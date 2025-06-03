@@ -356,8 +356,7 @@ static int copy_files_to_fs(
 
             to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
             root_dir[entry_count].attributes = 0x10;
-            root_dir[entry_count].high_bits  = (start_cluster >> 16) & 0xFFFF;
-            root_dir[entry_count].low_bits   = start_cluster & 0xFFFF;
+            root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = 0;
             root_dir[entry_count].checksum   = _crc32(0, (uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]));
             fprintf(stdout, "%s checksum: %u\n", entry->d_name, root_dir[entry_count].checksum);
@@ -382,8 +381,7 @@ static int copy_files_to_fs(
 
             to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
             root_dir[entry_count].attributes = 0x20;
-            root_dir[entry_count].high_bits  = (start_cluster >> 16) & 0xFFFF;
-            root_dir[entry_count].low_bits   = start_cluster & 0xFFFF;
+            root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = file_size;
             root_dir[entry_count].checksum   = 0;
             root_dir[entry_count].checksum   = _crc32(0, (uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]));
@@ -420,16 +418,14 @@ static int create_directory(
             directory_entry_t entries[2] = { 0 };
             to_83_name(".", (char*)entries[0].file_name);
             entries[0].attributes = 0x10;
-            entries[0].high_bits  = (i >> 16) & 0xFFFF;
-            entries[0].low_bits   = i & 0xFFFF;
+            entries[0].cluster    = i;
             entries[0].checksum   = 0;
             entries[0].checksum   = _crc32(0, (uint8_t*)&entries[0], sizeof(entries[0]));
             fprintf(stdout, ". checksum: %u\n", entries[0].checksum);
 
             to_83_name("..", (char*)entries[1].file_name);
             entries[1].attributes = 0x10;
-            entries[1].high_bits  = 0;
-            entries[1].low_bits   = 0;
+            entries[1].cluster    = 0;
             entries[1].checksum   = 0;
             entries[1].checksum   = _crc32(0, (uint8_t*)&entries[1], sizeof(entries[1]));
             fprintf(stdout, ".. checksum: %u\n", entries[1].checksum);

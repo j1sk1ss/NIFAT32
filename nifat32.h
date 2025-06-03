@@ -81,14 +81,7 @@ typedef struct directory_entry {
 	unsigned char  file_name[11];
 	unsigned char  attributes;
 	unsigned char  reserved0;
-	unsigned char  creation_time_tenths;
-	unsigned short creation_time;
-	unsigned short creation_date;
-	unsigned short last_accessed;
-	unsigned short high_bits;
-	unsigned short last_modification_time;
-	unsigned short last_modification_date;
-	unsigned short low_bits;
+	cluster_addr_t cluster;
 	unsigned int   file_size;
 	checksum_t checksum;
 } __attribute__((packed)) directory_entry_t;

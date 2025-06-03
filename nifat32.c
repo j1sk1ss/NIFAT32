@@ -384,17 +384,6 @@ static int _entry_remove(cluster_addr_t cluster, const directory_entry_t* meta) 
     return -5;
 }
 
-
-static unsigned short _current_time() {
-    /* TODO */
-    return 0;
-}
-
-static unsigned short _current_date() {
-    /* TODO */
-    return 0;
-}
-
 static int _create_entry(
     const char* name, const char* ext, char is_dir, cluster_addr_t first_cluster, unsigned int file_size, directory_entry_t* entry
 ) {
@@ -405,18 +394,13 @@ static int _create_entry(
         str_strcat(tmp_filename, ext);
     }
     
-    entry->low_bits  = first_cluster;
-    entry->high_bits = first_cluster >> 16;  
-
+    entry->cluster = first_cluster;
     if (is_dir) entry->attributes = FILE_DIRECTORY;
     else {
         entry->file_size  = file_size;
         entry->attributes = FILE_ARCHIVE;
     }
 
-    entry->creation_date = _current_date();
-    entry->creation_time = _current_time();
-    entry->creation_time_tenths = _current_time();
     name_to_fatname(tmp_filename, (char*)entry->file_name);
 
     entry->checksum = 0;
@@ -507,7 +491,7 @@ static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* 
             start = iterator + 1;
 
             parent_cluster = active_cluster;
-            active_cluster = GET_CLUSTER_FROM_ENTRY(file_info, _fs_data.fat_type);
+            active_cluster = file_info.cluster;
         }
     }
 
@@ -606,7 +590,7 @@ int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buf
 
 static cluster_addr_t _add_cluster_to_content(const ci_t ci) {
     directory_entry_t content_meta = _get_content_from_table(ci)->meta;
-    cluster_addr_t cluster = GET_CLUSTER_FROM_ENTRY(content_meta, _fs_data.fat_type);
+    cluster_addr_t cluster = content_meta.cluster;
     int max_iterations = _fs_data.total_clusters;
     while (!is_cluster_end(cluster) && !is_cluster_bad(cluster) && max_iterations-- > 0) {
         cluster = read_fat(cluster, &_fs_data);
@@ -686,7 +670,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     directory_entry_t new_meta;
     _create_entry(
         info->file_name, info->file_extension, 
-        info->type == STAT_DIR, GET_CLUSTER_FROM_ENTRY(content->meta, _fs_data.fat_type), 
+        info->type == STAT_DIR, content->meta.cluster, 
         content->meta.file_size, &new_meta
     );
 
@@ -706,8 +690,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
         return 0;
     }
 
-    cluster_addr_t active_cluster = GET_CLUSTER_FROM_ENTRY(content->meta, _fs_data.fat_type);
-    int is_found = _entry_search((char*)info->full_name, active_cluster, NULL);
+    int is_found = _entry_search((char*)info->full_name, content->meta.cluster, NULL);
     if (is_found < 0 && is_found != -4) {
         print_error("_entry_search() encountered an error [%i]. Aborting...", is_found);
         return 0;
@@ -715,7 +698,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
 
     directory_entry_t new_meta = { 0 };
     _create_entry(info->file_name, info->file_extension, info->type == STAT_DIR, _cluster_allocate(), 1, &new_meta);
-    int is_add = _entry_add(active_cluster, &new_meta);
+    int is_add = _entry_add(content->meta.cluster, &new_meta);
     if (is_add < 0) {
         print_error("_entry_add() encountered an error [%i]. Aborting...", is_add);
         return 0;
@@ -782,12 +765,6 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
         print_error("Unknown content_type! content_type=%i", content->content_type);
         return 0;
     }
-
-    info->creation_date = content->meta.creation_date;
-    info->creation_time = content->meta.creation_time;
-    info->last_accessed = content->meta.last_accessed;
-    info->last_modification_date = content->meta.last_modification_date;
-    info->last_modification_time = content->meta.last_modification_time;
 
     return 1;
 }
