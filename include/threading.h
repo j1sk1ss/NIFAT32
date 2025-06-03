@@ -17,32 +17,24 @@
 #ifndef THREADING_H_
 #define THREADING_H_
 
-#define LOCKED    0xAB
-#define UNLOCKED  0x00
-#define NO_OWNER  0xFF
+#define LOCKED       0xAB
+#define UNLOCKED     0x00
+#define NO_OWNER     0xFF
 #define LOCKED_WRITE 1
 
 #define REQUIRE_TIME 99999
 #define MAX_READERS  255
 
-/*
-Main idea, that lock status of object can be stored in one unsigned short object.
-In first 14 bits we store info about lock owner (or NO_OWNER) thread number:
-0b00000000000000XX
-In second 2 bits, lock state (LOCKED/UNLOCKED)
-0bXXXXXXXXXXXXXX00
-*/
+#define OWNER_MASK        0x3FFF
+#define STATUS_MASK       0x0001
+#define LOCK_READERS_MASK 0x000000FF
+#define LOCK_WRITE_FLAG   0x00000100
+#define LOCK_OWNER_MASK   0xFFFF0000
 
-#define OWNER_MASK       0x3FFF
-#define STATUS_MASK      0x0001
-#define LOCK_READERS_MASK    0x000000FF
-#define LOCK_WRITE_FLAG      0x00000100
-#define LOCK_OWNER_MASK      0xFFFF0000
-
-#define LOCK_GET_STATUS(lock)     ((lock) & STATUS_MASK)
-#define LOCK_IS_WRITE(lock)       (((lock) & STATUS_MASK) == LOCKED_WRITE)
-#define LOCK_GET_READERS(lock)    ((lock) >> 1)
-#define LOCK_GET_OWNER(lock)      ((lock) >> 1)
+#define LOCK_IS_WRITE(lock)    (((lock) & STATUS_MASK) == LOCKED_WRITE)
+#define LOCK_GET_STATUS(lock)  (((lock) >> 8) & 0x1)
+#define LOCK_GET_READERS(lock) (((lock) >> 0) & 0xFF)
+#define LOCK_GET_OWNER(lock)   (((lock) & LOCK_OWNER_MASK) >> 16)
 
 #define LOCK_PACK(readers, is_write, owner) \
     (((readers) & 0xFF) | ((is_write ? 1 : 0) << 8) | ((owner & 0xFFFF) << 16))
@@ -57,8 +49,8 @@ re-define this function for getting thread uniq id.
 #define sched_yield()
 
 typedef volatile unsigned int lock_t;
-typedef unsigned char  lock_stat_t;
-typedef unsigned short owner_t;
+typedef unsigned char         lock_stat_t;
+typedef unsigned short        owner_t;
 
 int THR_require_read(lock_t* lock);
 int THR_release_read(lock_t* lock);

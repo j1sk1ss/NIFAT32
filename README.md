@@ -47,6 +47,46 @@ The main issue is that `SEU` can disturb electrons in `Flash`, which may cause b
 Therefore, storing such critical structures in unprotected `Flash` without redundancy or error correction makes the system vulnerable to undetectable corruption.
 
 ## directory_entry_t
+Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). </br>
+Why was `crc32` used? </br>
+This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). Modification of `directory_entry_t` was simple. Here is the source structure:
+
+```
+typedef struct directory_entry {
+	uint8_t file_name[11];
+	uint8_t attributes;
+	uint8_t reserved0;
+	uint8_t creation_time_tenths;
+	uint16_t creation_time;
+	uint16_t creation_date;
+	uint16_t last_accessed;
+	uint16_t high_bits;
+	uint16_t last_modification_time;
+	uint16_t last_modification_date;
+	uint16_t low_bits;
+	uint32_t file_size;
+} __attribute__((packed)) directory_entry_t;
+```
+
+And updated version:
+```
+typedef struct directory_entry {
+	unsigned char  file_name[11];
+	unsigned char  attributes;
+	unsigned char  reserved0;
+	unsigned char  creation_time_tenths;
+	unsigned short creation_time;
+	unsigned short creation_date;
+	unsigned short last_accessed;
+	unsigned short high_bits;
+	unsigned short last_modification_time;
+	unsigned short last_modification_date;
+	unsigned short low_bits;
+	unsigned int   file_size;
+	checksum_t checksum;
+} __attribute__((packed)) directory_entry_t;
+```
+
 ## Data-Flows
 
 ## References

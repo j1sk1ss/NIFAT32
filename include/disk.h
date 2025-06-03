@@ -2,11 +2,26 @@
 #define DISK_H_
 
 #include <stddef.h>
+#include "threading.h"
 #include "str.h"
 #include "mm.h"
 
 typedef unsigned int sector_offset_t;
 typedef unsigned int sector_addr_t;
+
+#define WRITE_LOCK 0
+#define READ_LOCK  1
+typedef struct {
+    sector_addr_t start;
+    int count;
+    int ro;
+} io_area_t;
+
+#define IO_THREADS_MAX 50
+typedef struct {
+    io_area_t areas[IO_THREADS_MAX];
+    lock_t lock;
+} io_thread_t;
 
 typedef struct {
     int (*read_sector)(sector_addr_t, sector_offset_t, unsigned char*, int);

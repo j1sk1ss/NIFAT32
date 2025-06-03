@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #define SAVE_OPTION		"-o"
 #define SOURCE_OPTION	"-s"
