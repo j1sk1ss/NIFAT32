@@ -50,11 +50,10 @@ static int _lock_area(sector_addr_t sa, int size, int ro) {
 static int _unlock_area(sector_addr_t sa, int size) {
     if (THR_require_write(&_io_guard.lock, get_thread_num())) {
         for (int i = 0; i < IO_THREADS_MAX; i++) {
-            if (_io_guard.areas[i].start == sa &&
-                _io_guard.areas[i].count == size) {
+            if (_io_guard.areas[i].start == sa && _io_guard.areas[i].count == size) {
                 _io_guard.areas[i].count = -1;
                 _io_guard.areas[i].start = 0;
-                _io_guard.areas[i].ro = 0;
+                _io_guard.areas[i].ro    = 0;
                 break;
             }
         }

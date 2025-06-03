@@ -33,6 +33,7 @@ int mm_init();
 
 /*
 Allocate memory block.
+[Thread-safe]
 
 Params:
     - size - Memory block size.
@@ -44,6 +45,7 @@ void* malloc_s(size_t size);
 
 /*
 Allocate memory block with offset.
+[Thread-safe]
 
 Params:
     - size - Memory block size.
@@ -57,6 +59,7 @@ void* malloc_off_s(size_t size, size_t offset);
 /*
 Realloc pointer to new location with new size.
 Realloc took from https://github.com/j1sk1ss/CordellOS.PETPRJ/blob/Userland/src/kernel/memory/allocator.c#L138
+[Thread-safe]
 
 Params:
     - ptr - Pointer to old place.
@@ -69,6 +72,7 @@ void* realloc_s(void* ptr, size_t elem);
 
 /*
 Free allocated memory.
+[Thread-safe]
 
 Params:
     - ptr - Pointer to allocated data.
@@ -77,51 +81,5 @@ Return -1 if something goes wrong.
 Return 1 if free success.
 */
 int free_s(void* ptr);
-
-/*
-Hamming 15,11 code encoding.
-
-Params:
-    - data - Data to encode. Can be unsigned char or unsigned short with 11 data bits.
-
-Return encoded unsigned short
-*/
-unsigned short encode_hamming_15_11(unsigned short data);
-
-/*
-Hamming 15,11 code decoding.
-
-Params:
-    - encoded - Encoded data from encode_hamming_15_11.
-
-Return decoded char or 11 data bits unsigned short.
-*/
-unsigned short decode_hamming_15_11(unsigned short encoded);
-
-/*
-Unpack memory function should decode src pointed data from hamming 15,11 (With error correction).
-P.S. Before usage, allocate dst memory with size, same as count of elements in src.
-
-Params:
-- src - Source encoded data.
-- dst - Destination for decoded data.
-- len - Bytes count.
-
-Return pointer to dst.
-*/
-void* unpack_memory(unsigned short* src, unsigned char* dst, size_t len);
-
-/*
-Pack memory function should encode src pointed data to hamming 15,11.
-P.S. Before usage, allocate dst memory with size, same as count of elements in src.
-
-Params:
-- src - Source encoded data.
-- dst - Destination for decoded data.
-- len - Bytes count.
-
-Return pointer to dst.
-*/
-void* pack_memory(unsigned char* src, unsigned short* dst, size_t len);
 
 #endif

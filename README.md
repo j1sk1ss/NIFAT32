@@ -82,7 +82,13 @@ typedef struct directory_entry {
 
 As you can see, in the modified structure, six fields with a total size of 11 bytes were removed. These fields (creation and last accessed time) were excluded in the `embedded` context to save space. In embedded systems, creation and last usage timestamps are typically unnecessary due to the program’s specific requirements. </br>
 Additionally, `high_bits` and `low_bits` were replaced by a single `cluster` field. Historically, splitting addresses into high and low bits was justified by 16-bit target architectures, but our current target supports raw 32-bit numbers. The mechanism behind this support is described [here](https://www.reddit.com/r/arduino/comments/i3wl8f/how_do_8_bit_arduinos_handle_32bit_numbers/). </br>
-With these modifications, the required space for `directory_entry_t` has been reduced, allowing us to store significantly more entries within a single cluster.
+With these modifications, the required space for `directory_entry_t` has been reduced, allowing us to store significantly more entries within a single cluster. </br>
+In summary, this simplification of `directory_entry_t` results in fewer syscalls and I/O operations. For example, with a default cluster size of approximately `sector_size * 2^3 = 512 * 8 = 4096` bytes, instead of using 26 bytes for each `directory_entry_t`, we now use only 15 bytes. This increases the number of entries per cluster from 157 to 273. </br>
+The performance improvement can be illustrated with a graph where the X-axis represents the number of I/O operations, and the Y-axis represents the number of entries in the directory:
+
+<p align="center">
+ <img src="graphs/io.png" alt="IO count depends on entry count"/>
+</p>
 
 ## Data-Flows
 
