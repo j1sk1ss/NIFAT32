@@ -2,6 +2,7 @@
 #define NIFAT32_H_
 
 #include <stddef.h>
+#include "include/threading.h"
 #include "include/checksum.h"
 #include "include/fatname.h"
 #include "include/fat.h"
@@ -124,6 +125,7 @@ typedef struct {
 	cluster_addr_t parent_cluster;
 	directory_entry_t meta;
 	content_type_t content_type;
+	lock_t lock;
 } content_t;
 
 #define NOT_PRESENT	0x00

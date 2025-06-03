@@ -2,6 +2,7 @@
 #define MM_H_
 
 #include <stddef.h>
+#include "threading.h"
 #include "logging.h"
 #include "str.h"
 

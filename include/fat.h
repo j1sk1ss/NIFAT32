@@ -5,6 +5,7 @@
 #include "disk.h"
 #include "fatinfo.h"
 #include "logging.h"
+#include "threading.h"
 
 #define END_CLUSTER_32  0x0FFFFFF8
 #define BAD_CLUSTER_32  0x0FFFFFF7
