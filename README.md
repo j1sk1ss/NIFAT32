@@ -72,7 +72,6 @@ if (!NIFAT32_content_exists(target_fatname)) {
 ```
 But according to data, bit-flip happened in most dangerous zone - in file allocation table.
 
-
 ## File Allocation Table
 As mentioned, the **File Allocation Table (FAT)** is the most important part of the `FAT32` file system. I won't explain how this table works — just check this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>
 The original implementation of FAT simply saved the entire table in the first sectors of the disk. If we're talking about `Flash` memory — which is the cheapest solution in terms of storage capacity vs. price, according to [this article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system/) — it comes with serious risks, especially in `embedded` systems. These risks are explained in more detail [here](https://en.wikipedia.org/wiki/Flash_memory).
@@ -125,14 +124,8 @@ As you can see, in the modified structure, six fields with a total size of 11 by
 - etc
 
 Example of such system can be `CDBMS`, [LittleDB](https://github.com/pouriamoosavi/LittleDB), [EinkPDA](https://github.com/ashtf8/EinkPDA). </br>
-
-</br> 
-
 Additionally, `high_bits` and `low_bits` were replaced by a single `cluster` field. Historically, splitting addresses into high and low bits was justified by 16-bit target architectures, but our current target supports raw 32-bit numbers. The mechanism behind this support is described [here](https://www.reddit.com/r/arduino/comments/i3wl8f/how_do_8_bit_arduinos_handle_32bit_numbers/). </br>
 With these modifications, the required space for `directory_entry_t` has been reduced, allowing us to store significantly more entries within a single cluster. </br>
-
-</br>
-
 In summary, this simplification of `directory_entry_t` results in fewer syscalls and I/O operations. For example, with a default cluster size of approximately `sector_size * 2^3 = 512 * 8 = 4096` bytes, instead of using 26 bytes for each `directory_entry_t`, we now use only 15 bytes. This increases the number of entries per cluster from 157 to 273. </br>
 The performance improvement can be illustrated with a graph where the Y-axis represents the number of I/O operations, and the X-axis represents the number of entries in the directory:
 
@@ -141,6 +134,61 @@ The performance improvement can be illustrated with a graph where the Y-axis rep
 </p>
 
 ## Data-Flows
+
+## Modern solutions against SEU
+The most common solution against `Single Event Upsets` (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code). Below is a basic implementation of Hamming encoding and decoding.
+```
+encoded_t encode_hamming_15_11(decoded_t data) {
+    encoded_t encoded = 0;
+    encoded = SET_BIT(encoded, 2, GET_BIT(data, 0));
+    encoded = SET_BIT(encoded, 4, GET_BIT(data, 1));
+    encoded = SET_BIT(encoded, 5, GET_BIT(data, 2));
+    encoded = SET_BIT(encoded, 6, GET_BIT(data, 3));
+    encoded = SET_BIT(encoded, 8, GET_BIT(data, 4));
+    encoded = SET_BIT(encoded, 9, GET_BIT(data, 5));
+    encoded = SET_BIT(encoded, 10, GET_BIT(data, 6));
+    encoded = SET_BIT(encoded, 11, GET_BIT(data, 7));
+    encoded = SET_BIT(encoded, 12, GET_BIT(data, 8));
+    encoded = SET_BIT(encoded, 13, GET_BIT(data, 9));
+    encoded = SET_BIT(encoded, 14, GET_BIT(data, 10));
+
+    byte_t p1 = GET_BIT(encoded, 2) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 14);
+    byte_t p2 = GET_BIT(encoded, 2) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+    byte_t p4 = GET_BIT(encoded, 4) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+    byte_t p8 = GET_BIT(encoded, 8) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+
+    encoded = SET_BIT(encoded, 0, p1);
+    encoded = SET_BIT(encoded, 1, p2);
+    encoded = SET_BIT(encoded, 3, p4);
+    encoded = SET_BIT(encoded, 7, p8);
+    return encoded;
+}
+
+decoded_t decode_hamming_15_11(encoded_t encoded) {
+    byte_t s1 = GET_BIT(encoded, 0) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 14);
+    byte_t s2 = GET_BIT(encoded, 1) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+    byte_t s4 = GET_BIT(encoded, 3) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+    byte_t s8 = GET_BIT(encoded, 7) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
+    byte_t error_pos = s1 + (s2 << 1) + (s4 << 2) + (s8 << 3);
+    if (error_pos) encoded = TOGGLE_BIT(encoded, (error_pos - 1));
+    
+    decoded_t data = 0;
+    data = SET_BIT(data, 0, GET_BIT(encoded, 2));
+    data = SET_BIT(data, 1, GET_BIT(encoded, 4));
+    data = SET_BIT(data, 2, GET_BIT(encoded, 5));
+    data = SET_BIT(data, 3, GET_BIT(encoded, 6));
+    data = SET_BIT(data, 4, GET_BIT(encoded, 8));
+    data = SET_BIT(data, 5, GET_BIT(encoded, 9));
+    data = SET_BIT(data, 6, GET_BIT(encoded, 10));
+    data = SET_BIT(data, 7, GET_BIT(encoded, 11));
+    data = SET_BIT(data, 8, GET_BIT(encoded, 12));
+    data = SET_BIT(data, 9, GET_BIT(encoded, 13));
+    data = SET_BIT(data, 10, GET_BIT(encoded, 14));
+    return data;
+}
+```
+
+The main limitation of this algorithm is its restricted error correction capability: it can correct a single-bit error and detect (but not correct) double-bit errors. This makes it insufficient in environments with frequent or multiple simultaneous bit-flips.
 
 ## References
 - FAT32 carcase was taken from my OS project on [github](https://github.com/j1sk1ss/CordellOS.PETPRJ) 
