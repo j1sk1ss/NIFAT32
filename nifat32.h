@@ -9,10 +9,9 @@
 #include "include/fatinfo.h"
 #include "include/mm.h"
 #include "include/logging.h"
+#include "include/cluster.h"
 #include "include/disk.h"
 #include "include/str.h"
-
-#define SECTOR_OFFSET 128
 
 #define FILE_READ_ONLY 0x01
 #define FILE_HIDDEN    0x02
@@ -27,15 +26,11 @@
 #define ENTRY_JAPAN          0x05
 #define LAST_LONG_ENTRY      0x40
 
-#define GET_CLUSTER_FROM_ENTRY(x, fat_type)  (x.low_bits | (x.high_bits << (fat_type / 2)))
-#define GET_CLUSTER_FROM_PENTRY(x, fat_type) (x->low_bits | (x->high_bits << (fat_type / 2)))
 #define CONTENT_TABLE_SIZE	50
 
 /* Content Index - ci */
 typedef int ci_t;
 typedef unsigned int checksum_t;
-typedef unsigned char* buffer_t;
-typedef const unsigned char* const_buffer_t;
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -141,10 +136,17 @@ typedef struct {
 /*
 Init function. 
 Note: This function also init memory manager.
+Params:
+- bs - Bootsector.
+
 Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
-int NIFAT32_init();
+#define DEFAULT_BS  0
+#define RESERVE_BS1 6
+#define RESERVE_BS2 12
+#define NO_RESERVE	999
+int NIFAT32_init(sector_addr_t bs);
 
 /*
 Return 1 if content exists.

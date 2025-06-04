@@ -16,14 +16,36 @@ typedef unsigned int cluster_addr_t;
 typedef unsigned int cluster_status_t;
 typedef unsigned int cluster_val_t;
 
+/*
+*/
 cluster_val_t read_fat(cluster_addr_t cluster, fat_data_t* fi);
+
+/*
+*/
 int write_fat(cluster_addr_t cluster, cluster_status_t value, fat_data_t* fi);
 
+/*
+*/
 int is_cluster_free(cluster_val_t cluster);
+
+/*
+*/
 int set_cluster_free(cluster_val_t cluster, fat_data_t* fi);
+
+/*
+*/
 int is_cluster_end(cluster_val_t cluster);
+
+/*
+*/
 int set_cluster_end(cluster_val_t cluster, fat_data_t* fi);
+
+/*
+*/
 int is_cluster_bad(cluster_val_t cluster);
+
+/*
+*/
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi);
 
 #endif

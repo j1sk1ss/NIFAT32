@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!NIFAT32_init()) {
+    if (!NIFAT32_init(DEFAULT_BS)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);
         return EXIT_FAILURE;

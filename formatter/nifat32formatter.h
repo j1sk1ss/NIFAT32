@@ -15,11 +15,15 @@
 #define SOURCE_OPTION	"-s"
 #define EMPTY_FLAG		"--empty"
 
+#define GET_BIT(b, i) ((b >> i) & 1)
+#define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
+#define TOGGLE_BIT(b, i) (b ^ (1 << i))
+
 #define BYTES_PER_SECTOR 	512
 #define SECTORS_PER_CLUSTER 8
 #define CLUSTER_SIZE 		(BYTES_PER_SECTOR * SECTORS_PER_CLUSTER)
 #define RESERVED_SECTORS 	32
-#define FAT_COUNT 			2
+#define FAT_COUNT 			3
 #define ROOT_DIR_CLUSTER 	2
 #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
 #define FAT_ENTRY_FREE 		0x00000000
@@ -76,5 +80,9 @@ typedef struct directory_entry {
 	unsigned int   file_size;
 	unsigned int   checksum;
 } __attribute__((packed)) directory_entry_t;
+
+typedef unsigned char byte_t;
+typedef unsigned short encoded_t;
+typedef unsigned short decoded_t;
 
 #endif

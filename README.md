@@ -65,8 +65,7 @@ if (!NIFAT32_content_exists(target_fatname)) {
 	name_to_fatname("test.txt", file.full_name);
 	if (!NIFAT32_put_content(PUT_TO_ROOT, &file)) {
 		handled_errors++;
-		fprintf(stderr, "File creation error!\n");
-		continue;
+        ... 
 	}
 }
 ```
@@ -81,12 +80,42 @@ The main issue is that `SEU` can disturb electrons in `Flash`, which may cause b
 - unreadable or wrongly linked files,
 - complete file system failure.
 
-Therefore, storing such critical structures in unprotected `Flash` without redundancy or error correction makes the system vulnerable to undetectable corruption.
+Therefore, storing such critical structures in unprotected `Flash` without redundancy or error correction makes the system vulnerable to undetectable corruption. </br>
+Based on official FAT32 specifications, additional FAT table copies (typically just one extra copy) are used solely when the primary table is corrupted:
+```
+Typically the extra copies are kept in tight synchronization on writes, and on reads they are only used when errors occur in the first FAT.
+``` 
+This approach can be significantly enhanced through a voting system. Such a system leverages multiple data sources, determining the final value based on the most frequently occurring valid data. Then all copies are synchronized.
 
-## directory_entry_t
-Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). </br>
-Why was `crc32` used? </br>
-This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). Modification of `directory_entry_t` was simple. Here is the source structure:
+## Data structures
+FAT32 has many data structures that are used during work. For example in source design we have:
+- directory_entry_t - Entry structure that represent any file or directory in file system.
+- fat_bootstruct - Basic data of file system and hardware specification. This structure include data about sector size, cluster size, fat offsets. Full list of fields is below:
+
+```
+typedef struct fat_BS {
+	unsigned char  bootjmp[3];
+	unsigned char  oem_name[8];
+	unsigned short bytes_per_sector;
+	unsigned char  sectors_per_cluster;
+	unsigned short reserved_sector_count;
+	unsigned char  table_count;
+	unsigned short root_entry_count;
+	unsigned short total_sectors_16;
+	unsigned char  media_type;
+	unsigned short table_size_16;
+	unsigned short sectors_per_track;
+	unsigned short head_side_count;
+	unsigned int   hidden_sector_count;
+	unsigned int   total_sectors_32;
+	unsigned char  extended_section[sizeof(fat_extBS_32_t)];
+} __attribute__((packed)) fat_BS_t;
+```
+
+- fat32_bootstruct - `fat_bootstruct` itself historically contain information only for FAT16 and FAT12 filesystems, that's why, for FAT32 support, bootstruct has special field `extended_section`.
+
+Main idea here is checksum support and twice-backup with noise-immune encoding. Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). Why was `crc32` used? This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). </br>
+For example modification of `directory_entry_t` was simple. Here is the source structure:
 
 ```
 typedef struct directory_entry {
@@ -189,6 +218,8 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 ```
 
 The main limitation of this algorithm is its restricted error correction capability: it can correct a single-bit error and detect (but not correct) double-bit errors. This makes it insufficient in environments with frequent or multiple simultaneous bit-flips.
+
+## Benchmark
 
 ## References
 - FAT32 carcase was taken from my OS project on [github](https://github.com/j1sk1ss/CordellOS.PETPRJ) 
