@@ -47,7 +47,7 @@ Unhundled error count: 0
 ```
 This is due to the violation of the `directory_entry_t` file name sequence: </br>
 A bit-flip occurs directly in one of the file names - `"TEST   0TXT "` (was `"TEST    TXT "`). This causes a checksum verification error. But this case does not represent a modification as a big improvement, because in the original FAT32 the same bit flip changes the file name, which will lead to the same error - `"File not found"`. One thing that in this case this error is accompanied by additional information - a checksum verification error. </br>
-For a visual example here are the results of testing the unmodified FAT32 system with checksum implementation only. (X-axis: number of bit-flips in data, Y-axis: count of unhandled errors):
+For a visual example here are the results of testing the unmodified FAT32 system with checksum implementation only. (X-axis: number of bit-flips in data, Y-axis: count of handled errors):
 
 <p align="center">
 	<img src="graphs/bitflips_source.png" alt="IO count depends on entry count"/>
