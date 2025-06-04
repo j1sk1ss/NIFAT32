@@ -200,6 +200,7 @@ int NIFAT32_close_content(ci_t ci);
 
 /*
 */
+#define PUT_TO_ROOT -1
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
 
 /*

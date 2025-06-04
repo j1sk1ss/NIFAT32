@@ -88,6 +88,9 @@ int DSK_read_sector(sector_addr_t sa, unsigned char* buffer, int buff_size) {
         _unlock_area(sa, 1);
         return read_result;
     }
+    else {
+        print_error("Can't read-lock area sa=%u sc=1", sa);
+    }
 
     return 0;
 }
@@ -108,6 +111,9 @@ int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char*
         _unlock_area(sa, sc);
         return 1;
     }
+    else {
+        print_error("Can't read-lock area sa=%u sc=%i", sa, sc);
+    }
 
     return 0;
 }
@@ -117,6 +123,9 @@ int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size)
         int write_result = _disk_io.write_sector(sa, 0, data, data_size);
         _unlock_area(sa, 1);
         return write_result;
+    }
+    else {
+        print_error("Can't write-lock area sa=%u sc=1", sa);
     }
 
     return 0;
@@ -137,6 +146,9 @@ int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigne
 
         _unlock_area(sa, sc);
         return 1;
+    }
+    else {
+        print_error("Can't write-lock area sa=%u sc=%i", sa, sc);
     }
 
     return 0;

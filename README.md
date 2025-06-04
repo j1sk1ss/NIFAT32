@@ -31,12 +31,47 @@ Why `FAT32` as base? — Simple answer: because `FAT32` is a well-known file sys
 Well, `SEU`, or single event upset, is a physical event when electrons in the `CPU`, `RAM`, etc., get disturbed by ionic particles. This is very dangerous when a program controls, for example, an entire plane or space station. That's why any program solution that will work in high-evaluated systems should be prepared for `SEU`. </br>
 Of course, there are a couple of solutions for reducing the impact of `SEU` on chips, like:
 - [ECC](https://community.fs.com/encyclopedia/ecc-memory.html)
+
 But the problem here is that this solution works in `RAM` instead of `Flash` memory. This means that we can say that all data in `RAM` is secured, but we can't make a similar statement about `RWM` (read/write memory). (For `ROM`, the situation is different due to technical implementation. See this [topic](https://hackernoon.com/differences-between-ram-rom-and-flash-memory-all-you-need-to-know-ghr341i) for why `ROM` is secured against `SEU`).
 
 ## Impact of SEU
 For confidence in the danger of SEU to program stability, a test environment was created with fault-injection functions directly targeting memory. While we know that, in a real scenario, the program will reside in RAM with ECC, which protects against bit-flipping, the data used and stored by the program is not secured. This fact leads to many problems with user experience. </br>
-Here are the results of testing the unmodified FAT32 system versus NIFAT32 with checksum implementation only.  
-(Y-axis: number of bit-flips in data, X-axis: count of unhandled errors):
+For example, at about 200k bit flips we reach a situation where FAT32 (with checksum support) stops working with records:
+```
+...
+[WARN] (nifat32.c:188) directory_entry_t checksum validation error!
+[ERROR] (nifat32.c:522) Entry not found!
+Can't open content!
+Hundled error count: 10000
+Unhundled error count: 0
+```
+This is due to the violation of the `directory_entry_t` file name sequence: </br>
+A bit-flip occurs directly in one of the file names - `"TEST   0TXT "` (was `"TEST    TXT "`). This causes a checksum verification error. But this case does not represent a modification as a big improvement, because in the original FAT32 the same bit flip changes the file name, which will lead to the same error - `"File not found"`. One thing that in this case this error is accompanied by additional information - a checksum verification error. </br>
+For a visual example here are the results of testing the unmodified FAT32 system versus NIFAT32 with checksum implementation only. (Y-axis: number of bit-flips in data, X-axis: count of unhandled errors):
+
+<p align="center">
+	<img src="graphs/bitflips_source.png" alt="IO count depends on entry count"/>
+</p>
+
+Here we can see, that count of hundled error continue to grow after stop of bit-flip injection. In test program was implemented self-repair mechanism for re-creating broken entries:
+```
+if (!NIFAT32_content_exists(target_fatname)) {
+	handled_errors++;
+	fprintf(stderr, "File not found, but should be presented in FS!\n");
+
+	cinfo_t file = { .type = STAT_FILE };
+	str_memcpy(file.file_name, "test", 5);
+	str_memcpy(file.file_extension, "txt", 4);
+	name_to_fatname("test.txt", file.full_name);
+	if (!NIFAT32_put_content(PUT_TO_ROOT, &file)) {
+		handled_errors++;
+		fprintf(stderr, "File creation error!\n");
+		continue;
+	}
+}
+```
+But according to data, bit-flip happened in most dangerous zone - in file allocation table.
+
 
 ## File Allocation Table
 As mentioned, the **File Allocation Table (FAT)** is the most important part of the `FAT32` file system. I won't explain how this table works — just check this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>

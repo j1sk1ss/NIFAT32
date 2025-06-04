@@ -224,6 +224,7 @@ static int _entry_add(cluster_addr_t cluster, directory_entry_t* meta) {
     buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
     if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
+        free_s(cluster_data);
         return -1;
     }
 
@@ -309,6 +310,7 @@ static int _entry_edit(cluster_addr_t cluster, const directory_entry_t* old_meta
                 return -4;
             }
 
+            free_s(cluster_data);
             return 1;
         } 
         else {
@@ -343,6 +345,7 @@ static int _entry_remove(cluster_addr_t cluster, const directory_entry_t* meta) 
 
     if (!_cluster_read(cluster, cluster_data, _fs_data.cluster_size)) {
         print_error("_cluster_read() encountered an error. Aborting...");
+        free_s(cluster_data);
         return -2;
     }
 
@@ -360,6 +363,7 @@ static int _entry_remove(cluster_addr_t cluster, const directory_entry_t* meta) 
                 return -3;
             }
 
+            free_s(cluster_data);
             return 1;
         } 
         else {
@@ -436,7 +440,7 @@ static int _unload_file_system(file_t* file) {
     return 1;
 }
 
-static int _unload_entry_system(directory_t* directory) {
+static int _unload_directory_system(directory_t* directory) {
     if (!directory) return -1;
     free_s(directory);
     return 1;
@@ -444,8 +448,8 @@ static int _unload_entry_system(directory_t* directory) {
 
 static int _unload_content_system(content_t* content) {
     if (!content) return -1;
-    if (content->content_type == CONTENT_TYPE_DIRECTORY)      _unload_entry_system(content->directory);
-    else if (content->content_type == CONTENT_TYPE_DIRECTORY) _unload_file_system(content->file);
+    if (content->content_type == CONTENT_TYPE_DIRECTORY) _unload_directory_system(content->directory);
+    else if (content->content_type == CONTENT_TYPE_FILE) _unload_file_system(content->file);
     free_s(content);
     return 1;
 }
@@ -684,13 +688,18 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
     print_debug("NIFAT32_put_content(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
-    content_t* content = _get_content_from_table(ci);
-    if (!content) {
-        print_error("Content not found!");
-        return 0;
+    cluster_addr_t target = _fs_data.ext_root_cluster;
+    if (ci != PUT_TO_ROOT) {
+        content_t* content = _get_content_from_table(ci);
+        if (!content) {
+            print_error("Content not found!");
+            return 0;
+        }
+
+        target = content->meta.cluster;
     }
 
-    int is_found = _entry_search((char*)info->full_name, content->meta.cluster, NULL);
+    int is_found = _entry_search((char*)info->full_name, target, NULL);
     if (is_found < 0 && is_found != -4) {
         print_error("_entry_search() encountered an error [%i]. Aborting...", is_found);
         return 0;
@@ -698,7 +707,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
 
     directory_entry_t new_meta = { 0 };
     _create_entry(info->file_name, info->file_extension, info->type == STAT_DIR, _cluster_allocate(), 1, &new_meta);
-    int is_add = _entry_add(content->meta.cluster, &new_meta);
+    int is_add = _entry_add(target, &new_meta);
     if (is_add < 0) {
         print_error("_entry_add() encountered an error [%i]. Aborting...", is_add);
         return 0;

@@ -17,7 +17,7 @@ def _inject_bitflips_mmap(file_path, num_flips=10):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inject bitflips into disk image.")
     parser.add_argument("-s", "--size", type=int, default=10)
-    parser.add_argument("-c", "--count", type=int, default=10000)
+    parser.add_argument("-c", "--count", type=int, default=1)
     parser.add_argument("-i", "--image", type=str, default="nifat32.img")
     args = parser.parse_args()
 
