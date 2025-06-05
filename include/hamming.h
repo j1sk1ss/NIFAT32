@@ -16,11 +16,11 @@ P.S. Before usage, allocate dst memory with size, same as count of elements in s
 Params:
 - src - Source encoded data.
 - dst - Destination for decoded data.
-- len - Bytes count.
+- l - Element count.
 
 Return pointer to dst.
 */
-void* unpack_memory(unsigned short* src, unsigned char* dst, int len);
+void* unpack_memory(const encoded_t* src, byte_t* dst, int l);
 
 /*
 Pack memory function should encode src pointed data to hamming 15,11.
@@ -29,10 +29,10 @@ P.S. Before usage, allocate dst memory with size, same as count of elements in s
 Params:
 - src - Source encoded data.
 - dst - Destination for decoded data.
-- len - Bytes count.
+- l - Element count.
 
 Return pointer to dst.
 */
-void* pack_memory(unsigned char* src, unsigned short* dst, int len);
+void* pack_memory(const byte_t* src, decoded_t* dst, int l);
 
 #endif

@@ -3,6 +3,7 @@
 static int write_bs(int, uint32_t, uint32_t);
 static int write_fats(int, uint32_t*, uint32_t, uint32_t);
 static int initialize_fat(uint32_t*, uint32_t);
+static int reserve_bootsector_backups(fat_table_t, uint32_t, uint32_t);
 static int write_root_directory(int, uint32_t, uint32_t);
 static int create_directory(int, uint32_t*, uint32_t*, uint32_t, uint32_t, int*);
 static int copy_files_to_fs(int, const char*, uint32_t*, uint32_t, uint32_t, uint32_t);
@@ -88,6 +89,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    reserve_bootsector_backups(fat_table, total_sectors, total_clusters);
     if (!write_root_directory(fd, data_start, fat_size)) {
         fprintf(stderr, "Error initializing root directory\n");
         free(fat_table);
@@ -159,41 +161,9 @@ static uint32_t calculate_fat_size(uint32_t total_sectors) {
         return encoded;
     }
 
-    decoded_t decode_hamming_15_11(encoded_t encoded) {
-        byte_t s1 = GET_BIT(encoded, 0) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 14);
-        byte_t s2 = GET_BIT(encoded, 1) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
-        byte_t s4 = GET_BIT(encoded, 3) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
-        byte_t s8 = GET_BIT(encoded, 7) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
-        byte_t error_pos = s1 + (s2 << 1) + (s4 << 2) + (s8 << 3);
-        if (error_pos) encoded = TOGGLE_BIT(encoded, (error_pos - 1));
-        
-        decoded_t data = 0;
-        data = SET_BIT(data, 0, GET_BIT(encoded, 2));
-        data = SET_BIT(data, 1, GET_BIT(encoded, 4));
-        data = SET_BIT(data, 2, GET_BIT(encoded, 5));
-        data = SET_BIT(data, 3, GET_BIT(encoded, 6));
-        data = SET_BIT(data, 4, GET_BIT(encoded, 8));
-        data = SET_BIT(data, 5, GET_BIT(encoded, 9));
-        data = SET_BIT(data, 6, GET_BIT(encoded, 10));
-        data = SET_BIT(data, 7, GET_BIT(encoded, 11));
-        data = SET_BIT(data, 8, GET_BIT(encoded, 12));
-        data = SET_BIT(data, 9, GET_BIT(encoded, 13));
-        data = SET_BIT(data, 10, GET_BIT(encoded, 14));
-        return data;
-    }
-
-    static unsigned char _get_byte(unsigned short* ptr, int offset) {
-        return (unsigned char)decode_hamming_15_11(ptr[offset]);
-    }
-
     static int _set_byte(unsigned short* ptr, int offset, unsigned char byte) {
         ptr[offset] = encode_hamming_15_11((unsigned short)byte);
         return 1;
-    }
-
-    static void* _unpack_memory(unsigned short* src, unsigned char* dst, int len) {
-        for (int i = 0; i < len; i++) dst[i] = _get_byte(src, i);
-        return (void*)dst;
     }
 
     static void* _pack_memory(unsigned char* src, unsigned short* dst, int len) {
@@ -375,7 +345,7 @@ static int write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_t
 
 static int write_root_directory(int fd, uint32_t data_start, uint32_t fat_size) {
     off_t root_dir_offset = data_start + (ROOT_DIR_CLUSTER - 2) * CLUSTER_SIZE;
-    uint8_t empty_dir[CLUSTER_SIZE] = {0};
+    uint8_t empty_dir[CLUSTER_SIZE] = { 0 };
     if (lseek(fd, root_dir_offset, SEEK_SET) != root_dir_offset) return 0;
     if (write(fd, empty_dir, CLUSTER_SIZE) != CLUSTER_SIZE) return 0;
     return 1;
@@ -474,7 +444,9 @@ static int copy_files_to_fs(
         return 0;
     }
     
-    if (write(fd, root_dir, CLUSTER_SIZE) != CLUSTER_SIZE) {
+    unsigned short encoded_root_dir[CLUSTER_SIZE] = { 0 };
+    _pack_memory((unsigned char*)root_dir, encoded_root_dir, CLUSTER_SIZE);
+    if (write(fd, encoded_root_dir, CLUSTER_SIZE) != CLUSTER_SIZE) {
         free(root_dir);
         return 0;
     }

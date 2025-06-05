@@ -23,12 +23,13 @@ static int __coalesce_memory() {
         merged = 0;
         current = _mm_head;
 
-        while (current && current->next) {
+        while (current && current->magic == MM_BLOCK_MAGIC && current->next) {
             if (current->free && current->next->free) {
                 current->size += sizeof(mm_block_t) + current->next->size;
                 current->next = current->next->next;
                 merged = 1;
-            } else {
+            } 
+            else {
                 current = current->next;
             }
         }
@@ -47,7 +48,7 @@ static void* __malloc_s(size_t size, size_t offset, int prepare_mem) {
     mm_block_t* current = _mm_head;
     
     if (THR_require_write(&_malloc_lock, get_thread_num())) {
-        while (current) {
+        while (current && current->magic == MM_BLOCK_MAGIC) {
             void* aligned_addr = (unsigned char*)current + sizeof(mm_block_t);
             size_t position = (size_t)((unsigned char*)aligned_addr - _buffer);
             if (current->free && current->size >= size && position >= offset) {

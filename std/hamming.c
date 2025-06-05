@@ -49,21 +49,21 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
     return data;
 }
 
-static unsigned char _get_byte(unsigned short* ptr, int offset) {
-    return (unsigned char)decode_hamming_15_11(ptr[offset]);
+static byte_t _get_byte(const decoded_t* ptr, int offset) {
+    return (byte_t)decode_hamming_15_11(ptr[offset]);
 }
 
-static int _set_byte(unsigned short* ptr, int offset, unsigned char byte) {
-    ptr[offset] = encode_hamming_15_11((unsigned short)byte);
+static int _set_byte(encoded_t* ptr, int offset, byte_t byte) {
+    ptr[offset] = encode_hamming_15_11((encoded_t)byte);
     return 1;
 }
 
-void* unpack_memory(unsigned short* src, unsigned char* dst, int len) {
-    for (int i = 0; i < len; i++) dst[i] = _get_byte(src, i);
+void* unpack_memory(const encoded_t* src, byte_t* dst, int l) {
+    for (int i = 0; i < l; i++) dst[i] = _get_byte(src, i);
     return (void*)dst;
 }
 
-void* pack_memory(unsigned char* src, unsigned short* dst, int len) {
-    for (int i = 0; i < len; i++) _set_byte(dst, i, src[i]);
+void* pack_memory(const byte_t* src, encoded_t* dst, int l) {
+    for (int i = 0; i < l; i++) _set_byte(dst, i, src[i]);
     return (void*)dst;
 }

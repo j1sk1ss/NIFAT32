@@ -130,6 +130,16 @@ The original solution saves the bootstruct in the first sector and stores a back
 #define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
 ```
 
+```
+Ext boot checksum: 2706677872
+Boot checksum: 2250935889
+[i=0] encoded bootsector has been written at ca=37545/131072!
+[i=1] encoded bootsector has been written at ca=58404/131072!
+[i=2] encoded bootsector has been written at ca=79263/131072!
+[i=3] encoded bootsector has been written at ca=100122/131072!
+[i=4] encoded bootsector has been written at ca=120981/131072!
+```
+
 This method physically decompress data on disk/flash drive:
 
 <p align="center">
@@ -170,8 +180,7 @@ typedef struct directory_entry {
 As you can see, in the modified structure, six fields with a total size of 11 bytes were removed. These fields (creation and last accessed time) were excluded in the `embedded` context to save space. In embedded systems, creation and last usage timestamps are typically unnecessary due to the program’s specific requirements like:
 - Saving important data without any time check.
 - Reading config data without any time check.
-- Updating data without any time check. 
-- etc
+- Updating data without any time check.
 
 Example of such system can be `CDBMS`, [LittleDB](https://github.com/pouriamoosavi/LittleDB), [EinkPDA](https://github.com/ashtf8/EinkPDA). </br>
 Additionally, `high_bits` and `low_bits` were replaced by a single `cluster` field. Historically, splitting addresses into high and low bits was justified by 16-bit target architectures, but our current target supports raw 32-bit numbers. The mechanism behind this support is described [here](https://www.reddit.com/r/arduino/comments/i3wl8f/how_do_8_bit_arduinos_handle_32bit_numbers/). </br>
@@ -181,6 +190,12 @@ The performance improvement can be illustrated with a graph where the Y-axis rep
 
 <p align="center">
 	<img src="graphs/io.png" alt="IO count depends on entry count"/>
+</p>
+
+But if we start implementation of error-correction methods such as `Hamming Code` (Hamming code is better for single-bit errors. For large data blocks like stored data or entire FAT, we will use `Reed-Solomon code`. About implementation of this approach we will speak below), we multiply size of modified `directory_entry_t` by 2, and receive something similar to old results: 30 bytes, that in the end will lead to incrementing of syscalls count:
+
+<p align="center">
+	<img src="graphs/io_hamming.png" alt="IO count depends on entry count"/>
 </p>
 
 ## Modern solutions against SEU
