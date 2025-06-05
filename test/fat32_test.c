@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 
     int offset = 0;
     while (count-- > 0) {
-        if (!(count % 1000)) {
+        if (!(count % 100000)) {
             fprintf(stdout, 
                 "Hundled error count: %i\nUnhundled error count: %i\n",
                 handled_errors, unhundled_errors
@@ -81,33 +81,24 @@ int main(int argc, char* argv[]) {
         ci_t ci = NIFAT32_open_content(target_fatname);
         if (ci < 0) {
             unhundled_errors++;
-            // fprintf(stderr, "Can't open content, but this content should be presented or created!\n");
+            fprintf(stderr, "Can't open content, but this content should be presented or created!\n");
             continue;
         }
 
-        if (!(count % 1000)) {
-            offset += 10;
+        int write_size = 0;
+        if ((write_size = NIFAT32_write_buffer2content(ci, offset, (const_buffer_t)data, data_size) > 0)) {
+            // fprintf(stderr, "Write %i from %i!\n", write_size, data_size);
         }
 
-        int write_corrupted = 0;
-        if (!NIFAT32_write_buffer2content(ci, offset, (const_buffer_t)data, data_size)) {
-            handled_errors++;
-            write_corrupted = 1;
-            // fprintf(stderr, "Can't write content!\n");
+        int read_size = 0;
+        unsigned char buffer[8192] = { 0 };
+        if ((read_size = NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, 8192)) > 0) {
+            // fprintf(stderr, "Read %i from %i!\n", read_size, sizeof(buffer));
         }
 
-        int read_corrupted = 0;
-        unsigned char buffer[512] = { 0 };
-        if (!NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, 512)) {
-            handled_errors++;
-            read_corrupted = 1;
-            // fprintf(stderr, "Can't read content!\n");
-        }
-
-        if (!write_corrupted && !read_corrupted) {
-            if (strcmp(data, buffer)) {
-                unhundled_errors++;
-            }
+        offset += data_size;
+        if (memcmp(data, buffer, data_size)) {
+            unhundled_errors++;
         }
 
         NIFAT32_close_content(ci);

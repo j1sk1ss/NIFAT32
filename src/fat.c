@@ -19,10 +19,10 @@ int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
 static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
     cluster_offset_t fat_offset = ca * 4;
     sector_addr_t fat_sector  = fi->first_fat_sector + (fi->fat_size * fat) + (fat_offset / fi->cluster_size);
-    cluster_val_t table_value = BAD_CLUSTER_32;
+    cluster_val_t table_value = FAT_CLUSTER_BAD;
     if (!DSK_readoff_sectors(fat_sector, fat_offset % fi->cluster_size, (unsigned char*)&table_value, sizeof(cluster_val_t), 1)) {
         print_error("Could not read sector that contains FAT32 table entry needed.");
-        return BAD_CLUSTER_32;
+        return FAT_CLUSTER_BAD;
     }
 
     return table_value;
@@ -30,7 +30,7 @@ static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
 
 cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     int val_freq = 0;
-    cluster_val_t table_value = BAD_CLUSTER_32;
+    cluster_val_t table_value = FAT_CLUSTER_BAD;
     for (int i = 0; i < fi->fat_count; i++) {
         cluster_val_t fat_val = __read_fat__(ca, fi, i);
         if (fat_val != table_value) val_freq--;
@@ -54,17 +54,17 @@ int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_end(cluster_val_t cluster) {
-    return cluster == END_CLUSTER_32 ? 1 : 0;
+    return cluster == FAT_CLUSTER_END ? 1 : 0;
 }
 
 int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
-    return write_fat(cluster, END_CLUSTER_32, fi);
+    return write_fat(cluster, FAT_CLUSTER_END, fi);
 }
 
 int is_cluster_bad(cluster_val_t cluster) {
-    return cluster == BAD_CLUSTER_32 ? 1 : 0;
+    return cluster == FAT_CLUSTER_BAD ? 1 : 0;
 }
 
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
-    return write_fat(cluster, BAD_CLUSTER_32, fi);
+    return write_fat(cluster, FAT_CLUSTER_BAD, fi);
 }

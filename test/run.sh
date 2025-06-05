@@ -9,14 +9,24 @@ test_size=$1
 injector_size=$2
 timestamp=$(date +"%Y%m%d_%H%M%S")
 
-c_log="c_program_${timestamp}.log"
-py_log="python_script_${timestamp}.log"
+combined_log="combined_${timestamp}.log"
 
-./fat32_test "$test_size" > "$c_log" 2>&1 &
+c_pipe="/tmp/c_pipe_$$"
+py_pipe="/tmp/py_pipe_$$"
+mkfifo "$c_pipe" "$py_pipe"
+
+./fat32_test "$test_size" 2>&1 | while IFS= read -r line; do
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [C] $line"
+done > "$c_pipe" &
 c_pid=$!
 
-python3 injector.py --count "$injector_size" > "$py_log" 2>&1 &
+python3 injector.py --count "$injector_size" 2>&1 | while IFS= read -r line; do
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [PY] $line"
+done > "$py_pipe" &
 py_pid=$!
+
+tee "$combined_log" < <(cat "$c_pipe" "$py_pipe") >/dev/null &
+tee_pid=$!
 
 wait "$c_pid"
 c_exit=$?
@@ -26,7 +36,10 @@ if kill -0 "$py_pid" 2>/dev/null; then
     wait "$py_pid" 2>/dev/null
 fi
 
+rm -f "$c_pipe" "$py_pipe"
+kill "$tee_pid" 2>/dev/null
+wait "$tee_pid" 2>/dev/null
+
 echo "Test complete:"
-echo "C-test: $c_log"
-echo "Injector: $py_log"
+echo "Combined log: $combined_log"
 echo "C return code: $c_exit"

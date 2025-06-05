@@ -5,29 +5,22 @@ static cluster_addr_t last_allocated_cluster = CLUSTER_OFFSET;
 cluster_addr_t alloc_cluster(fat_data_t* fi) {
     if (!THR_require_write(&_allocater_lock, get_thread_num())) {
         print_error("Can't write-lock alloc_cluster function!");
-        return BAD_CLUSTER_32;
+        return FAT_CLUSTER_BAD;
     }
 
     cluster_addr_t cluster = last_allocated_cluster;
-    cluster_status_t cluster_status = FREE_CLUSTER_32;
+    cluster_status_t cluster_status = FAT_CLUSTER_FREE;
     while (cluster < fi->total_clusters) {
         cluster_status = read_fat(cluster, fi);
         if (is_cluster_free(cluster_status)) {
-            if (set_cluster_end(cluster, fi)) {
-                last_allocated_cluster = cluster;
-                THR_release_write(&_allocater_lock, get_thread_num());
-                return cluster;
-            }
-            else {
-                print_error("Error occurred with write_fat(), aborting operations...");
-                THR_release_write(&_allocater_lock, get_thread_num());
-                return BAD_CLUSTER_32;
-            }
+            last_allocated_cluster = cluster;
+            THR_release_write(&_allocater_lock, get_thread_num());
+            return cluster;
         }
         else if (is_cluster_bad(cluster_status)) {
             print_error("Error occurred with read_fat(), aborting operations...");
             THR_release_write(&_allocater_lock, get_thread_num());
-            return BAD_CLUSTER_32;
+            return FAT_CLUSTER_BAD;
         }
 
         cluster++;
@@ -35,7 +28,7 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
 
     last_allocated_cluster = fi->ext_root_cluster;
     THR_release_write(&_allocater_lock, get_thread_num());
-    return BAD_CLUSTER_32;
+    return FAT_CLUSTER_BAD;
 }
 
 int dealloc_cluster(const cluster_addr_t cluster, fat_data_t* fi) {

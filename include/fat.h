@@ -7,9 +7,10 @@
 #include "logging.h"
 #include "threading.h"
 
-#define END_CLUSTER_32  0x0FFFFFF8
-#define BAD_CLUSTER_32  0x0FFFFFF7
-#define FREE_CLUSTER_32 0x0
+#define FAT_CLUSTER_FREE 		0x00000000
+#define FAT_CLUSTER_END 		0x0FFFFFFF
+#define FAT_CLUSTER_BAD 		0x0FFFFFF7
+#define FAT_CLUSTER_RESERVED 	0x0FFFFFF8
 
 typedef unsigned int cluster_offset_t;
 typedef unsigned int cluster_addr_t;

@@ -84,19 +84,10 @@ typedef struct directory_entry {
 typedef struct fat_file {
 	char name[8];
 	char extension[4];
-	cluster_addr_t data_head;
-	struct FATFile* next;
 } file_t;
 
 typedef struct fat_directory {
 	char name[11];
-	unsigned int next_cluster;
-	unsigned int files_cluster;
-	unsigned int subdir_cluster;
-
-	struct FATDirectory* next;
-	struct FATFile*      files;
-	struct FATDirectory* sub_directory;
 } directory_t;
 
 typedef enum {
@@ -111,6 +102,7 @@ typedef struct {
 	};
 	
 	cluster_addr_t parent_cluster;
+	cluster_addr_t data_cluster;
 	directory_entry_t meta;
 	content_type_t content_type;
 	lock_t lock;
@@ -190,11 +182,11 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info);
 
 /*
 */
-int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size);
+int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size);
 
 /*
 */
-int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const_buffer_t data, int data_size);
+int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size);
 
 /*
 */

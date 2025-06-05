@@ -194,10 +194,16 @@ static int _entry_add(cluster_addr_t cluster, directory_entry_t* meta) {
                         return -2;
                     }
 
+                    if (!set_cluster_end(next_cluster, &_fs_data)) {
+                        print_error("Can't set new cluster as <END>. Aborting...");
+                        free_s(cluster_data);
+                        return -3;
+                    }
+
                     if (!write_fat(cluster, next_cluster, &_fs_data)) {
                         print_error("Extension of the cluster chain with new cluster failed. Aborting...");
                         free_s(cluster_data);
-                        return -3;
+                        return -4;
                     }
                 }
 
@@ -343,6 +349,11 @@ static int _create_entry(
     }
     
     entry->cluster = first_cluster;
+    if (!set_cluster_end(first_cluster, &_fs_data)) {
+        print_error("Can't set allocated cluster as <END> for entry!")
+        return 0;
+    }
+
     if (is_dir) entry->attributes = FILE_DIRECTORY;
     else {
         entry->file_size  = file_size;
@@ -362,7 +373,7 @@ static content_t* _create_content() {
     if (!content) return NULL;
     content->directory = NULL;
     content->file = NULL;
-    content->parent_cluster = BAD_CLUSTER_32;
+    content->parent_cluster = FAT_CLUSTER_BAD;
     return content;
 }
 
@@ -435,7 +446,7 @@ static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* 
 
             char fatname_buffer[128] = { 0 };
             name_to_fatname(name_buffer, fatname_buffer);
-            if (_entry_search(fatname_buffer, active_cluster, &file_info) < 0) return BAD_CLUSTER_32;
+            if (_entry_search(fatname_buffer, active_cluster, &file_info) < 0) return FAT_CLUSTER_BAD;
             start = iterator + 1;
 
             parent_cluster = active_cluster;
@@ -450,7 +461,7 @@ static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* 
 }
 
 int NIFAT32_content_exists(const char* path) {
-    return _get_cluster_by_path(path, NULL, NULL) != BAD_CLUSTER_32;
+    return _get_cluster_by_path(path, NULL, NULL) != FAT_CLUSTER_BAD;
 }
 
 ci_t NIFAT32_open_content(const char* path) {
@@ -471,6 +482,7 @@ ci_t NIFAT32_open_content(const char* path) {
         print_debug("NIFAT32_open_content: Content cluster is: %u", cluster);
     }
     
+    fat_content->data_cluster = cluster;
     if ((fat_content->meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY) {
         fat_content->file = _create_file();
         if (!fat_content->file) {
@@ -479,8 +491,7 @@ ci_t NIFAT32_open_content(const char* path) {
             return -3;
         }
 
-        fat_content->content_type = CONTENT_TYPE_FILE;        
-        fat_content->file->data_head = cluster;        
+        fat_content->content_type = CONTENT_TYPE_FILE;             
         str_memcpy(fat_content->file->name, fat_content->meta.file_name, 11);
     }
     else {
@@ -508,103 +519,130 @@ int NIFAT32_close_content(ci_t ci) {
     return _remove_content_from_table(ci);
 }
 
-int NIFAT32_read_content2buffer(const ci_t ci, unsigned int offset, buffer_t buffer, int buff_size) {
-    print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u)", ci, offset);
+int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size) {
+    print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");
         return 0;
     }
 
-    unsigned int clusters = 0;
-    cluster_addr_t ca = content->file->data_head;
+    int total_readden;
+    cluster_addr_t ca = content->data_cluster;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            if (!readoff_cluster(ca, offset, buffer + (_fs_data.cluster_size * clusters++), buff_size, &_fs_data)) {
+            int readeble = (buff_size > _fs_data.cluster_size - offset) ? _fs_data.cluster_size - offset : buff_size;
+            if (!readoff_cluster(ca, offset, buffer + total_readden, readeble, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
                 return 0;
             }
 
-            buff_size -= _fs_data.cluster_size - offset;
             offset = 0;
+            buff_size -= readeble;
+            total_readden += readeble;
         }
 
         ca = read_fat(ca, &_fs_data);
     }
 
-    return buff_size <= 0;
+    return total_readden;
 }
 
-static cluster_addr_t _add_cluster_to_content(const ci_t ci) {
-    directory_entry_t content_meta = _get_content_from_table(ci)->meta;
-    cluster_addr_t cluster = content_meta.cluster;
+/*
+Params:
+- ci - Content that needs new cluster.
+- lca - Last cluster of content. Can be FAT_CLUSTER_BAD if we don't now yet last cluster.
+
+Return cluster_addr_t to new cluster. Also new cluster marked as FAT_CLUSTER_END.
+Return FAT_CLUSTER_BAD if comething goes wrong.
+*/
+static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca) {
+    print_debug("_add_cluster_to_content(ci=%i, lca=%i)", ci, lca);
+    content_t* content = _get_content_from_table(ci);
+    if (!content) {
+        print_error("Content not found by ci=%i", ci);
+        return FAT_CLUSTER_BAD;
+    }
+
     int max_iterations = _fs_data.total_clusters;
-    while (!is_cluster_end(cluster) && !is_cluster_bad(cluster) && max_iterations-- > 0) {
-        cluster = read_fat(cluster, &_fs_data);
+    cluster_addr_t cluster = content->data_cluster;
+    if (lca == FAT_CLUSTER_BAD) {
+        while (!is_cluster_end(cluster) && !is_cluster_bad(cluster) && max_iterations-- > 0) {
+            lca = cluster;
+            cluster = read_fat(cluster, &_fs_data);
+        }
     }
 
     if (max_iterations <= 0) {
         print_error("Can't allocate cluster!");
-        return BAD_CLUSTER_32;
+        return FAT_CLUSTER_BAD;
     }
 
-    if (!is_cluster_end(cluster)) print_error("End of cluster chain not found!");
+    cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
+    if (!is_cluster_bad(allocated_cluster)) {
+        if (!set_cluster_end(allocated_cluster, &_fs_data)) {
+            print_error("Can't set cluster to <END> state!");
+            dealloc_cluster(allocated_cluster, &_fs_data);
+            return FAT_CLUSTER_BAD;
+        }
+
+        if (!write_fat(lca, allocated_cluster, &_fs_data)) {
+            print_error("Allocated cluster can't be added to content!");
+            dealloc_cluster(allocated_cluster, &_fs_data);
+            return FAT_CLUSTER_BAD;
+        }
+
+        return allocated_cluster;
+    }
     else {
-        cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
-        if (!is_cluster_bad(allocated_cluster)) {
-            if (!write_fat(cluster, allocated_cluster, &_fs_data)) {
-                print_error("Allocated cluster can't be added to content!");
-                return BAD_CLUSTER_32;
-            }
-
-            return allocated_cluster;
-        }
-        else {
-            print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
-            return BAD_CLUSTER_32;
-        }
+        print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
+        dealloc_cluster(allocated_cluster, &_fs_data);
+        return FAT_CLUSTER_BAD;
     }
 
-    return BAD_CLUSTER_32;
+    return FAT_CLUSTER_BAD;
 }
 
-int NIFAT32_write_buffer2content(const ci_t ci, unsigned int offset, const_buffer_t data, int data_size) {
+int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size) {
+    print_debug("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
     content_t* content = _get_content_from_table(ci);
     if (!content || content->content_type != CONTENT_TYPE_FILE) {
         print_warn("Content or file not found!");
         return 0;
     }
 
-    unsigned int clusters = 0;
-    cluster_addr_t ca = content->file->data_head;
+    int total_written = 0;
+    cluster_addr_t ca = content->data_cluster;
+    cluster_addr_t lca = ca;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            if (!writeoff_cluster(ca, offset, data + (_fs_data.cluster_size * clusters++), data_size, &_fs_data)) {
+            int writable = (data_size > _fs_data.cluster_size - offset) ? _fs_data.cluster_size - offset : data_size;
+            if (!writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
                 return 0;
             }
 
-            data_size -= _fs_data.cluster_size - offset;
             offset = 0;
+            data_size -= writable;
+            total_written += writable;
         }
 
-        ca = read_fat(ca, &_fs_data);
+        lca = ca;
+        ca  = read_fat(ca, &_fs_data);
     }
 
-    while (data_size > 0) {
-        cluster_addr_t ca = _add_cluster_to_content(ci);
-        if (is_cluster_bad(ca)) {
-            print_error("_add_cluster_to_content() error. Aborting...");
-            return 0;
-        }
+    ca = lca;
+    while (data_size > 0 && !is_cluster_bad(ca = _add_cluster_to_content(ci, ca))) {
+        int writable = (data_size > _fs_data.cluster_size) ? _fs_data.cluster_size : data_size;
+        write_cluster(ca, data + total_written, writable, &_fs_data);
 
-        write_cluster(ca, data + (_fs_data.cluster_size * clusters++), data_size, &_fs_data);
-        data_size -= _fs_data.cluster_size;
+        data_size -= writable;
+        total_written += writable;
     }
 
-    return data_size <= 0;
+    return total_written;
 }
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
@@ -660,6 +698,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
     return 1;
 }
 
+/* TODO: recursive delete for dirs */
 int NIFAT32_delete_content(ci_t ci) {
     print_debug("NIFAT32_delete_content(ci=%i)", ci);
     content_t* content = _get_content_from_table(ci);
@@ -670,18 +709,16 @@ int NIFAT32_delete_content(ci_t ci) {
     }
 
     cluster_addr_t prev_cluster = 0;
-    if (content->content_type == CONTENT_TYPE_FILE) {
-        cluster_addr_t data_cluster = content->file->data_head;
-        while (!is_cluster_end(data_cluster) && !is_cluster_bad(data_cluster) && !is_cluster_free(data_cluster)) {
-            cluster_addr_t next_cluster = read_fat(data_cluster, &_fs_data);
-            if (!dealloc_cluster(data_cluster, &_fs_data)) {
-                print_error("dealloc_cluster() encountered an error. Aborting...");
-                NIFAT32_close_content(ci);
-                return 0;
-            }
-
-            data_cluster = next_cluster;
+    cluster_addr_t data_cluster = content->data_cluster;
+    while (!is_cluster_end(data_cluster) && !is_cluster_bad(data_cluster) && !is_cluster_free(data_cluster)) {
+        cluster_addr_t next_cluster = read_fat(data_cluster, &_fs_data);
+        if (!dealloc_cluster(data_cluster, &_fs_data)) {
+            print_error("dealloc_cluster() encountered an error. Aborting...");
+            NIFAT32_close_content(ci);
+            return 0;
         }
+
+        data_cluster = next_cluster;
     }
    
     if (!_entry_remove(content->parent_cluster, &content->meta)) {
