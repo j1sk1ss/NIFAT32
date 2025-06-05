@@ -173,61 +173,31 @@ static int _entry_search(const char* entry_name, cluster_addr_t cluster, directo
     return -4;
 }
 
-static int _entry_add(cluster_addr_t cluster, directory_entry_t* meta) {
-    print_debug("_entry_add(cluster=%u, file=%s)", cluster, meta->file_name);
+static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
+    print_debug("_entry_add(cluster=%u)", ca);
     buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
-    if (!read_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
-        free_s(cluster_data);
+    if (!cluster_data) {
+        print_error("malloc_s() error!");
         return -1;
     }
 
-    unsigned int iterator = 0;
-    directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    for (;;) {
+    if (!read_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+        print_error("read_cluster() encountered an error. Aborting...");
+        free_s(cluster_data);
+        return -2;
+    }
+
+    directory_entry_t* entry = (directory_entry_t*)cluster_data;
+    unsigned int entries_per_cluster = _fs_data.cluster_size / sizeof(directory_entry_t);
+    for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
         if (
-            _validate_entry(file_metadata) &&
-            file_metadata->file_name[0] != ENTRY_FREE && 
-            file_metadata->file_name[0] != ENTRY_END
+            !_validate_entry(entry) || 
+            entry->file_name[0] == ENTRY_FREE || 
+            entry->file_name[0] == ENTRY_END
         ) {
-            if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1) {
-                file_metadata++;
-                iterator++;
-            }
-            else {
-                cluster_addr_t next_cluster = read_fat(cluster, &_fs_data);
-                if (is_cluster_end(next_cluster)) {
-                    next_cluster = alloc_cluster(&_fs_data);
-                    if (is_cluster_bad(next_cluster)) {
-                        print_error("Allocation of new cluster failed. Aborting...");
-                        free_s(cluster_data);
-                        return -2;
-                    }
-
-                    if (!set_cluster_end(next_cluster, &_fs_data)) {
-                        print_error("Can't set new cluster as <END>. Aborting...");
-                        free_s(cluster_data);
-                        return -3;
-                    }
-
-                    if (!write_fat(cluster, next_cluster, &_fs_data)) {
-                        print_error("Extension of the cluster chain with new cluster failed. Aborting...");
-                        free_s(cluster_data);
-                        return -4;
-                    }
-                }
-
-                free_s(cluster_data);
-                return _entry_add(next_cluster, meta);
-            }
-        }
-        else {
-            str_memcpy(file_metadata, meta, sizeof(directory_entry_t));
-            if (iterator + 1 < _fs_data.cluster_size / sizeof(directory_entry_t)) {
-                (file_metadata + 1)->file_name[0] = ENTRY_END;
-            }
-
-            if (!write_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+            str_memcpy(entry, meta, sizeof(directory_entry_t));
+            if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
+            if (!write_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
                 print_error("Writing new directory entry failed. Aborting...");
                 free_s(cluster_data);
                 return -5;
@@ -238,114 +208,123 @@ static int _entry_add(cluster_addr_t cluster, directory_entry_t* meta) {
         }
     }
 
-    free_s(cluster_data);
-    return -6;
-}
-
-static int _entry_edit(cluster_addr_t cluster, const directory_entry_t* old_meta, const directory_entry_t* new_meta) {
-    print_debug("_entry_edit(cluster=%u, old_meta=%s, new_meta=%s)", cluster, old_meta->file_name, new_meta->file_name);
-    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
-    if (!cluster_data) {
-        print_error("malloc_s() error!");
-        return -2;
-    }
-
-    if (!read_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
-        free_s(cluster_data);
-        return -3;
-    }
-
-    unsigned int iterator = 0;
-    directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    for (;;) {
-        if (
-            _validate_entry(file_metadata) &&
-            !str_strcmp((char*)file_metadata->file_name, (char*)old_meta->file_name)
-        ) {
-            str_memcpy(file_metadata, new_meta, sizeof(directory_entry_t));
-            if (!write_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
-                print_error("Writing updated directory entry failed. Aborting...");
-                free_s(cluster_data);
-                return -4;
-            }
-
+    cluster_addr_t nca = read_fat(ca, &_fs_data);
+    if (is_cluster_end(nca)) {
+        if (is_cluster_bad((nca = alloc_cluster(&_fs_data)))) {
+            print_error("Allocation of new cluster failed. Aborting...");
             free_s(cluster_data);
-            return 1;
-        } 
-        else {
-            if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1)  {
-                iterator++;
-                file_metadata++;
-            } 
-            else {
-                free_s(cluster_data);
-                cluster_addr_t next_cluster = read_fat(cluster, &_fs_data);
-                if (is_cluster_end(next_cluster)) {
-                    print_error("End of cluster chain reached. file_t not found. Aborting...");
-                    return -5;
-                }
+            return -2;
+        }
 
-                return _entry_edit(next_cluster, old_meta, new_meta);
-            }
+        if (!set_cluster_end(nca, &_fs_data)) {
+            print_error("Can't set new cluster as <END>. Aborting...");
+            free_s(cluster_data);
+            return -3;
+        }
+
+        if (!write_fat(ca, nca, &_fs_data)) {
+            print_error("Extension of the cluster chain with new cluster failed. Aborting...");
+            free_s(cluster_data);
+            return -4;
         }
     }
 
     free_s(cluster_data);
-    return -6;
+    return _entry_add(nca, meta);
 }
 
-static int _entry_remove(cluster_addr_t cluster, const directory_entry_t* meta) {
-    print_debug("_entry_remove(cluster=%u, meta=%s)", cluster, meta->file_name);
+static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_entry_t* new) {
+    print_debug("_entry_edit(cluster=%u)", ca);
     buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
     if (!cluster_data) {
         print_error("malloc_s() error!");
         return -1;
     }
 
-    if (!read_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+    if (!read_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
         print_error("read_cluster() encountered an error. Aborting...");
         free_s(cluster_data);
         return -2;
     }
 
-    unsigned int iterator = 0;
-    directory_entry_t* file_metadata = (directory_entry_t*)cluster_data;
-    for (;;) {
+    directory_entry_t* entry = (directory_entry_t*)cluster_data;
+    unsigned int entries_per_cluster = _fs_data.cluster_size / sizeof(directory_entry_t);
+    for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
         if (
-            _validate_entry(file_metadata) &&
-            !str_strcmp((char*)file_metadata->file_name, (char*)meta->file_name)
+            _validate_entry(entry) && 
+            entry->file_name[0] != ENTRY_FREE && 
+            entry->file_name[0] != ENTRY_END
         ) {
-            file_metadata->file_name[0] = ENTRY_FREE;
-            if (!write_cluster(cluster, cluster_data, _fs_data.cluster_size, &_fs_data)) {
-                print_error("Writing updated directory entry failed. Aborting...");
-                free_s(cluster_data);
-                return -3;
-            }
-
-            free_s(cluster_data);
-            return 1;
-        } 
-        else {
-            if (iterator < _fs_data.cluster_size / sizeof(directory_entry_t) - 1)  {
-                iterator++;
-                file_metadata++;
-            } 
-            else {
-                free_s(cluster_data);
-                unsigned int next_cluster = read_fat(cluster, &_fs_data);
-                if (is_cluster_end(next_cluster)) {
-                    print_error("End of cluster chain reached. file_t not found. Aborting...");
+            if (!str_strcmp((char*)entry->file_name, (char*)old->file_name)) {
+                str_memcpy(entry, new, sizeof(directory_entry_t));
+                if (!write_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+                    print_error("Writing updated directory entry failed. Aborting...");
+                    free_s(cluster_data);
                     return -4;
                 }
 
-                return _entry_remove(next_cluster, meta);
+                free_s(cluster_data);
+                return 1;
             }
         }
     }
 
+    cluster_addr_t nca = read_fat(ca, &_fs_data);
+    if (is_cluster_end(nca)) {
+        print_error("<END> of cluster chain reached. file_t not found. Aborting...");
+        free_s(cluster_data);
+        return -5;
+    }
+
     free_s(cluster_data);
-    return -5;
+    return _entry_edit(nca, old, new);
+}
+
+static int _entry_remove(cluster_addr_t ca, const directory_entry_t* meta) {
+    print_debug("_entry_remove(cluster=%u)", ca);
+    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
+    if (!cluster_data) {
+        print_error("malloc_s() error!");
+        return -1;
+    }
+
+    if (!read_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+        print_error("read_cluster() encountered an error. Aborting...");
+        free_s(cluster_data);
+        return -2;
+    }
+
+    directory_entry_t* entry = (directory_entry_t*)cluster_data;
+    unsigned int entries_per_cluster = _fs_data.cluster_size / sizeof(directory_entry_t);
+    for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+        if (
+            _validate_entry(entry) && 
+            entry->file_name[0] != ENTRY_FREE && 
+            entry->file_name[0] != ENTRY_END
+        ) {
+            if (!str_strcmp((char*)entry->file_name, (char*)meta->file_name)) {
+                entry->file_name[0] = ENTRY_FREE;
+                if (!write_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
+                    print_error("Writing updated directory entry failed. Aborting...");
+                    free_s(cluster_data);
+                    return -3;
+                }
+
+                free_s(cluster_data);
+                return 1;
+            }
+        }
+    }
+
+    cluster_addr_t nca = read_fat(ca, &_fs_data);
+    if (is_cluster_end(nca)) {
+        print_error("<END> of cluster chain reached. file_t not found. Aborting...");
+        free_s(cluster_data);
+        return -5;
+    }
+
+    free_s(cluster_data);
+    return _entry_remove(nca, meta);
 }
 
 static int _create_entry(
