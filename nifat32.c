@@ -3,16 +3,8 @@
 static fat_data_t _fs_data = { 0 };
 static content_t* _content_table[CONTENT_TABLE_SIZE] = { NULL };
 
-static sector_addr_t _get_next_bs_sa(sector_addr_t sa) {
-    switch (sa) {
-        case DEFAULT_BS: return RESERVE_BS1;
-        case RESERVE_BS1: return RESERVE_BS2;
-        default: return NO_RESERVE;
-    }
-}
-
-int NIFAT32_init(sector_addr_t bs) {
-    if (bs == NO_RESERVE) {
+int NIFAT32_init(int bs_num, unsigned int ts) {
+    if (bs_num > 5) {
         print_error("Init error! No reserved sectors!");
         return 0;
     }
@@ -25,7 +17,7 @@ int NIFAT32_init(sector_addr_t bs) {
         return 0;
     }
 
-    if (!DSK_read_sector(bs, encoded_bs, sector_size)) {
+    if (!DSK_read_sector(GET_BOOTSECTOR(bs_num, ts), encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
         free_s(encoded_bs);
         return 0;
@@ -54,7 +46,7 @@ int NIFAT32_init(sector_addr_t bs) {
             "Checksum check error! %u != %u or %u != %u. Moving to reserved sector!", 
             bootstruct->checksum, bcheck, ext_bootstruct->checksum, exbcheck
         );
-        return NIFAT32_init(_get_next_bs_sa(bs));
+        return NIFAT32_init(bs_num + 1, ts);
     }
     else {
         bootstruct->checksum     = bcheck;
@@ -102,8 +94,8 @@ int NIFAT32_init(sector_addr_t bs) {
     print_debug("Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
     print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
 
-    if (bs != DEFAULT_BS) {
-        if (!DSK_write_sector(DEFAULT_BS, (const_buffer_t)encoded_bs, sector_size)) {
+    if (bs_num > 0) {
+        if (!DSK_write_sector(GET_BOOTSECTOR(0, ts), (const_buffer_t)encoded_bs, sector_size)) {
             print_warn("Attempt for bootsector restore failed!");
         }
     }

@@ -83,6 +83,7 @@ int DSK_setup(
 }
 
 int DSK_read_sector(sector_addr_t sa, unsigned char* buffer, int buff_size) {
+    print_debug("DSK_read_sector(sa=%u, size=%i)", sa, buff_size);
     if (_lock_area(sa, 1, READ_LOCK)) {
         int read_result = _disk_io.read_sector(sa, 0, buffer, buff_size);
         _unlock_area(sa, 1);
@@ -121,6 +122,7 @@ int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char*
 }
 
 int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size) {
+    print_debug("DSK_write_sector(sa=%u, size=%i)", sa, data_size);
     if (_lock_area(sa, 1, WRITE_LOCK)) {
         int write_result = _disk_io.write_sector(sa, 0, data, data_size);
         _unlock_area(sa, 1);

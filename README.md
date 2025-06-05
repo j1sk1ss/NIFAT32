@@ -50,7 +50,7 @@ A bit-flip occurs directly in one of the file names - `"TEST   0TXT "` (was `"TE
 For a visual example here are the results of testing the unmodified FAT32 system with checksum implementation only. (X-axis: number of bit-flips in data, Y-axis: count of handled errors):
 
 <p align="center">
-	<img src="graphs/bitflips_source.png" alt="IO count depends on entry count"/>
+	<img src="graphs/bitflips_source.png" alt="Errors due bit-flip injection"/>
 </p>
 
 Here we can see, that count of hundled error continue to grow after stop of bit-flip injection. In test program was implemented self-repair mechanism for re-creating broken entries:
@@ -79,6 +79,8 @@ As mentioned, the `File Allocation Table (FAT)` is the most important part of th
 The original implementation of FAT simply saved the entire table (and its copies) in the first sectors of the disk. If we're talking about `Flash` memory — which is the cheapest solution in terms of storage capacity vs. price, according to [this article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system/) — it comes with serious risks, especially in `embedded` systems with `SEU` effect. These risks are explained in more detail [here](https://en.wikipedia.org/wiki/Flash_memory).
 
 The main issue is that `SEU` can disturb electrons in `Flash`, which may cause bit-flips that can silently corrupt data. If the `FAT` table is affected, the consequences can include:
+- corrupter boot sector,
+- corrupted file allocation table,
 - corrupted file allocation metadata,
 - unreadable or wrongly linked files,
 - complete file system failure.
@@ -115,10 +117,26 @@ typedef struct fat_BS {
 } __attribute__((packed)) fat_BS_t;
 ```
 
-- fat32_bootstruct - `fat_bootstruct` itself historically contain information only for FAT16 and FAT12 filesystems, that's why, for FAT32 support, bootstruct has special field `extended_section`.
+- The fat32_bootstruct itself actually refers to the `fat_bootstruct`, which historically contains information only for FAT12 and FAT16 filesystems. That’s why, to support FAT32, the bootstruct includes a special field called the extended_section.
 
-Main idea here is checksum support and twice-backup with noise-immune encoding. Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). Why was `crc32` used? This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). Hamming code encoding was chosen for noise-immune encoding. The reason for this choice and approaches of implementation will be explained below. </br>
-The next step is modifying the source data structures to optimize them for the specified embedded solution. For example, the `directory_entry_t`. Below is the original structure:
+The main idea here is to provide checksum support along with a dual backup system using noise-immune encoding. Additional checksum verification reduces the probability of data corruption. For checksum generation, the `crc32` function was used, implemented according to this [article](https://arxiv.org/html/2412.16398v1). Why `crc32`? Because it is a widely adopted error-detection method, and this algorithm also has certain advantages as discussed in this [thesis](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). For noise-immune encoding, Hamming code was chosen; the reasons for this choice and implementation details will be explained below. </br>
+The original solution saves the bootstruct in the first sector and stores a backup in the sixth sector. The best way to secure this critical data is through a form of "decompression" — meaning that backups are stored in sectors whose addresses are calculated using a formula based on [hash constants](https://en.wikipedia.org/wiki/Golden_ratio):
+
+```
+#define HASH_CONST 2654435761U
+#define PRIME1     73856093U
+#define PRIME2     19349663U
+#define PRIME3     83492791U
+#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+```
+
+This method physically decompress data on disk/flash drive:
+
+<p align="center">
+	<img src="graphs/bs_decompression.png" alt="Decompression"/>
+</p>
+
+The next step involves modifying the original data structures to optimize them for this embedded solution. For example, the `directory_entry_t` structure. Below is the original definition:
 
 ```
 typedef struct directory_entry {
@@ -166,7 +184,10 @@ The performance improvement can be illustrated with a graph where the Y-axis rep
 </p>
 
 ## Modern solutions against SEU
-The most common solution against `Single Event Upsets` (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code). Below is a basic implementation of Hamming encoding and decoding.
+The most common solution against **Single Event Upsets** (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code).  
+Another approach for implementing noise-immune encoding is the use of [Reed–Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). A comparison between these two error correction methods can be found in [this study](https://www.researchgate.net/publication/389098626_A_Comparative_Study_between_Hamming_Code_and_Reed-Solomon_Code_in_Byte_Error_Detection_and_Correction). </br>
+Below is a basic implementation of Hamming encoding and decoding.
+
 ```
 encoded_t encode_hamming_15_11(decoded_t data) {
     encoded_t encoded = 0;

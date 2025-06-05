@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    uint32_t* fat_table = calloc(total_clusters, sizeof(uint32_t));
+    fat_table_t fat_table = (fat_table_t)malloc(total_clusters * sizeof(uint32_t));
     if (!fat_table) {
         fprintf(stderr, "Memory allocation error\n");
         close(fd);
@@ -322,13 +322,13 @@ static int write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     encoded_t* encoded_bs = (encoded_t*)malloc(encoded_size);
     if (!encoded_bs) return 0;
 
-    uint8_t padding[BYTES_PER_SECTOR - (sizeof(encoded_t) * sizeof(fat_BS_t))] = { 0 };
-    for (int i = 0; i < 3; i++) {
-        if (lseek(fd, (i * 6) * BYTES_PER_SECTOR, SEEK_SET) != (i * 6) * BYTES_PER_SECTOR) return 0;
+    uint8_t padding[BYTES_PER_SECTOR] = { 0 };
+    for (int i = 0; i < BS_BACKUPS; i++) {
+        unsigned int ca = GET_BOOTSECTOR(i, total_sectors);
         _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(fat_BS_t));
-        if (write(fd, encoded_bs, encoded_size) != encoded_size) return 0;
-        if (write(fd, padding, sizeof(padding)) != sizeof(padding)) return 0;
-        fprintf(stdout, "[i=%i] encoded bootsector has been written!\n", i);
+        if (pwrite(fd, padding, sizeof(padding), ca * BYTES_PER_SECTOR) != sizeof(padding)) return 0;
+        if (pwrite(fd, encoded_bs, encoded_size, ca * BYTES_PER_SECTOR) != encoded_size) return 0;
+        fprintf(stdout, "[i=%i] encoded bootsector has been written at ca=%u/%u!\n", i, ca, total_sectors);
     }
 
     free(encoded_bs);
@@ -342,7 +342,23 @@ static int initialize_fat(uint32_t* fat_table, uint32_t total_clusters) {
     return 1;
 }
 
-static int write_fats(int fd, uint32_t* fat_table, uint32_t fat_size, uint32_t total_clusters) {
+static int reserve_bootsector_backups(fat_table_t fat_table, uint32_t total_sectors, uint32_t total_clusters) {
+    uint32_t cluster_for_bs = 0;
+    uint32_t cluster_for_backup;
+
+    fat_table[cluster_for_bs] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+    for (int i = 0; i < BS_BACKUPS; i++) {
+        unsigned int sector = GET_BOOTSECTOR(i, total_sectors);
+        cluster_for_backup = sector / SECTORS_PER_CLUSTER;
+        if (cluster_for_backup < total_clusters) {
+            fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+        }
+    }
+
+    return 1;
+}
+
+static int write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_t total_clusters) {
     uint32_t fat_bytes  = fat_size * BYTES_PER_SECTOR;
     if (lseek(fd, RESERVED_SECTORS * BYTES_PER_SECTOR, SEEK_SET) != RESERVED_SECTORS * BYTES_PER_SECTOR) {
         return 0;

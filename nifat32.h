@@ -48,7 +48,7 @@ typedef struct fat_extBS_32 {
 	unsigned int   volume_id;
 	unsigned char  volume_label[11];
 	unsigned char  fat_type_label[8];
-	checksum_t checksum;
+	checksum_t     checksum;
 } __attribute__((packed)) fat_extBS_32_t;
 
 typedef struct fat_BS {
@@ -67,8 +67,18 @@ typedef struct fat_BS {
 	unsigned int   hidden_sector_count;
 	unsigned int   total_sectors_32;
 	unsigned char  extended_section[sizeof(fat_extBS_32_t)];
-	checksum_t checksum;
+	checksum_t     checksum;
 } __attribute__((packed)) fat_BS_t;
+
+/*
+https://en.wikipedia.org/wiki/Golden_ratio
+2^32 / φ, where φ = +-1.618
+*/
+#define HASH_CONST 2654435761U
+#define PRIME1     73856093U
+#define PRIME2     19349663U
+#define PRIME3     83492791U
+#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
 
 /* from http://wiki.osdev.org/FAT */
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */
@@ -130,16 +140,13 @@ typedef struct {
 Init function. 
 Note: This function also init memory manager.
 Params:
-- bs - Bootsector.
+- bs_num - Bootsector number.
+- ts - Total sectors in filesystem.
 
 Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
-#define DEFAULT_BS  0
-#define RESERVE_BS1 6
-#define RESERVE_BS2 12
-#define NO_RESERVE	999
-int NIFAT32_init(sector_addr_t bs);
+int NIFAT32_init(int bs_num, unsigned int ts);
 
 /*
 Return 1 if content exists.

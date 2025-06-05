@@ -39,7 +39,8 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!NIFAT32_init(DEFAULT_BS)) {
+    #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
+    if (!NIFAT32_init(0, DEFAULT_VOLUME_SIZE / SECTOR_SIZE)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);
         return EXIT_FAILURE;

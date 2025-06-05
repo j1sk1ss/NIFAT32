@@ -19,6 +19,18 @@
 #define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
 #define TOGGLE_BIT(b, i) (b ^ (1 << i))
 
+/*
+https://en.wikipedia.org/wiki/Golden_ratio
+2^32 / φ, where φ = +-1.618
+*/
+#define BS_BACKUPS 5
+
+#define HASH_CONST 2654435761U
+#define PRIME1     73856093U
+#define PRIME2     19349663U
+#define PRIME3     83492791U
+#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+
 #define BYTES_PER_SECTOR 	512
 #define SECTORS_PER_CLUSTER 8
 #define CLUSTER_SIZE 		(BYTES_PER_SECTOR * SECTORS_PER_CLUSTER)
@@ -84,5 +96,6 @@ typedef struct directory_entry {
 typedef unsigned char byte_t;
 typedef unsigned short encoded_t;
 typedef unsigned short decoded_t;
+typedef unsigned int* fat_table_t;
 
 #endif
