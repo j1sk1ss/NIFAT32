@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define DISK_PATH   "nifat32.img"
 #define SECTOR_SIZE 512
@@ -56,10 +57,14 @@ int main(int argc, char* argv[]) {
 
     int offset = 0;
     while (count-- > 0) {
-        if (!(count % 100000)) {
-            fprintf(stdout, 
-                "Hundled error count: %i\nUnhundled error count: %i\n",
-                handled_errors, unhundled_errors
+        if (!(count % 1000)) {
+            time_t now = time(NULL);
+            struct tm* tm_info = localtime(&now);
+            char time_str[20];
+            strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+            fprintf(
+                stdout, "[%s] Hundled error count: %i\tUnhundled error count: %i\n", 
+                time_str, handled_errors, unhundled_errors
             );
         }
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# 0 - 10000, ? - 100000
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <test_size> <injector_size>"
     exit 1
@@ -14,6 +14,18 @@ combined_log="combined_${timestamp}.log"
 c_pipe="/tmp/c_pipe_$$"
 py_pipe="/tmp/py_pipe_$$"
 mkfifo "$c_pipe" "$py_pipe"
+
+cleanup() {
+    echo "Cleaning up..."
+    kill "$c_pid" "$py_pid" "$tee_pid" 2>/dev/null
+    wait "$c_pid" 2>/dev/null
+    wait "$py_pid" 2>/dev/null
+    wait "$tee_pid" 2>/dev/null
+    rm -f "$c_pipe" "$py_pipe"
+    echo "Cleanup done."
+}
+
+trap cleanup SIGINT SIGTERM EXIT
 
 ./fat32_test "$test_size" 2>&1 | while IFS= read -r line; do
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] [C] $line"
@@ -36,9 +48,12 @@ if kill -0 "$py_pid" 2>/dev/null; then
     wait "$py_pid" 2>/dev/null
 fi
 
+if kill -0 "$tee_pid" 2>/dev/null; then
+    kill "$tee_pid" >/dev/null 2>&1
+    wait "$tee_pid" 2>/dev/null
+fi
+
 rm -f "$c_pipe" "$py_pipe"
-kill "$tee_pid" 2>/dev/null
-wait "$tee_pid" 2>/dev/null
 
 echo "Test complete:"
 echo "Combined log: $combined_log"

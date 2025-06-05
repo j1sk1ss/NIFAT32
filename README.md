@@ -54,6 +54,7 @@ For a visual example here are the results of testing the unmodified FAT32 system
 </p>
 
 Here we can see, that count of hundled error continue to grow after stop of bit-flip injection. In test program was implemented self-repair mechanism for re-creating broken entries:
+
 ```
 if (!NIFAT32_content_exists(target_fatname)) {
 	handled_errors++;
@@ -69,11 +70,13 @@ if (!NIFAT32_content_exists(target_fatname)) {
 	}
 }
 ```
-But according to data, bit-flip happened in most dangerous zone - in file allocation table.
+
+But according to data, bit-flip happened in most dangerous zone - in file allocation table. In the end, this test doesn't make any sense due to obvious results. The `FAT32` filesystem wasn't designed to withstand upset events. The source implementation can handle cases where the FAT boot sector or allocation table is damaged (excluding direct cell value changes), but it cannot function properly when `SEU` occurs directly within clusters — for example, changing a file name. </br>
+However, `FAT32` is still a solid solution for simple file storage in embedded systems. This is why certain modifications to the filesystem can improve its noise immunity and fault tolerance. Additionally, if our target is embedded systems, we can restructure the source code to reduce the overall size of the filesystem, which will simplify the process of porting it to various microcontrollers.
 
 ## File Allocation Table
-As mentioned, the **File Allocation Table (FAT)** is the most important part of the `FAT32` file system. I won't explain how this table works — just check this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>
-The original implementation of FAT simply saved the entire table in the first sectors of the disk. If we're talking about `Flash` memory — which is the cheapest solution in terms of storage capacity vs. price, according to [this article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system/) — it comes with serious risks, especially in `embedded` systems. These risks are explained in more detail [here](https://en.wikipedia.org/wiki/Flash_memory).
+As mentioned, the `File Allocation Table (FAT)` is the most important part of the `FAT32` file system. I won't explain how this table works — just check this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>
+The original implementation of FAT simply saved the entire table (and its copies) in the first sectors of the disk. If we're talking about `Flash` memory — which is the cheapest solution in terms of storage capacity vs. price, according to [this article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system/) — it comes with serious risks, especially in `embedded` systems with `SEU` effect. These risks are explained in more detail [here](https://en.wikipedia.org/wiki/Flash_memory).
 
 The main issue is that `SEU` can disturb electrons in `Flash`, which may cause bit-flips that can silently corrupt data. If the `FAT` table is affected, the consequences can include:
 - corrupted file allocation metadata,

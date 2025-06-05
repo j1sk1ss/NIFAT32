@@ -2,6 +2,8 @@ import argparse
 import mmap
 import random
 
+from datetime import datetime
+
 def _inject_bitflips_mmap(file_path, num_flips=10):
     with open(file_path, 'r+b') as f:
         mm = mmap.mmap(f.fileno(), 0)
@@ -25,4 +27,5 @@ if __name__ == "__main__":
     for i in range(args.count):
         _inject_bitflips_mmap(args.image, args.size)
         total_flips += args.size
-        print(f"Total flips: {total_flips}")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{now}] Total flips: {total_flips}")
