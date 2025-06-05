@@ -198,6 +198,8 @@ But if we start implementation of error-correction methods such as `Hamming Code
 	<img src="graphs/io_hamming.png" alt="IO count depends on entry count"/>
 </p>
 
+The main detail here is that error-correction in `directory_entry_t` happens every time we iterate through a cluster.
+
 ## Modern solutions against SEU
 The most common solution against **Single Event Upsets** (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code).  
 Another approach for implementing noise-immune encoding is the use of [Reed–Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). A comparison between these two error correction methods can be found in [this study](https://www.researchgate.net/publication/389098626_A_Comparative_Study_between_Hamming_Code_and_Reed-Solomon_Code_in_Byte_Error_Detection_and_Correction). </br>
