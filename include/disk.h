@@ -29,7 +29,6 @@ typedef struct {
     int sector_size;
 } io_t;
 
-
 /*
 Setup disk ubstraction layer.
 

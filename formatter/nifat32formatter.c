@@ -318,14 +318,20 @@ static int write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     bs.checksum = _crc32(0, (uint8_t*)&bs, sizeof(bs));
     fprintf(stdout, "Boot checksum: %u\n", bs.checksum);
 
-    uint8_t padding[BYTES_PER_SECTOR - sizeof(fat_BS_t)] = { 0 };
+    int encoded_size = sizeof(encoded_t) * sizeof(fat_BS_t);
+    encoded_t* encoded_bs = (encoded_t*)malloc(encoded_size);
+    if (!encoded_bs) return 0;
+
+    uint8_t padding[BYTES_PER_SECTOR - (sizeof(encoded_t) * sizeof(fat_BS_t))] = { 0 };
     for (int i = 0; i < 3; i++) {
         if (lseek(fd, (i * 6) * BYTES_PER_SECTOR, SEEK_SET) != (i * 6) * BYTES_PER_SECTOR) return 0;
-        if (write(fd, &bs, sizeof(bs)) != sizeof(bs)) return 0;
+        _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(fat_BS_t));
+        if (write(fd, encoded_bs, encoded_size) != encoded_size) return 0;
         if (write(fd, padding, sizeof(padding)) != sizeof(padding)) return 0;
-        fprintf(stdout, "[i=%i] bootsector has been written!\n", i);
+        fprintf(stdout, "[i=%i] encoded bootsector has been written!\n", i);
     }
 
+    free(encoded_bs);
     return 1;
 }
 

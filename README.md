@@ -117,8 +117,8 @@ typedef struct fat_BS {
 
 - fat32_bootstruct - `fat_bootstruct` itself historically contain information only for FAT16 and FAT12 filesystems, that's why, for FAT32 support, bootstruct has special field `extended_section`.
 
-Main idea here is checksum support and twice-backup with noise-immune encoding. Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). Why was `crc32` used? This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). </br>
-For example modification of `directory_entry_t` was simple. Here is the source structure:
+Main idea here is checksum support and twice-backup with noise-immune encoding. Additional checksum verification can lower the probability of damaged data. For checksum generation, the `crc32` function was used, implemented according to [this article](https://arxiv.org/html/2412.16398v1). Why was `crc32` used? This function is a common solution for error-detection. Also, this algorithm has some advantages as discussed in [this topic](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). Hamming code encoding was chosen for noise-immune encoding. The reason for this choice and approaches of implementation will be explained below. </br>
+The next step is modifying the source data structures to optimize them for the specified embedded solution. For example, the `directory_entry_t`. Below is the original structure:
 
 ```
 typedef struct directory_entry {
@@ -164,8 +164,6 @@ The performance improvement can be illustrated with a graph where the Y-axis rep
 <p align="center">
 	<img src="graphs/io.png" alt="IO count depends on entry count"/>
 </p>
-
-## Data-Flows
 
 ## Modern solutions against SEU
 The most common solution against `Single Event Upsets` (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code). Below is a basic implementation of Hamming encoding and decoding.
@@ -220,7 +218,48 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 }
 ```
 
-The main limitation of this algorithm is its restricted error correction capability: it can correct a single-bit error and detect (but not correct) double-bit errors. This makes it insufficient in environments with frequent or multiple simultaneous bit-flips.
+The main limitation of this algorithm is its restricted error correction capability: it can correct a single-bit error and detect (but not correct) double-bit errors. This makes it insufficient in environments with frequent or multiple simultaneous bit-flips. Also this method requires additional space for control bits, that itself not a big problem, if we don't speak about sectors. </br>
+**Sectors** are the lowest abstraction that divide the disk into the smallest possible sections. Every disk IO syscall loads an entire sector from the disk into memory. A basic implementation looks like the code below (the code was taken from the CordellOS project):
+
+```
+int ATA_read_sector(uint32_t lba, uint8_t* buffer) {
+	_ata_wait();
+	_prepare_for_reading(lba);
+	if (!_is_ata_ready()) {
+		return 0;
+	}
+
+	for (int n = 0; n < SECTOR_SIZE / 2; n++) {
+		uint16_t value = i386_inw(DATA_REGISTER);
+		buffer[n * 2] = value & 0xFF;
+		buffer[n * 2 + 1] = value >> 8;
+	}
+
+	return 1;
+}
+
+int ATA_write_sector(uint32_t lba, const uint8_t* buffer) {
+	if (lba == BOOT_SECTOR) return -1;
+
+	_ata_wait();
+	_prepare_for_writing(lba);
+
+	int timeout = 9000000;
+	while ((i386_inb(STATUS_REGISTER) & ATA_SR_BSY) == 0) 
+		if (--timeout < 0) return -1;
+		else continue;
+	
+	for (int i = 0; i < SECTOR_SIZE / 2; i++) {
+		uint16_t data = *((uint16_t*)(buffer + i * 2));
+		i386_outw(DATA_REGISTER, data);
+	}
+
+	return 1;
+}
+```
+
+That's why this part is tricky when we need to encode some data that fits exactly into one sector using Hamming code, as it will increase the size by 2 bytes at the end. </br>
+If we are talking about the **boot sector**, there is no problem here because this data easily fits into one entire sector even after additional encoding. However, when it comes to the `FAT`, it is difficult to determine the best approach for retrieving data from the encoded disk space.
 
 ## Benchmark
 

@@ -57,7 +57,6 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "File %s found!\n", fatname_buffer);
         }
 
-        unsigned char content[512] = { 0 };
         fprintf(stdout, "Trying to open file: %s\n", fatname_buffer);
         ci_t ci = NIFAT32_open_content(fatname_buffer);
         if (ci < 0) {
@@ -72,6 +71,7 @@ int main(int argc, char* argv[]) {
 
         /* Reading test */
         {
+            unsigned char content[512] = { 0 };
             fprintf(stdout, "Trying to read content from file: %s\n", info.file_name);
             if (!NIFAT32_read_content2buffer(ci, 0, content, 512)) {
                 fprintf(stderr, "Can't read file %s!\n", fatname_buffer);

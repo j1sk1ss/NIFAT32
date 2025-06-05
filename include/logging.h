@@ -21,6 +21,9 @@
 #include <stdarg.h>
 #include <time.h>
 
+#define fd_fprintf(fmt, ...)   fprintf(stdout, fmt, ##__VA_ARGS__)
+#define fd_vfprintf(fmt, args) vfprintf(stdout, fmt, args)
+
 #ifdef ERROR_LOGS
     #define print_error(message, ...)   log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
@@ -69,19 +72,6 @@
     #define print_spec(message, ...)
 #endif
 
-
-/*
-Write log to file descriptor.
-
-Params:
-- level - Log level.
-- file - File descriptor.
-- line - Code line number.
-- message - Additional info message.
-- args - Args.
-*/
-void _write_log(const char* level, const char* file, int line, const char* message, va_list args);
-
 /*
 Create log message.
 
@@ -90,6 +80,6 @@ Create log message.
 - line - Code line number.
 - message - Additional info message.
 */
-void log_message(const char* level, const char* file, int line, const char* message, ...);
+int log_message(const char* level, const char* file, int line, const char* message, ...);
 
 #endif

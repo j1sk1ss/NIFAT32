@@ -18,19 +18,28 @@ int NIFAT32_init(sector_addr_t bs) {
     }
 
     mm_init();
-    buffer_t sector_data = (buffer_t)malloc_s(DSK_get_sector_size());
-    if (!sector_data) {
+    int sector_size = DSK_get_sector_size();
+    buffer_t encoded_bs = (buffer_t)malloc_s(sector_size);
+    if (!encoded_bs) {
         print_error("malloc_s() error!");
         return 0;
     }
 
-    if (!DSK_read_sector(bs, sector_data, DSK_get_sector_size())) {
+    if (!DSK_read_sector(bs, encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
-        free_s(sector_data);
+        free_s(encoded_bs);
         return 0;
     }
 
-    fat_BS_t* bootstruct = (fat_BS_t*)sector_data;
+    buffer_t decoded_bs = (buffer_t)malloc_s(sector_size);
+    if (!decoded_bs) {
+        print_error("malloc_s() error!");
+        return 0;
+    }
+
+    unpack_memory((encoded_t*)encoded_bs, decoded_bs, sector_size);
+
+    fat_BS_t* bootstruct = (fat_BS_t*)decoded_bs;
     fat_extBS_32_t* ext_bootstruct = (fat_extBS_32_t*)bootstruct->extended_section;
 
     checksum_t bcheck = bootstruct->checksum;
@@ -94,12 +103,13 @@ int NIFAT32_init(sector_addr_t bs) {
     print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
 
     if (bs != DEFAULT_BS) {
-        if (!DSK_write_sector(DEFAULT_BS, sector_data, sizeof(fat_BS_t))) {
+        if (!DSK_write_sector(DEFAULT_BS, (const_buffer_t)encoded_bs, sector_size)) {
             print_warn("Attempt for bootsector restore failed!");
         }
     }
 
-    free_s(sector_data);
+    free_s(encoded_bs);
+    free_s(decoded_bs);
     return 1;
 }
 
@@ -350,7 +360,7 @@ static int _create_entry(
     
     entry->cluster = first_cluster;
     if (!set_cluster_end(first_cluster, &_fs_data)) {
-        print_error("Can't set allocated cluster as <END> for entry!")
+        print_error("Can't set allocated cluster as <END> for entry!");
         return 0;
     }
 
@@ -527,12 +537,12 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
         return 0;
     }
 
-    int total_readden;
+    int total_readden = 0;
     cluster_addr_t ca = content->data_cluster;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            int readeble = (buff_size > _fs_data.cluster_size - offset) ? _fs_data.cluster_size - offset : buff_size;
+            int readeble = (buff_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : buff_size;
             if (!readoff_cluster(ca, offset, buffer + total_readden, readeble, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
                 return 0;
@@ -618,7 +628,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            int writable = (data_size > _fs_data.cluster_size - offset) ? _fs_data.cluster_size - offset : data_size;
+            int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
             if (!writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
                 return 0;
@@ -635,7 +645,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
     ca = lca;
     while (data_size > 0 && !is_cluster_bad(ca = _add_cluster_to_content(ci, ca))) {
-        int writable = (data_size > _fs_data.cluster_size) ? _fs_data.cluster_size : data_size;
+        int writable = (data_size > (int)_fs_data.cluster_size) ? (int)_fs_data.cluster_size : data_size;
         write_cluster(ca, data + total_written, writable, &_fs_data);
 
         data_size -= writable;

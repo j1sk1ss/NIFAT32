@@ -2,6 +2,7 @@
 #define NIFAT32_H_
 
 #include <stddef.h>
+#include "include/hamming.h"
 #include "include/threading.h"
 #include "include/checksum.h"
 #include "include/fatname.h"

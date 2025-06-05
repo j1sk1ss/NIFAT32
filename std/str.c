@@ -7,10 +7,8 @@ void* str_memcpy(void* destination, const void* source, size_t num) {
     unsigned int* src32  = (unsigned int*)source;
     unsigned char* dest8 = ((unsigned char*)destination) + num_dwords * 4;
     unsigned char* src8  = ((unsigned char*)source) + num_dwords * 4;
-    unsigned int i = 0;
-
-    for (i = 0; i < num_dwords; i++) dest32[i] = src32[i];
-    for (i = 0; i < num_bytes; i++) dest8[i] = src8[i];
+    for (unsigned int i = 0; i < num_dwords; i++) dest32[i] = src32[i];
+    for (unsigned int i = 0; i < num_bytes; i++) dest8[i] = src8[i];
     return destination;
 }
 
@@ -21,10 +19,8 @@ void* str_memset(void* pointer, unsigned char value, size_t num) {
     unsigned char* dest8 = ((unsigned char*)pointer) + num_dwords * 4;
     unsigned char val8   = (unsigned char)value;
     unsigned int val32   = value | (value << 8) | (value << 16) | (value << 24);
-    unsigned int i = 0;
-
-    for (i = 0; i < num_dwords; i++) dest32[i] = val32;
-    for (i = 0; i < num_bytes; i++) dest8[i] = val8;
+    for (unsigned int i = 0; i < num_dwords; i++) dest32[i] = val32;
+    for (unsigned int i = 0; i < num_bytes; i++) dest8[i] = val8;
     return pointer;
 }
 

@@ -96,10 +96,12 @@ int DSK_read_sector(sector_addr_t sa, unsigned char* buffer, int buff_size) {
 }
 
 int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char* buffer, int buff_size, int sc) {
+    print_debug("DSK_readoff_sectors(sa=%u, offset=%u, size=%i, sc=%i)", sa, offset, buff_size, sc);
     if (_lock_area(sa, sc, READ_LOCK)) {
         for (int i = 0; i < sc && buff_size > 0; i++) {
             int read_size = buff_size > _disk_io.sector_size ? _disk_io.sector_size : buff_size;
             if (!_disk_io.read_sector(sa + i, offset, buffer + (i * _disk_io.sector_size), read_size)) {
+                print_error("Disk read IO error! addr=%u, off=%u, read_size=%i", sa + i, offset, read_size);
                 _unlock_area(sa, sc);
                 return 0;
             }
@@ -132,10 +134,12 @@ int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size)
 }
 
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc) {
+    print_debug("DSK_writeoff_sectors(sa=%u, offset=%u, size=%i, sc=%i)", sa, offset, data_size, sc);
     if (_lock_area(sa, sc, WRITE_LOCK)) {
         for (int i = 0; i < sc && data_size > 0; i++) {
             int write_size = data_size > _disk_io.sector_size ? _disk_io.sector_size : data_size;
             if (!_disk_io.write_sector(sa + i, offset, data + (i * _disk_io.sector_size), write_size)) {
+                print_error("Disk write IO error! addr=%u, off=%u, write_size=%i", sa + i, offset, write_size);
                 _unlock_area(sa, sc);
                 return 0;
             }
