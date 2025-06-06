@@ -408,6 +408,15 @@ static int _copy_files_to_fs(
         }
     }
 
+    root_dir[entry_count].file_name[0] = ENTRY_END;
+    root_dir[entry_count].attributes = 0;
+    root_dir[entry_count].cluster    = 0;
+    root_dir[entry_count].file_size  = 0;
+    root_dir[entry_count].checksum   = 0;
+    root_dir[entry_count].checksum   = _crc32(0, (uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]));
+    fprintf(stdout, "END checksum: %u\n", root_dir[entry_count].checksum);
+    entry_count++;
+
     closedir(dir);
 
     if (lseek(fd, root_dir_offset, SEEK_SET) != root_dir_offset) {
@@ -435,7 +444,7 @@ static int _create_directory(
             *last_alloc = i + 1;
             *start_cluster = i;
 
-            directory_entry_t entries[2] = { 0 };
+            directory_entry_t entries[3] = { 0 };
             _to_83_name(".", (char*)entries[0].file_name);
             entries[0].attributes = 0x10;
             entries[0].cluster    = i;
@@ -450,10 +459,15 @@ static int _create_directory(
             entries[1].checksum   = _crc32(0, (uint8_t*)&entries[1], sizeof(entries[1]));
             fprintf(stdout, ".. checksum: %u\n", entries[1].checksum);
 
-            off_t cluster_offset = data_start + (i - 2) * CLUSTER_SIZE;
-            if (lseek(fd, cluster_offset, SEEK_SET) != cluster_offset) return 0;
-            if (write(fd, entries, sizeof(entries)) != sizeof(entries)) return 0;
+            entries[2].file_name[0] = ENTRY_END;
+            entries[2].attributes = 0x10;
+            entries[2].cluster    = 0;
+            entries[2].checksum   = 0;
+            entries[2].checksum   = _crc32(0, (uint8_t*)&entries[2], sizeof(entries[2]));
+            fprintf(stdout, "END checksum: %u\n", entries[1].checksum);
 
+            off_t cluster_offset = data_start + (i - ROOT_DIR_CLUSTER) * CLUSTER_SIZE;
+            if (pwrite(fd, entries, sizeof(entries), cluster_offset) != sizeof(entries)) return 0;
             return 1;
         }
     }

@@ -22,6 +22,12 @@ https://en.wikipedia.org/wiki/Golden_ratio
 */
 #define BS_BACKUPS 5
 
+#define FILE_LAST_LONG_ENTRY 0x40
+#define ENTRY_FREE           0xE5
+#define ENTRY_END            0x00
+#define ENTRY_JAPAN          0x05
+#define LAST_LONG_ENTRY      0x40
+
 #define HASH_CONST 2654435761U
 #define PRIME1     73856093U
 #define PRIME2     19349663U

@@ -113,29 +113,36 @@ static int _validate_entry(directory_entry_t* entry) {
     return 1;
 }
 
+static int __read_encoded_cluster__(cluster_addr_t ca, buffer_t enc, int enc_size, buffer_t dec, int dec_size) {
+    print_debug("__read_encoded_cluster__(ca=%u)", ca);
+    if (!enc || !dec) return 0;
+    if (!read_cluster(ca, enc, enc_size, &_fs_data)) {
+        print_error("read_cluster() encountered an error. Aborting...");
+        return 0;
+    }
+
+    unpack_memory((const encoded_t*)enc, dec, dec_size);
+    return 1;
+}
+
 static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta) {
     print_debug("_entry_search(name=%s, cluster=%u)", name, ca);
-    buffer_t cluster_data = (buffer_t)malloc_s(_fs_data.cluster_size);
-    if (!cluster_data) {
+    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
+    buffer_t cluster_data    = (buffer_t)malloc_s(_fs_data.cluster_size);
+    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
+    if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
+        if (cluster_data) free_s(cluster_data);
+        if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }
 
-    if (!read_cluster(ca, cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
+    if (!__read_encoded_cluster__(ca, cluster_data, _fs_data.cluster_size, decoded_cluster, decoded_len)) {
+        free_s(decoded_cluster);
         free_s(cluster_data);
         return -2;
     }
-
-    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
-    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
-    if (!decoded_cluster) {
-        print_error("malloc_s() error!");
-        free_s(cluster_data);
-        return -3;
-    }
-
-    unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
+    
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
     unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
@@ -175,27 +182,22 @@ static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t*
 
 static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
     print_debug("_entry_add(cluster=%u)", ca);
-    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
-    if (!cluster_data) {
+    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
+    buffer_t cluster_data    = (buffer_t)malloc_s(_fs_data.cluster_size);
+    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
+    if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
+        if (cluster_data) free_s(cluster_data);
+        if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }
 
-    if (!read_cluster(ca, (buffer_t)cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
+    if (!__read_encoded_cluster__(ca, cluster_data, _fs_data.cluster_size, decoded_cluster, decoded_len)) {
+        free_s(decoded_cluster);
         free_s(cluster_data);
         return -2;
     }
-
-    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
-    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
-    if (!decoded_cluster) {
-        print_error("malloc_s() error!");
-        free_s(cluster_data);
-        return -3;
-    }
-
-    unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
+    
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
     unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
@@ -251,27 +253,22 @@ static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
 
 static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_entry_t* new) {
     print_debug("_entry_edit(cluster=%u)", ca);
-    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
-    if (!cluster_data) {
+    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
+    buffer_t cluster_data    = (buffer_t)malloc_s(_fs_data.cluster_size);
+    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
+    if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
+        if (cluster_data) free_s(cluster_data);
+        if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }
 
-    if (!read_cluster(ca, (buffer_t)cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
+    if (!__read_encoded_cluster__(ca, cluster_data, _fs_data.cluster_size, decoded_cluster, decoded_len)) {
+        free_s(decoded_cluster);
         free_s(cluster_data);
         return -2;
     }
-
-    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
-    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
-    if (!decoded_cluster) {
-        print_error("malloc_s() error!");
-        free_s(cluster_data);
-        return -3;
-    }
-
-    unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
+    
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
     unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
@@ -312,27 +309,22 @@ static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const di
 
 static int _entry_remove(cluster_addr_t ca, const directory_entry_t* meta) {
     print_debug("_entry_remove(cluster=%u)", ca);
-    buffer_t cluster_data = malloc_s(_fs_data.cluster_size);
-    if (!cluster_data) {
+    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
+    buffer_t cluster_data    = (buffer_t)malloc_s(_fs_data.cluster_size);
+    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
+    if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
+        if (cluster_data) free_s(cluster_data);
+        if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }
 
-    if (!read_cluster(ca, (buffer_t)cluster_data, _fs_data.cluster_size, &_fs_data)) {
-        print_error("read_cluster() encountered an error. Aborting...");
+    if (!__read_encoded_cluster__(ca, cluster_data, _fs_data.cluster_size, decoded_cluster, decoded_len)) {
+        free_s(decoded_cluster);
         free_s(cluster_data);
         return -2;
     }
-
-    int decoded_len = _fs_data.cluster_size / sizeof(encoded_t);
-    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
-    if (!decoded_cluster) {
-        print_error("malloc_s() error!");
-        free_s(cluster_data);
-        return -3;
-    }
-
-    unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
+    
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
     unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
