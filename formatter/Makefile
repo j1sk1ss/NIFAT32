@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall
 
 OUTPUT = formatter
-SOURCES = nifat32formatter.c
+SOURCES = nifat32formatter.c src/*
 
 all: force_build $(OUTPUT)
 

@@ -86,7 +86,6 @@ https://en.wikipedia.org/wiki/Golden_ratio
 typedef struct directory_entry {
 	unsigned char  file_name[11];
 	unsigned char  attributes;
-	unsigned char  reserved0;
 	cluster_addr_t cluster;
 	unsigned int   file_size;
 	checksum_t checksum;

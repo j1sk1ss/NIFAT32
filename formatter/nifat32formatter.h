@@ -10,10 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
-
-#define SAVE_OPTION		"-o"
-#define SOURCE_OPTION	"-s"
-#define EMPTY_FLAG		"--empty"
+#include "include/options.h"
 
 #define GET_BIT(b, i) ((b >> i) & 1)
 #define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
@@ -37,7 +34,7 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define RESERVED_SECTORS 	32
 #define FAT_COUNT 			3
 #define ROOT_DIR_CLUSTER 	2
-#define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
+#define DEFAULT_VOLUME_SIZE 64
 #define FAT_ENTRY_FREE 		0x00000000
 #define FAT_ENTRY_END 		0x0FFFFFFF
 #define FAT_ENTRY_BAD 		0x0FFFFFF7
@@ -87,7 +84,6 @@ typedef struct fat_BS {
 typedef struct directory_entry {
 	unsigned char  file_name[11];
 	unsigned char  attributes;
-	unsigned char  reserved0;
 	unsigned int   cluster;
 	unsigned int   file_size;
 	unsigned int   checksum;

@@ -1,6 +1,6 @@
 #include "../include/hamming.h"
 
-encoded_t encode_hamming_15_11(decoded_t data) {
+static encoded_t _encode_hamming_15_11(decoded_t data) {
     encoded_t encoded = 0;
     encoded = SET_BIT(encoded, 2, GET_BIT(data, 0));
     encoded = SET_BIT(encoded, 4, GET_BIT(data, 1));
@@ -26,7 +26,7 @@ encoded_t encode_hamming_15_11(decoded_t data) {
     return encoded;
 }
 
-decoded_t decode_hamming_15_11(encoded_t encoded) {
+static decoded_t _decode_hamming_15_11(encoded_t encoded) {
     byte_t s1 = GET_BIT(encoded, 0) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 14);
     byte_t s2 = GET_BIT(encoded, 1) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
     byte_t s4 = GET_BIT(encoded, 3) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
@@ -50,11 +50,11 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 }
 
 static byte_t _get_byte(const decoded_t* ptr, int offset) {
-    return (byte_t)decode_hamming_15_11(ptr[offset]);
+    return (byte_t)_decode_hamming_15_11(ptr[offset]);
 }
 
 static int _set_byte(encoded_t* ptr, int offset, byte_t byte) {
-    ptr[offset] = encode_hamming_15_11((encoded_t)byte);
+    ptr[offset] = _encode_hamming_15_11((encoded_t)byte);
     return 1;
 }
 
