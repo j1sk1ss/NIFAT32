@@ -1,5 +1,6 @@
 #!/bin/bash
-# 0 - 10000, ? - 100000
+# Unmod with checksum: 0 - 10000, 10000 - 100000
+# Mod with checksum: 0 - 10000, 0 - 100000, 0 - 200000, 0 - 300000, 0 - 400000, 0 - 500000
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <test_size> <injector_size>"
     exit 1

@@ -137,12 +137,12 @@ static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t*
 
     unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
-    unsigned int entries_per_cluster = _fs_data.cluster_size / (sizeof(directory_entry_t) * sizeof(encoded_t));
+    unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+        if (entry->file_name[0] == ENTRY_END) break;
         if (
             _validate_entry(entry) && 
-            entry->file_name[0] != ENTRY_FREE && 
-            entry->file_name[0] != ENTRY_END
+            entry->file_name[0] != ENTRY_FREE
         ) {
             if (!str_strncmp((char*)entry->file_name, name, 11)) {
                 str_memcpy(meta, entry, sizeof(directory_entry_t));
@@ -197,7 +197,7 @@ static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
 
     unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
-    unsigned int entries_per_cluster = _fs_data.cluster_size / (sizeof(directory_entry_t) * sizeof(encoded_t));
+    unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
         if (
             !_validate_entry(entry) || 
@@ -273,12 +273,12 @@ static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const di
 
     unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
-    unsigned int entries_per_cluster = _fs_data.cluster_size / (sizeof(directory_entry_t) * sizeof(encoded_t));
+    unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+        if (entry->file_name[0] == ENTRY_END) break;
         if (
             _validate_entry(entry) && 
-            entry->file_name[0] != ENTRY_FREE && 
-            entry->file_name[0] != ENTRY_END
+            entry->file_name[0] != ENTRY_FREE
         ) {
             if (!str_strncmp((char*)entry->file_name, (char*)old->file_name, 11)) {
                 str_memcpy(entry, new, sizeof(directory_entry_t));
@@ -334,12 +334,12 @@ static int _entry_remove(cluster_addr_t ca, const directory_entry_t* meta) {
 
     unpack_memory((const encoded_t*)cluster_data, decoded_cluster, decoded_len);
     directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
-    unsigned int entries_per_cluster = _fs_data.cluster_size / (sizeof(directory_entry_t) * sizeof(encoded_t));
+    unsigned int entries_per_cluster = (_fs_data.cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+        if (entry->file_name[0] == ENTRY_END) break;
         if (
             _validate_entry(entry) && 
-            entry->file_name[0] != ENTRY_FREE && 
-            entry->file_name[0] != ENTRY_END
+            entry->file_name[0] != ENTRY_FREE
         ) {
             if (!str_strncmp((char*)entry->file_name, (char*)meta->file_name, 11)) {
                 entry->file_name[0] = ENTRY_FREE;
