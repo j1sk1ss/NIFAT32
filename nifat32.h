@@ -138,6 +138,8 @@ typedef struct {
 /*
 Init function. 
 Note: This function also init memory manager.
+Note 2: For noise-immunity purpuses for initialization of NIFAT32 we
+should know end count of sectors.
 Params:
 - bs_num - Bootsector number.
 - ts - Total sectors in filesystem.
@@ -188,23 +190,64 @@ Return 0 if something goes wrong.
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info);
 
 /*
+Read data from content to buffer. 
+Note: This function don't check buffer and it's address.
+Note 2: If offset larger then content size, function will return buff_size.
+Params:
+- ci - Target content index.
+- offset - Offset in content.
+- buffer - Pointer where function should store data.
+- buff_size - Buffer size.
+
+Return count of bytes that was readden by function.
 */
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size);
 
 /*
+Write data from buffer to content. 
+Note: This function don't check buffer and it's address.
+Note 2: If offset larger then content size, function will return data_size.
+Params:
+- ci - Target content index.
+- offset - Offset in content.
+- da - Pointer to source data.
+- data_size - Data size.
+
+Return count of bytes that was written by function.
 */
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size);
 
 /*
+Close content from table and release all resources.
+Params:
+- ci - Content index.
+
+Return 1 if close was success.
+Return 0 if something goes wrong.
 */
 int NIFAT32_close_content(ci_t ci);
 
-/*
-*/
 #define PUT_TO_ROOT -1
+/*
+Add content to target content index. 
+Note: PUT_TO_ROOT will put content into the root directory.
+Params:
+- ci - Root content index. Should be directory.
+- info - Pointer to info about new content.
+
+Return 1 if operation was success.
+Return 0 if something goes wrong.
+*/
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
 
 /*
+Delete content by content index.
+Note: This function will close this content.
+Params:
+- ci - Content index.
+
+Return 1 if delete success.
+Return 0 if something goes wrong.
 */
 int NIFAT32_delete_content(ci_t ci);
 

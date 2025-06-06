@@ -146,6 +146,11 @@ This method physically decompress data on disk/flash drive:
 	<img src="graphs/bs_decompression.png" alt="Decompression"/>
 </p>
 
+Unfortunately, this solution will make the filesystem unusable for boot sectors in operating systems — unless they implement:
+- Hamming-code decoding logic,
+- and proper sector address translation.
+
+This breaks compatibility with traditional BIOS or UEFI bootloaders expecting a FAT-like layout. However, this trade-off is acceptable because the primary goal of this filesystem is reliable data storage on external drives. Therefore, boot compatibility is not a requirement at this stage. </br>
 The next step involves modifying the original data structures to optimize them for this embedded solution. For example, the `directory_entry_t` structure. Below is the original definition:
 
 ```
