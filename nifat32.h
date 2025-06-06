@@ -193,6 +193,8 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info);
 Read data from content to buffer. 
 Note: This function don't check buffer and it's address.
 Note 2: If offset larger then content size, function will return buff_size.
+Note 3: If ci is ci of directory, will return raw directory info. For working with this info
+use directory_entry_t.
 Params:
 - ci - Target content index.
 - offset - Offset in content.

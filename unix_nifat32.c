@@ -10,14 +10,20 @@ typedef enum {
     READ,
     WRITE,
     LS,
+    RM,
+    MKDIR,
+    MKFILE,
     UNKNOWN
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
-    if (!strcmp(input, "cd"))         return CD;
-    else if (!strcmp(input, "read"))  return READ;
-    else if (!strcmp(input, "write")) return WRITE;
-    else if (!strcmp(input, "ls"))    return LS;
+    if (!strcmp(input, "cd"))          return CD;
+    else if (!strcmp(input, "read"))   return READ;
+    else if (!strcmp(input, "write"))  return WRITE;
+    else if (!strcmp(input, "ls"))     return LS;
+    else if (!strcmp(input, "rm"))     return RM;
+    else if (!strcmp(input, "mkdir"))  return MKDIR;
+    else if (!strcmp(input, "mkfile")) return MKFILE;
     return UNKNOWN;
 }
 
@@ -102,6 +108,68 @@ upper:
             }
             break;
             
+            case MKFILE: {
+                const char* file_name = cmds[1];
+                const char* file_ext  = cmds[2];
+                
+                cinfo_t file_info = { .type = STAT_FILE };
+                str_memcpy(file_info.file_name, file_name, strlen(file_name) + 1);
+                str_memcpy(file_info.file_extension, file_ext, strlen(file_ext) + 1);
+
+                char fullname[128] = { 0 };
+                sprintf(fullname, "%s.%s", file_name, file_ext);
+                name_to_fatname(fullname, file_info.full_name);
+
+                ci_t root_ci = PUT_TO_ROOT;
+                if (strlen(current_path) > 1) {
+                    root_ci = NIFAT32_open_content(current_path);
+                    if (root_ci < 0) {
+                        close(disk_fd);
+                        return EXIT_FAILURE;
+                    }
+                }
+
+                NIFAT32_put_content(root_ci, &file_info);
+                break;
+            }
+
+            case MKDIR: {
+                const char* name = cmds[1];
+                
+                cinfo_t dir_info = { .type = STAT_DIR };
+                str_memcpy(dir_info.file_name, name, strlen(name) + 1);
+                name_to_fatname(name, dir_info.full_name);
+
+                ci_t root_ci = PUT_TO_ROOT;
+                if (strlen(current_path) > 1) {
+                    root_ci = NIFAT32_open_content(current_path);
+                    if (root_ci < 0) {
+                        close(disk_fd);
+                        return EXIT_FAILURE;
+                    }
+                }
+
+                NIFAT32_put_content(root_ci, &dir_info);
+                break;
+            }
+
+            case RM: {
+                char path_buffer[256] = { 0 };
+                strcpy(path_buffer, current_path);
+
+                char fatbuffer[24] = { 0 };
+                const char* path = cmds[1];
+                name_to_fatname(path, fatbuffer);
+
+                if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
+                strcat(path_buffer, fatbuffer);
+
+                ci_t ci = NIFAT32_open_content(path_buffer);
+                if (ci >= 0) NIFAT32_delete_content(ci);
+                else printf("Content not found!\n");
+                break;
+            }
+
             case READ: {
                 char path_buffer[256] = { 0 };
                 strcpy(path_buffer, current_path);
@@ -148,8 +216,32 @@ upper:
             }
             break;
             
-            case LS:
-            break;
+            case LS: {
+                ci_t ci = -1;
+                if (strlen(current_path) > 1) ci = NIFAT32_open_content(current_path);
+                else ci = NIFAT32_open_content(".");
+                if (ci >= 0) {
+                    unsigned char cluster_data[4096] = { 0 };
+                    NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 4096);
+
+                    unsigned char decoded[2048] = { 0 };
+                    unpack_memory((encoded_t*)cluster_data, decoded, 2048);
+
+                    unsigned int entries = (4096 / sizeof(short)) / sizeof(directory_entry_t);
+                    directory_entry_t* entry = (directory_entry_t*)decoded;
+                    for (unsigned int i = 0; i < entries; i++, entry++) {
+                        if (entry->file_name[0] == ENTRY_END) break;
+                        if (entry->file_name[0] != ENTRY_FREE) printf("%s\t%u\n", entry->file_name, entry->file_size);
+                    }
+
+                    NIFAT32_close_content(ci);
+                }
+                else {
+                    printf("Content not found!\n");
+                }
+
+                break;
+            }
             
             default: break;
         }

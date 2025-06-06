@@ -555,7 +555,7 @@ int NIFAT32_close_content(ci_t ci) {
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size) {
     print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
     content_t* content = _get_content_from_table(ci);
-    if (!content || content->content_type != CONTENT_TYPE_FILE) {
+    if (!content) {
         print_warn("Content or file not found!");
         return 0;
     }
