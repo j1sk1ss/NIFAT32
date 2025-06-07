@@ -158,7 +158,7 @@ static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t*
                     print_error("Error correction of directory entry failed. Aborting...");
                     free_s(decoded_cluster);
                     free_s(cluster_data);
-                    return -4;
+                    return -3;
                 }
                 
                 free_s(decoded_cluster);
@@ -172,7 +172,7 @@ static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t*
     if (is_cluster_end(nca)) {
         free_s(decoded_cluster);
         free_s(cluster_data);
-        return -5;
+        return -4;
     }
 
     free_s(decoded_cluster);
@@ -213,7 +213,7 @@ static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
                 print_error("Writing new directory entry failed. Aborting...");
                 free_s(decoded_cluster);
                 free_s(cluster_data);
-                return -5;
+                return -6;
             }
 
             free_s(decoded_cluster);
@@ -228,21 +228,21 @@ static int _entry_add(cluster_addr_t ca, directory_entry_t* meta) {
             print_error("Allocation of new cluster failed. Aborting...");
             free_s(decoded_cluster);
             free_s(cluster_data);
-            return -2;
+            return -3;
         }
 
         if (!set_cluster_end(nca, &_fs_data)) {
             print_error("Can't set new cluster as <END>. Aborting...");
             free_s(decoded_cluster);
             free_s(cluster_data);
-            return -3;
+            return -4;
         }
 
         if (!write_fat(ca, nca, &_fs_data)) {
             print_error("Extension of the cluster chain with new cluster failed. Aborting...");
             free_s(decoded_cluster);
             free_s(cluster_data);
-            return -4;
+            return -5;
         }
     }
 
@@ -284,7 +284,7 @@ static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const di
                     print_error("Writing updated directory entry failed. Aborting...");
                     free_s(decoded_cluster);
                     free_s(cluster_data);
-                    return -4;
+                    return -3;
                 }
 
                 free_s(decoded_cluster);
@@ -299,7 +299,7 @@ static int _entry_edit(cluster_addr_t ca, const directory_entry_t* old, const di
         print_error("<END> of cluster chain reached. file_t not found. Aborting...");
         free_s(decoded_cluster);
         free_s(cluster_data);
-        return -5;
+        return -4;
     }
 
     free_s(decoded_cluster);
@@ -707,7 +707,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
     }
 
     int is_found = _entry_search((char*)info->full_name, target, NULL);
-    if (is_found < 0 && is_found != -5) {
+    if (is_found < 0 && is_found != -4) {
         print_error("_entry_search() encountered an error [%i]. Aborting...", is_found);
         return 0;
     }

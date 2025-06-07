@@ -1,42 +1,39 @@
 # Noise-Immune FAT32 File system
 ## Main goal
-The main goal of this project is to make the FAT32 file system work in usage scenarios where `SEU` is common. </br>
-Also this FS should work on embedded systems for my another project called [CDBMS](https://github.com/j1sk1ss/CordellDBMS.PETPRJ).
+The main goal of this project is to make the FAT32 filesystem simpler, more secure, and make it work in use cases where `SEU` is common. </br> 
+A secondary goal is to make this filesystem work on embedded systems for my other project called [CDBMS](https://github.com/j1sk1ss/CordellDBMS.PETPRJ) and update the core functionality to a thread-safe context.
 
 ## Why?
 - Firstly, I have my own project that needs a noise-immune FS.
 - Secondly, we currently have ECC RAM, but we have no way to protect data in non-ROM memory from SEU.
 - Thirdly, it will be cheaper if we can use software solutions instead of hardware ones.
+- Fourthly, although modern file systems like exFAT, ZFS, and NTFS offer advanced features and are designed to work in a wide range of environments, they generally lack built-in mechanisms for error correction at the level of individual data blocks. While some (like ZFS) provide error detection through checksums and metadata validation, they do not implement true error correction codes (ECC) such as Hamming or Reed–Solomon, which can autonomously recover corrupted bits.
 
-## Current state
-| TODO List:                                             |Stat:|
-|--------------------------------------------------------|-----|
-| Base implementation.                                   | [V] |
-| Complete porting from `CordellOS` project.             | [V] |
-| Implement noise-immune algorithms.                     | [?] |
-| Create format tool for creating modified FS on Flashs. | [.] |
-| Testing and comparing with other FS.                   | [.] |
-| Conference                                             | [.] |
-
-# Theory summary
 ## Abstract
-I had noticed that on the entire internet, there are no attempts to bring to life the [FAT32](https://wiki.osdev.org/FAT) file system for embedded or desktop systems. Usually, users and programmers simply shift to other file systems like [EXT4](https://wiki.osdev.org/Ext4) due to many technical issues in `FAT32`, but with this decision, they lose the simplicity of the first solution. And as we all know, for the reduction of errors, things should be made simpler. </br>
-`NIFAT32` itself is a project that should work in embedded systems, like the [STM32F103C6T8](https://www.st.com/en/microcontrollers-microprocessors/stm32f103c6.html), or in home-made operating systems, like mine — [CordellOS](https://github.com/j1sk1ss/CordellOS.PETPRJ). For this purpose, the target file system should be lightweight and optimized for a single-threaded environment. </br>
-Why `FAT32` as base? — Simple answer: because `FAT32` is a well-known file system with strong community support and a simple data structure. Also, `FAT32` has obvious parts where it can be upgraded to work in [SEU](https://en.wikipedia.org/wiki/Single-event_upset) and embedded contexts. I am talking about these aspects:
-- The File Allocation Table, which contains the entire `FAT32` logic.
-- `directory_entry_t`, which is the basis for representing files in the file system.
-- Data flows from disk to high-level abstractions.
+It is notable that, across the entire internet, there are virtually no serious attempts to revive or modernize the [FAT32](https://wiki.osdev.org/FAT) file system for embedded or desktop systems. Typically, developers and users transition to more modern alternatives like [EXT4](https://wiki.osdev.org/Ext4) (or `LittleFS` in the context of embedded systems) due to the well-known limitations of `FAT32`. However, in doing so, they often abandon the core advantage of `FAT32`: its simplicity. And as we all know, reducing complexity is one of the most effective ways to reduce errors. </br>
+`NIFAT32` is a project designed to bring FAT32 back to life — adapted specifically for embedded platforms such as the [STM32F103C6T8](https://www.st.com/en/microcontrollers-microprocessors/stm32f103c6.html), as well as for hobbyist operating systems like my own — [CordellOS](https://github.com/j1sk1ss/CordellOS.PETPRJ) with noise-immune solutions. For this purpose, the file system must remain lightweight and optimized for a single-threaded environment. </br>
+
+**Why choose `FAT32` as a base?**  </br>
+The answer is simple: `FAT32` is a well-known and widely supported file system, with a clean and understandable structure. Its internal layout is easy to follow, and that makes it an excellent candidate for low-level experimentation and enhancements. Furthermore, `FAT32` presents clear opportunities for being adapted to environments affected by [SEU](https://en.wikipedia.org/wiki/Single-event_upset) events or requiring robust error handling in embedded contexts.  
+
+In particular, the following components are prime candidates for such upgrades:
+- The File Allocation Table, which defines the core logic and structure of the file system.
+- `directory_entry_t`, the fundamental structure used to represent files and metadata.
+- Boot sector with all critical file system data.
 
 ## Why SEU is dangerous?
-Well, `SEU`, or single event upset, is a physical event when electrons in the `CPU`, `RAM`, etc., get disturbed by ionic particles. This is very dangerous when a program controls, for example, an entire plane or space station. That's why any program solution that will work in high-evaluated systems should be prepared for `SEU`. </br>
-Of course, there are a couple of solutions for reducing the impact of `SEU` on chips, like:
-- [ECC](https://community.fs.com/encyclopedia/ecc-memory.html)
+Well, `SEU` — or *Single Event Upset* — is a physical phenomenon that occurs when energetic particles (typically ionic radiation) disrupt the state of electrons in microelectronic components such as the `CPU`, `RAM`, and other circuits. This type of event can be catastrophic, especially in systems where safety and reliability are critical — for example, in avionics or onboard spacecraft control systems. For this reason, any software intended to run in such high-reliability environments must be designed with `SEU` resilience in mind. </br>
+Of course, there are existing hardware-level techniques to mitigate the effects of SEU, such as:
+- [ECC (Error-Correcting Code)](https://community.fs.com/encyclopedia/ecc-memory.html)
 
-But the problem here is that this solution works in `RAM` instead of `Flash` memory. This means that we can say that all data in `RAM` is secured, but we can't make a similar statement about `RWM` (read/write memory). (For `ROM`, the situation is different due to technical implementation. See this [topic](https://hackernoon.com/differences-between-ram-rom-and-flash-memory-all-you-need-to-know-ghr341i) for why `ROM` is secured against `SEU`).
+However, there's an important limitation: these methods typically operate on `RAM`, not on `Flash` memory. This means that while data stored in volatile memory (RAM) can often be automatically corrected if flipped by radiation, the same guarantees do not apply to `RWM` (read/write memory, such as Flash). </br>
+When it comes to `ROM`, the situation is different due to its immutable nature and underlying physical properties. As explained in this [article](https://hackernoon.com/differences-between-ram-rom-and-flash-memory-all-you-need-to-know-ghr341i), ROM is inherently more resistant to SEUs thanks to the way it's physically implemented.  
 
 ## Impact of SEU
-For confidence in the danger of SEU to program stability, a test environment was created with fault-injection functions directly targeting memory. While we know that, in a real scenario, the program will reside in RAM with ECC, which protects against bit-flipping, the data used and stored by the program is not secured. This fact leads to many problems with user experience. </br>
-For example, at about 200k bit flips we reach a situation where FAT32 (with checksum support) stops working with records:
+To validate the potential impact of SEU on program stability, a controlled test environment was developed featuring fault-injection mechanisms that directly target memory. While it's understood that, in real-world scenarios, programs typically reside in RAM protected by ECC (Error-Correcting Code) — which mitigates bit-flipping — the **data used and stored by the program remains vulnerable**. </br>
+This subtle but crucial detail can lead to significant reliability issues and degraded user experience.  
+For example, in our tests, once around **200,000 bit flips** had occurred, the standard FAT32 file system (even with checksum support) began to fail while working with file records:
+
 ```
 ...
 [WARN] (nifat32.c:188) directory_entry_t checksum validation error!
@@ -45,9 +42,13 @@ Can't open content!
 Hundled error count: 10000
 Unhundled error count: 0
 ```
-This is due to the violation of the `directory_entry_t` file name sequence: </br>
-A bit-flip occurs directly in one of the file names - `"TEST   0TXT "` (was `"TEST    TXT "`). This causes a checksum verification error. But this case does not represent a modification as a big improvement, because in the original FAT32 the same bit flip changes the file name, which will lead to the same error - `"File not found"`. One thing that in this case this error is accompanied by additional information - a checksum verification error. </br>
-For a visual example here are the results of testing the unmodified FAT32 system with checksum implementation only. (X-axis: number of bit-flips in data, Y-axis: count of handled errors):
+
+This issue arises from a bit-flip within the `directory_entry_t` file name field: </br>
+One such flip occurred in the file name `"TEST    TXT "`, resulting in it becoming `"TEST   0TXT "`. This change triggered a checksum verification failure. </br>
+However, this scenario **should not be considered a major improvement**. In the original FAT32, a similar bit-flip would simply corrupt the file name and result in the classic `"File not found"` error.  
+The difference is that in this modified version, the error is **accompanied by a clear diagnostic** — a checksum verification failure — which aids in identifying the source of corruption. </br>
+For a visual reference, below are the results of testing the **unmodified FAT32** system with **only checksum implementation enabled**: </br>
+(X-axis: number of bit-flips in data, Y-axis: count of handled errors)
 
 <p align="center">
 	<img src="graphs/bitflips_source.png" alt="Errors due bit-flip injection"/>
@@ -71,26 +72,28 @@ if (!NIFAT32_content_exists(target_fatname)) {
 }
 ```
 
-But according to data, bit-flip happened in most dangerous zone - in file allocation table. In the end, this test doesn't make any sense due to obvious results. The `FAT32` filesystem wasn't designed to withstand upset events. The source implementation can handle cases where the FAT boot sector or allocation table is damaged (excluding direct cell value changes), but it cannot function properly when `SEU` occurs directly within clusters — for example, changing a file name. </br>
-However, `FAT32` is still a solid solution for simple file storage in embedded systems. This is why certain modifications to the filesystem can improve its noise immunity and fault tolerance. Additionally, if our target is embedded systems, we can restructure the source code to reduce the overall size of the filesystem, which will simplify the process of porting it to various microcontrollers.
+However, according to the test data, the bit-flip occurred in the most critical area — the File Allocation Table (FAT). As a result, this particular test case does not provide much insight, since the outcome is expected and obvious: the `FAT32` file system was **not designed** to withstand upset events. </br>
+The original implementation can handle certain types of corruption, such as partial damage to the boot sector or FAT itself (as long as cell values remain untouched). However, it fails to operate reliably when `SEU` occurs within clusters — for example, altering a file name directly. </br>
+Despite this, `FAT32` remains a solid and proven solution for simple file storage in embedded systems. This is why introducing **modifications** to improve noise immunity and fault tolerance makes sense. Moreover, since our primary target is embedded systems, the source code can be **restructured and simplified** to reduce its overall footprint, making it easier to port across various microcontrollers.
 
 ## File Allocation Table
-As mentioned, the `File Allocation Table (FAT)` is the most important part of the `FAT32` file system. I won't explain how this table works — just check this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>
-The original implementation of FAT simply saved the entire table (and its copies) in the first sectors of the disk. If we're talking about `Flash` memory — which is the cheapest solution in terms of storage capacity vs. price, according to [this article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system/) — it comes with serious risks, especially in `embedded` systems with `SEU` effect. These risks are explained in more detail [here](https://en.wikipedia.org/wiki/Flash_memory).
+As mentioned earlier, the `File Allocation Table (FAT)` is the most critical component of the `FAT32` file system. I won't go into detail on how this table works — for that, refer to this [topic](https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system). </br>
+In the original FAT32 implementation, the entire table (and usually one additional copy) is stored in the first sectors of the disk. When we consider `Flash` memory — which is one of the cheapest storage solutions in terms of capacity-to-cost ratio ([see article](https://nexusindustrialmemory.com/choosing-between-flash-and-eeprom-finding-the-perfect-memory-type-for-your-embedded-system)) — this design introduces several risks, especially in `embedded` systems affected by `SEU` (Single Event Upset), as described [here](https://en.wikipedia.org/wiki/Flash_memory). </br>
+The main issue is that `SEU` events can disturb electron states in `Flash` memory, causing bit-flips that silently corrupt data. If the `FAT` table is affected, this may lead to:
+- a corrupted boot sector,
+- a corrupted file allocation table,
+- broken file allocation metadata,
+- unreadable or incorrectly linked files,
+- or even complete file system failure.
 
-The main issue is that `SEU` can disturb electrons in `Flash`, which may cause bit-flips that can silently corrupt data. If the `FAT` table is affected, the consequences can include:
-- corrupter boot sector,
-- corrupted file allocation table,
-- corrupted file allocation metadata,
-- unreadable or wrongly linked files,
-- complete file system failure.
+Therefore, storing such a critical structure in unprotected `Flash` — without error correction or redundancy — makes the system highly vulnerable to undetectable corruption. </br>
+According to the official FAT32 specification, additional FAT table copies (usually one) are used only as a fallback when the primary FAT is detected as corrupted:
 
-Therefore, storing such critical structures in unprotected `Flash` without redundancy or error correction makes the system vulnerable to undetectable corruption. </br>
-Based on official FAT32 specifications, additional FAT table copies (typically just one extra copy) are used solely when the primary table is corrupted:
 ```
 Typically the extra copies are kept in tight synchronization on writes, and on reads they are only used when errors occur in the first FAT.
 ``` 
-This approach can be significantly enhanced through a voting system. Such a system leverages multiple data sources, determining the final value based on the most frequently occurring valid data. Then all copies are synchronized.
+
+This recovery strategy can be significantly improved by introducing a **voting system**. Instead of relying on a single backup, the system would store multiple FAT copies and resolve discrepancies by selecting the most frequently occurring valid value (majority voting). Afterward, all copies can be re-synchronized based on the voted result. This increases resistance to undetected bit errors and improves overall robustness in SEU-prone environments.
 
 ## Data structures
 FAT32 has many data structures that are used during work. For example in source design we have:
@@ -119,8 +122,10 @@ typedef struct fat_BS {
 
 - The fat32_bootstruct itself actually refers to the `fat_bootstruct`, which historically contains information only for FAT12 and FAT16 filesystems. That’s why, to support FAT32, the bootstruct includes a special field called the extended_section.
 
-The main idea here is to provide checksum support along with a dual backup system using noise-immune encoding. Additional checksum verification reduces the probability of data corruption. For checksum generation, the `crc32` function was used, implemented according to this [article](https://arxiv.org/html/2412.16398v1). Why `crc32`? Because it is a widely adopted error-detection method, and this algorithm also has certain advantages as discussed in this [thesis](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). For noise-immune encoding, Hamming code was chosen; the reasons for this choice and implementation details will be explained below. </br>
-The original solution saves the bootstruct in the first sector and stores a backup in the sixth sector. The best way to secure this critical data is through a form of "decompression" — meaning that backups are stored in sectors whose addresses are calculated using a formula based on [hash constants](https://en.wikipedia.org/wiki/Golden_ratio):
+The main idea here is to enhance reliability by introducing **checksum support** alongside a **dual-backup system** that uses **noise-immune encoding**. The additional checksum verification significantly reduces the probability of undetected data corruption. </br>
+For checksum generation, the `crc32` function was used, implemented as described in this [article](https://arxiv.org/html/2412.16398v1). Why `crc32`? It is a well-established and widely adopted error-detection algorithm with strong guarantees for catching common types of data corruption. Its effectiveness and performance characteristics are also analyzed in this [thesis](https://theses.liacs.nl/pdf/2014-2015NickvandenBosch.pdf). </br>
+To further enhance protection, **Hamming code** was chosen as the noise-immune encoding method. The reasons for this choice and specific implementation details will be discussed in the following sections. </br>
+In the original FAT32 design, the boot structure is stored in the first sector, with a backup typically located in the sixth sector. However, this fixed-location approach can be fragile. To improve fault tolerance, a strategy of **“decompression” storage** is proposed. This involves placing backup copies at sector addresses derived using a formula based on [hash constants](https://en.wikipedia.org/wiki/Golden_ratio), such as the golden ratio. This spreads backups across the storage space, reducing the chance that a localized SEU or memory wear-out event will affect both the original and its backup.
 
 ```
 #define HASH_CONST 2654435761U
@@ -186,11 +191,19 @@ As you can see, in the modified structure, six fields with a total size of 12 by
 - Reading config data without any time check.
 - Updating data without any time check.
 
-Example of such system can be `CDBMS`, [LittleDB](https://github.com/pouriamoosavi/LittleDB), [EinkPDA](https://github.com/ashtf8/EinkPDA). </br>
-Additionally, `high_bits` and `low_bits` were replaced by a single `cluster` field. Historically, splitting addresses into high and low bits was justified by 16-bit target architectures, but our current target supports raw 32-bit numbers. The mechanism behind this support is described [here](https://www.reddit.com/r/arduino/comments/i3wl8f/how_do_8_bit_arduinos_handle_32bit_numbers/). </br>
-With these modifications, the required space for `directory_entry_t` has been reduced, allowing us to store significantly more entries within a single cluster. </br>
-In summary, this simplification of `directory_entry_t` results in fewer syscalls and I/O operations. For example, with a default cluster size of approximately `sector_size * 2^3 = 512 * 8 = 4096` bytes, instead of using 26 bytes for each `directory_entry_t`, we now use only 14 bytes. This increases the number of entries per cluster from 157 to 292. </br>
-The performance improvement can be illustrated with a graph where the Y-axis represents the number of I/O operations, and the X-axis represents the number of entries in the directory:
+An example of such a system could be `CDBMS`, [LittleDB](https://github.com/pouriamoosavi/LittleDB), or [EinkPDA](https://github.com/ashtf8/EinkPDA). </br>
+Additionally, the original `high_bits` and `low_bits` fields have been replaced by a single `cluster` field. Historically, splitting addresses into high and low parts was justified by limitations of 16-bit target architectures. However, our current target platforms fully support 32-bit values. The underlying mechanism for handling 32-bit numbers even on 8-bit architectures is described in this [Reddit discussion](https://www.reddit.com/r/arduino/comments/i3wl8f/how_do_8_bit_arduinos_handle_32bit_numbers/). </br>
+With this simplification, the size of each `directory_entry_t` structure is significantly reduced. This allows us to store more entries within a single cluster, which in turn reduces the number of system calls and I/O operations required to traverse directories. </br>
+
+For example, assuming a default cluster size of: </br>
+`sector_size * 2^3 = 512 * 8 = 4096 bytes` </br>
+
+- The original structure required approximately 26 bytes per `directory_entry_t`, allowing for around 157 entries per cluster.
+- The modified structure uses only 14 bytes, increasing the number of entries per cluster to approximately 292.
+
+This optimization leads to better performance and fewer disk accesses. The improvement can be visualized with a graph where:
+- **Y-axis** represents the number of I/O operations,
+- **X-axis** represents the number of entries in the directory.
 
 <p align="center">
 	<img src="graphs/io.png" alt="IO count depends on entry count"/>
@@ -260,8 +273,8 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 }
 ```
 
-The main limitation of this algorithm is its restricted error correction capability: it can correct a single-bit error and detect (but not correct) double-bit errors. This makes it insufficient in environments with frequent or multiple simultaneous bit-flips. Also this method requires additional space for control bits, that itself not a big problem, if we don't speak about sectors. </br>
-**Sectors** are the lowest abstraction that divide the disk into the smallest possible sections. Every disk IO syscall loads an entire sector from the disk into memory. A basic implementation looks like the code below (the code was taken from the CordellOS project):
+The main limitation of this algorithm is its restricted error correction capability: it can correct single-bit errors and detect (but not correct) double-bit errors. This makes it insufficient in environments where frequent or multiple simultaneous bit-flips occur. Additionally, this method requires extra space for control bits. While this overhead is usually manageable, it becomes critical when dealing with sectors. </br>
+**Sectors** represent the lowest-level abstraction that divides the disk into the smallest addressable units. Every disk I/O syscall reads or writes an entire sector from or to the disk. A basic implementation of such a syscall, taken from the CordellOS project, looks like this:
 
 ```
 int ATA_read_sector(uint32_t lba, uint8_t* buffer) {
@@ -300,8 +313,9 @@ int ATA_write_sector(uint32_t lba, const uint8_t* buffer) {
 }
 ```
 
-That's why this part is tricky when we need to encode some data that fits exactly into one sector using Hamming code, as it will increase the size by 2 bytes at the end. </br>
-If we are talking about the **boot sector**, there is no problem here because this data easily fits into one entire sector even after additional encoding. However, when it comes to the `FAT`, it is difficult to determine the best approach for retrieving data from the encoded disk space.
+This is why this part becomes tricky when we need to encode data that fits exactly into one sector using Hamming code — because the encoding adds 2 extra bytes at the end, increasing the total size. </br>
+In the case of the **boot sector**, this is not a problem, since the data easily fits within a single sector even after encoding.  </br>
+However, when dealing with the `FAT`, determining the best method to read and retrieve data from the encoded disk space becomes more complicated.
 
 ## Benchmark
 
