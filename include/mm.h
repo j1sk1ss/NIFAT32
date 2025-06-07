@@ -6,7 +6,7 @@
 #include "logging.h"
 #include "str.h"
 
-#define ALLOC_BUFFER_SIZE   65536
+#define ALLOC_BUFFER_SIZE   131072
 #define ALIGNMENT           8  
 #define MM_BLOCK_MAGIC      0xC07DEL
 #define NO_OFFSET           0

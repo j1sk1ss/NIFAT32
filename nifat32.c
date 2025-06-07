@@ -100,6 +100,10 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
         }
     }
 
+    if (!cache_fat_init(&_fs_data)) {
+        print_warn("FAT cache init error!");
+    }
+
     free_s(encoded_bs);
     free_s(decoded_bs);
     return 1;

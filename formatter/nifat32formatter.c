@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    memset(fat_table, 0, total_clusters * sizeof(uint32_t));
     _initialize_fat(fat_table, total_sectors, total_clusters);
     if (!_write_fats(fd, fat_table, fat_size, total_clusters)) {
         fprintf(stderr, "Error writing FAT tables\n");

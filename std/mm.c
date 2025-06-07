@@ -1,6 +1,6 @@
 #include "../include/mm.h"
 
-static unsigned char _buffer[ALLOC_BUFFER_SIZE];
+static unsigned char _buffer[ALLOC_BUFFER_SIZE] = { 0 };
 static mm_block_t* _mm_head = (mm_block_t*)_buffer;
 static int _allocated = 0;
 
