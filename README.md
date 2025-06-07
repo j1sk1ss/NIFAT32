@@ -10,7 +10,7 @@ A secondary goal is to make this filesystem work on embedded systems for my othe
 - Fourthly, although modern file systems like exFAT, ZFS, and NTFS offer advanced features and are designed to work in a wide range of environments, they generally lack built-in mechanisms for error correction at the level of individual data blocks. While some (like ZFS) provide error detection through checksums and metadata validation, they do not implement true error correction codes (ECC) such as Hamming or Reed–Solomon, which can autonomously recover corrupted bits.
 
 ## Abstract
-It is notable that, across the entire internet, there are virtually no serious attempts to revive or modernize the [FAT32](https://wiki.osdev.org/FAT) file system for embedded or desktop systems. Typically, developers and users transition to more modern alternatives like [EXT4](https://wiki.osdev.org/Ext4) (or `LittleFS` in the context of embedded systems) due to the well-known limitations of `FAT32`. However, in doing so, they often abandon the core advantage of `FAT32`: its simplicity. And as we all know, reducing complexity is one of the most effective ways to reduce errors. </br>
+It is notable that, across the entire internet, there are virtually no serious attempts to revive or modernize the [FAT32](https://wiki.osdev.org/FAT) file system for embedded or desktop systems. Typically, developers and users transition to more modern alternatives like [EXT4](https://wiki.osdev.org/Ext4) (or [LittleFS](https://github.com/littlefs-project/littlefs) in the context of embedded systems) due to the well-known limitations of `FAT32`. However, in doing so, they often abandon the core advantage of `FAT32`: its simplicity. And as we all know, reducing complexity is one of the most effective ways to reduce errors. </br>
 `NIFAT32` is a project designed to bring FAT32 back to life — adapted specifically for embedded platforms such as the [STM32F103C6T8](https://www.st.com/en/microcontrollers-microprocessors/stm32f103c6.html), as well as for hobbyist operating systems like my own — [CordellOS](https://github.com/j1sk1ss/CordellOS.PETPRJ) with noise-immune solutions. For this purpose, the file system must remain lightweight and optimized for a single-threaded environment. </br>
 
 **Why choose `FAT32` as a base?**  </br>
@@ -25,8 +25,9 @@ In particular, the following components are prime candidates for such upgrades:
 Well, `SEU` — or *Single Event Upset* — is a physical phenomenon that occurs when energetic particles (typically ionic radiation) disrupt the state of electrons in microelectronic components such as the `CPU`, `RAM`, and other circuits. This type of event can be catastrophic, especially in systems where safety and reliability are critical — for example, in avionics or onboard spacecraft control systems. For this reason, any software intended to run in such high-reliability environments must be designed with `SEU` resilience in mind. </br>
 Of course, there are existing hardware-level techniques to mitigate the effects of SEU, such as:
 - [ECC (Error-Correcting Code)](https://community.fs.com/encyclopedia/ecc-memory.html)
+- [ROM (Read-only memory)](https://en.wikipedia.org/wiki/Read-only_memory)
 
-However, there's an important limitation: these methods typically operate on `RAM`, not on `Flash` memory. This means that while data stored in volatile memory (RAM) can often be automatically corrected if flipped by radiation, the same guarantees do not apply to `RWM` (read/write memory, such as Flash). </br>
+However, there's an important limitation: these methods (in case with `ECC`) typically operate on `RAM`, not on `Flash` memory. This means that while data stored in volatile memory (RAM) can often be automatically corrected if flipped by radiation, the same guarantees do not apply to `RWM` (read/write memory, such as Flash). </br>
 When it comes to `ROM`, the situation is different due to its immutable nature and underlying physical properties. As explained in this [article](https://hackernoon.com/differences-between-ram-rom-and-flash-memory-all-you-need-to-know-ghr341i), ROM is inherently more resistant to SEUs thanks to the way it's physically implemented.  
 
 ## Impact of SEU
@@ -44,8 +45,8 @@ Unhundled error count: 0
 ```
 
 This issue arises from a bit-flip within the `directory_entry_t` file name field: </br>
-One such flip occurred in the file name `"TEST    TXT "`, resulting in it becoming `"TEST   0TXT "`. This change triggered a checksum verification failure. </br>
-However, this scenario **should not be considered a major improvement**. In the original FAT32, a similar bit-flip would simply corrupt the file name and result in the classic `"File not found"` error.  
+One such flip occurred in the file name `"TEST    TXT "`, resulting in it becoming `"TEST   0TXT "` due changing symbol ' ' (dec=32, bin=100000) to symbol '0' (dec=48, bin=110000). This change triggered a checksum verification failure. </br>
+However, this scenario **should not be considered as a major improvement**. In the original FAT32, a similar bit-flip would simply corrupt the file name and result in the classic `"File not found"` error.  
 The difference is that in this modified version, the error is **accompanied by a clear diagnostic** — a checksum verification failure — which aids in identifying the source of corruption. </br>
 For a visual reference, below are the results of testing the **unmodified FAT32** system with **only checksum implementation enabled**: </br>
 (X-axis: number of bit-flips in data, Y-axis: count of handled errors)
@@ -58,9 +59,6 @@ Here we can see, that count of hundled error continue to grow after stop of bit-
 
 ```
 if (!NIFAT32_content_exists(target_fatname)) {
-	handled_errors++;
-	fprintf(stderr, "File not found, but should be presented in FS!\n");
-
 	cinfo_t file = { .type = STAT_FILE };
 	str_memcpy(file.file_name, "test", 5);
 	str_memcpy(file.file_extension, "txt", 4);
@@ -72,8 +70,8 @@ if (!NIFAT32_content_exists(target_fatname)) {
 }
 ```
 
-However, according to the test data, the bit-flip occurred in the most critical area — the File Allocation Table (FAT). As a result, this particular test case does not provide much insight, since the outcome is expected and obvious: the `FAT32` file system was **not designed** to withstand upset events. </br>
-The original implementation can handle certain types of corruption, such as partial damage to the boot sector or FAT itself (as long as cell values remain untouched). However, it fails to operate reliably when `SEU` occurs within clusters — for example, altering a file name directly. </br>
+However, according to the test data, the bit-flip occurred in the most critical area — the File Allocation Table (FAT) and its copies (or directly in the root `directory_entry_t`). As a result, this particular test case does not provide much insight, since the outcome is both expected and obvious: the `FAT32` file system was **not designed** to withstand upset events. </br>
+The original implementation can handle certain types of corruption, such as partial damage to the boot sector or the FAT itself (as long as the actual cell values remain untouched). However, it fails to operate reliably when an `SEU` occurs within clusters — for example, altering a file name directly or breaking the cluster chain in the main FAT. According to the specification, `FAT32` reads data only from the main FAT and synchronizes it with its copies **only during write operations**. </br>
 Despite this, `FAT32` remains a solid and proven solution for simple file storage in embedded systems. This is why introducing **modifications** to improve noise immunity and fault tolerance makes sense. Moreover, since our primary target is embedded systems, the source code can be **restructured and simplified** to reduce its overall footprint, making it easier to port across various microcontrollers.
 
 ## File Allocation Table
@@ -179,6 +177,7 @@ And updated version:
 ```
 typedef struct directory_entry {
 	unsigned char file_name[11];
+	unsigned int  name_hash;
 	unsigned char attributes;
 	unsigned int  cluster;
 	unsigned int  file_size;
@@ -186,7 +185,7 @@ typedef struct directory_entry {
 } __attribute__((packed)) directory_entry_t;
 ```
 
-As you can see, in the modified structure, six fields with a total size of 12 bytes were removed. These fields (creation and last accessed time) were excluded in the `embedded` context to save space. In embedded systems, creation and last usage timestamps are typically unnecessary due to the program’s specific requirements like:
+As you can see, in the modified structure, seven fields with a total size of 12 bytes were removed. These fields (creation and last accessed time) were excluded in the `embedded` context to save space. In embedded systems, creation and last usage timestamps are typically unnecessary due to the program’s specific requirements like:
 - Saving important data without any time check.
 - Reading config data without any time check.
 - Updating data without any time check.
@@ -199,7 +198,7 @@ For example, assuming a default cluster size of: </br>
 `sector_size * 2^3 = 512 * 8 = 4096 bytes` </br>
 
 - The original structure required approximately 26 bytes per `directory_entry_t`, allowing for around 157 entries per cluster.
-- The modified structure uses only 14 bytes, increasing the number of entries per cluster to approximately 292.
+- The modified structure uses only 18 bytes, increasing the number of entries per cluster to approximately 227.
 
 This optimization leads to better performance and fewer disk accesses. The improvement can be visualized with a graph where:
 - **Y-axis** represents the number of I/O operations,

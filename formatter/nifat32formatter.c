@@ -373,6 +373,7 @@ static int _copy_files_to_fs(
             }
 
             _to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
+            root_dir[entry_count].name_hash  = _crc32(0, root_dir[entry_count].file_name, strlen((char*)root_dir[entry_count].file_name));
             root_dir[entry_count].attributes = 0x10;
             root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = 0;
@@ -398,6 +399,7 @@ static int _copy_files_to_fs(
             fclose(src_file);
 
             _to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
+            root_dir[entry_count].name_hash  = _crc32(0, root_dir[entry_count].file_name, strlen((char*)root_dir[entry_count].file_name));
             root_dir[entry_count].attributes = 0x20;
             root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = file_size;
@@ -409,6 +411,7 @@ static int _copy_files_to_fs(
     }
 
     root_dir[entry_count].file_name[0] = ENTRY_END;
+    root_dir[entry_count].name_hash  = _crc32(0, root_dir[entry_count].file_name, 1);
     root_dir[entry_count].attributes = 0;
     root_dir[entry_count].cluster    = 0;
     root_dir[entry_count].file_size  = 0;
@@ -446,6 +449,7 @@ static int _create_directory(
 
             directory_entry_t entries[3] = { 0 };
             _to_83_name(".", (char*)entries[0].file_name);
+            entries[0].name_hash  = _crc32(0, entries[0].file_name, strlen((char*)entries[0].file_name));
             entries[0].attributes = 0x10;
             entries[0].cluster    = i;
             entries[0].checksum   = 0;
@@ -453,6 +457,7 @@ static int _create_directory(
             fprintf(stdout, ". checksum: %u\n", entries[0].checksum);
 
             _to_83_name("..", (char*)entries[1].file_name);
+            entries[0].name_hash  = _crc32(0, entries[1].file_name, strlen((char*)entries[1].file_name));
             entries[1].attributes = 0x10;
             entries[1].cluster    = 0;
             entries[1].checksum   = 0;
@@ -460,6 +465,7 @@ static int _create_directory(
             fprintf(stdout, ".. checksum: %u\n", entries[1].checksum);
 
             entries[2].file_name[0] = ENTRY_END;
+            entries[0].name_hash  = _crc32(0, entries[2].file_name, strlen((char*)entries[2].file_name));
             entries[2].attributes = 0x10;
             entries[2].cluster    = 0;
             entries[2].checksum   = 0;

@@ -231,7 +231,11 @@ upper:
                     directory_entry_t* entry = (directory_entry_t*)decoded;
                     for (unsigned int i = 0; i < entries; i++, entry++) {
                         if (entry->file_name[0] == ENTRY_END) break;
-                        if (entry->file_name[0] != ENTRY_FREE) printf("%s\t%u\n", entry->file_name, entry->file_size);
+                        if (entry->file_name[0] != ENTRY_FREE) {
+                            char name[128] = { 0 };
+                            fatname_to_name((const char*)entry->file_name, name);
+                            printf("%s\t%u\n", name, entry->file_size);
+                        }
                     }
 
                     NIFAT32_close_content(ci);

@@ -89,6 +89,7 @@ typedef struct fat_BS {
 
 typedef struct directory_entry {
 	unsigned char  file_name[11];
+	unsigned int   name_hash;
 	unsigned char  attributes;
 	unsigned int   cluster;
 	unsigned int   file_size;
