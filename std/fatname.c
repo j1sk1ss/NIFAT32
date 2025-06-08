@@ -6,11 +6,12 @@ int fatname_to_name(const char* fatname, char* name) {
             str_strncpy(name, "..", 3);
             return 1;
         }
+
         str_strncpy(name, ".", 2);
         return 1;
     }
 
-    int i, j = 0;
+    int i = 0, j = 0;
     for (i = 0; i < 8 && fatname[i] != ' '; ++i) {
         name[j++] = fatname[i];
     }
@@ -34,17 +35,29 @@ int fatname_to_name(const char* fatname, char* name) {
 
 int name_to_fatname(const char* name, char* fatname) {
     int i = 0, j = 0;
-    while (name[i] != '\0' && name[i] != '.' && j < 8) {
-        fatname[j++] = name[i++];
+    if (name[0] == '.') {
+        if (name[1] == '.') {
+            str_strncpy(fatname, "..", 3);
+            i = j = 2;
+        }
+        else {
+            str_strncpy(fatname, ".", 2);
+            i = j = 1;
+        }
     }
-    
-    while (j < 8) fatname[j++] = ' ';
-    if (name[i] == '.') i++;
+    else {
+        while (name[i] && name[i] != '.' && j < 8) {
+            fatname[j++] = name[i++];
+        }
+        
+        while (j < 8) fatname[j++] = ' ';
+        if (name[i] == '.') i++;
 
-    int ext = 0;
-    while (name[i] != '\0' && ext < 3) {
-        fatname[j++] = name[i++];
-        ext++;
+        int ext = 0;
+        while (name[i] && ext < 3) {
+            fatname[j++] = name[i++];
+            ext++;
+        }
     }
 
     while (j < 11) fatname[j++] = ' ';

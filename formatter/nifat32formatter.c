@@ -391,8 +391,7 @@ static int _copy_files_to_fs(
 
             uint32_t start_cluster = 0;
             size_t file_size = 0;
-            if (!_copy_file(fd, src_file, fat_table, &start_cluster, &file_size, 
-                         data_start, total_clusters, &last_alloc)) {
+            if (!_copy_file(fd, src_file, fat_table, &start_cluster, &file_size, data_start, total_clusters, &last_alloc)) {
                 fclose(src_file);
                 continue;
             }
@@ -440,7 +439,7 @@ static int _copy_files_to_fs(
 }
 
 static int _create_directory(
-    int fd, uint32_t* fat_table, uint32_t* start_cluster, uint32_t data_start, uint32_t total_clusters, int* last_alloc
+    int fd, fat_table_t fat_table, uint32_t* start_cluster, uint32_t data_start, uint32_t total_clusters, int* last_alloc
 ) {
     for (int i = *last_alloc; i < total_clusters; i++) {
         if (fat_table[i] == FAT_ENTRY_FREE) {
@@ -458,7 +457,7 @@ static int _create_directory(
             fprintf(stdout, ". checksum: %u\n", entries[0].checksum);
 
             _to_83_name("..", (char*)entries[1].file_name);
-            entries[0].name_hash  = _crc32(0, entries[1].file_name, strlen((char*)entries[1].file_name));
+            entries[1].name_hash  = _crc32(0, entries[1].file_name, strlen((char*)entries[1].file_name));
             entries[1].attributes = 0x10;
             entries[1].cluster    = 0;
             entries[1].checksum   = 0;
@@ -466,15 +465,30 @@ static int _create_directory(
             fprintf(stdout, ".. checksum: %u\n", entries[1].checksum);
 
             entries[2].file_name[0] = ENTRY_END;
-            entries[0].name_hash  = _crc32(0, entries[2].file_name, strlen((char*)entries[2].file_name));
+            entries[2].name_hash  = _crc32(0, entries[2].file_name, strlen((char*)entries[2].file_name));
             entries[2].attributes = 0x10;
             entries[2].cluster    = 0;
             entries[2].checksum   = 0;
             entries[2].checksum   = _crc32(0, (uint8_t*)&entries[2], sizeof(entries[2]));
             fprintf(stdout, "END checksum: %u\n", entries[1].checksum);
 
+            encoded_t* root_dirs = (encoded_t*)malloc(sizeof(entries) * sizeof(encoded_t));
+            if (!root_dirs) {
+                return 0;
+            }
+
+            _pack_memory((unsigned char*)entries, root_dirs, sizeof(entries));
             off_t cluster_offset = data_start + (i - ROOT_DIR_CLUSTER) * CLUSTER_SIZE;
-            if (pwrite(fd, entries, sizeof(entries), cluster_offset) != sizeof(entries)) return 0;
+            if (
+                pwrite(
+                    fd, root_dirs, sizeof(entries) * sizeof(encoded_t), cluster_offset
+                ) != sizeof(entries) * sizeof(encoded_t)
+            ) {
+                free(root_dirs);
+                return 0;
+            }
+
+            free(root_dirs);
             return 1;
         }
     }

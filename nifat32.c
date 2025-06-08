@@ -136,7 +136,7 @@ static int _entry_search(const char* name, cluster_addr_t ca, directory_entry_t*
     buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
     if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
-        if (cluster_data) free_s(cluster_data);
+        if (cluster_data)    free_s(cluster_data);
         if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }
@@ -445,32 +445,38 @@ static content_t* _get_content_from_table(const ci_t ci) {
     return _content_table[ci];
 }
 
+/*
+Find cluster active cluster by path.
+Return FAT_CLUSTER_BAD if path invalid.
+*/
+#define PATH_SPLITTER '/'
 static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* entry, cluster_addr_t* parent) {
     print_debug("_get_cluster_by_path(path=%s)", path);
 
-    unsigned int start = 0;
     cluster_addr_t parent_cluster = _fs_data.ext_root_cluster;
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
 
+    unsigned int start = 0;
     directory_entry_t file_info;
     for (unsigned int iterator = 0; iterator <= str_strlen(path); iterator++) {
-        if (path[iterator] == '/' || path[iterator] == '\0') {
-            char name_buffer[256] = { 0 };
+        if (path[iterator] == PATH_SPLITTER || !path[iterator]) {
+            char name_buffer[32]    = { 0 };
+            char fatname_buffer[32] = { 0 };
+
             str_memcpy(name_buffer, path + start, iterator - start);
-
-            char fatname_buffer[128] = { 0 };
             name_to_fatname(name_buffer, fatname_buffer);
-            if (_entry_search(fatname_buffer, active_cluster, &file_info) < 0) return FAT_CLUSTER_BAD;
-            start = iterator + 1;
+            if (_entry_search(fatname_buffer, active_cluster, &file_info) < 0) {
+                return FAT_CLUSTER_BAD;
+            }
 
+            start = iterator + 1;
             parent_cluster = active_cluster;
             active_cluster = file_info.cluster;
         }
     }
 
-    if (entry) str_memcpy(entry, &file_info, sizeof(directory_entry_t));
+    if (entry)  str_memcpy(entry, &file_info, sizeof(directory_entry_t));
     if (parent) *parent = parent_cluster;
-
     return active_cluster;    
 }
 

@@ -91,9 +91,58 @@ According to the official FAT32 specification, additional FAT table copies (usua
 Typically the extra copies are kept in tight synchronization on writes, and on reads they are only used when errors occur in the first FAT.
 ``` 
 
-This recovery strategy can be significantly improved by introducing a **voting system**. Instead of relying on a single backup, the system would store multiple FAT copies and resolve discrepancies by selecting the most frequently occurring valid value (majority voting). Afterward, all copies can be re-synchronized based on the voted result. This increases resistance to undetected bit errors and improves overall robustness in SEU-prone environments.
+This recovery strategy can be significantly improved by introducing a **voting system**. Instead of relying on a single backup, the system would store multiple FAT copies and resolve discrepancies by selecting the most frequently occurring valid value (majority voting). Afterward, all copies can be re-synchronized based on the voted result. This increases resistance to undetected bit errors and improves overall robustness in SEU-prone environments. </br>
+The final algorithm is simple: </br>
+We allocate a buffer for the table and fill it by reading from disk using majority voting. On write, we update all FAT copies to maintain consistency:
 
-## Data structures
+```
+int cache_fat_init(fat_data_t* fi) {
+    _fat = (unsigned int*)malloc_s(fi->total_clusters * sizeof(unsigned int));
+    if (!_fat) {
+        print_error("malloc_s() error!");
+        return 0;
+    }
+
+    for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) _fat[ca] = FAT_CLUSTER_BAD;
+    return 1;
+}
+
+int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
+    if (_fat) _fat[ca] = value;
+    for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
+    return 1;
+}
+
+cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
+    if (_fat && _fat[ca] != FAT_CLUSTER_BAD) return _fat[ca];
+
+    int wrong = -1;
+    int val_freq = 0;
+    cluster_val_t table_value = FAT_CLUSTER_BAD;
+    for (int i = 0; i < fi->fat_count; i++) {
+        cluster_val_t fat_val = __read_fat__(ca, fi, i);
+        if (fat_val == table_value) val_freq++;
+        else {
+            val_freq--;
+            wrong++;
+        }
+
+        if (val_freq < 0) {
+            table_value = fat_val;
+            val_freq = 0;
+        }
+    }
+
+    _fat[ca] = table_value;
+    if (wrong > 0) {
+        write_fat(ca, table_value, fi);
+    }
+
+    return table_value;
+}
+```
+
+## Boot structure
 FAT32 has many data structures that are used during work. For example in source design we have:
 - directory_entry_t - Entry structure that represent any file or directory in file system.
 - fat_bootstruct - Basic data of file system and hardware specification. This structure include data about sector size, cluster size, fat offsets. Full list of fields is below:
@@ -154,6 +203,8 @@ Unfortunately, this solution will make the filesystem unusable for boot sectors 
 - and proper sector address translation.
 
 This breaks compatibility with traditional BIOS or UEFI bootloaders expecting a FAT-like layout. However, this trade-off is acceptable because the primary goal of this filesystem is reliable data storage on external drives. Therefore, boot compatibility is not a requirement at this stage. </br>
+
+## Directory entry
 The next step involves modifying the original data structures to optimize them for this embedded solution. For example, the `directory_entry_t` structure. Below is the original definition:
 
 ```
@@ -313,7 +364,7 @@ int ATA_write_sector(uint32_t lba, const uint8_t* buffer) {
 ```
 
 This is why this part becomes tricky when we need to encode data that fits exactly into one sector using Hamming code — because the encoding adds 2 extra bytes at the end, increasing the total size. </br>
-In the case of the **boot sector**, this is not a problem, since the data easily fits within a single sector even after encoding.  </br>
+In the case of the **boot sector**, this is not a problem, since the data easily fits within a single sector even after encoding. </br>
 However, when dealing with the `FAT`, determining the best method to read and retrieve data from the encoded disk space becomes more complicated.
 
 ## Benchmark
