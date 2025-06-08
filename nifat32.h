@@ -13,25 +13,12 @@
 #include "include/cluster.h"
 #include "include/disk.h"
 #include "include/str.h"
-
-#define FILE_READ_ONLY 0x01
-#define FILE_HIDDEN    0x02
-#define FILE_SYSTEM    0x04
-#define FILE_VOLUME_ID 0x08
-#define FILE_DIRECTORY 0x10
-#define FILE_ARCHIVE   0x20
-
-#define FILE_LAST_LONG_ENTRY 0x40
-#define ENTRY_FREE           0xE5
-#define ENTRY_END            0x00
-#define ENTRY_JAPAN          0x05
-#define LAST_LONG_ENTRY      0x40
+#include "include/entry.h"
 
 #define CONTENT_TABLE_SIZE	50
 
 /* Content Index - ci */
 typedef int ci_t;
-typedef unsigned int checksum_t;
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -79,18 +66,6 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define PRIME2     19349663U
 #define PRIME3     83492791U
 #define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
-
-/* from http://wiki.osdev.org/FAT */
-/* From file_system.h (CordellOS brunch FS_based_on_FAL) */
-
-typedef struct directory_entry {
-	unsigned char  file_name[11];
-	checksum_t     name_hash;
-	unsigned char  attributes;
-	cluster_addr_t cluster;
-	unsigned int   file_size;
-	checksum_t     checksum;
-} __attribute__((packed)) directory_entry_t;
 
 typedef struct fat_file {
 	char name[8];
