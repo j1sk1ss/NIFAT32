@@ -55,7 +55,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
 
     _fs_data.fat_count = bootstruct->table_count;
     _fs_data.total_sectors = bootstruct->total_sectors_32;
-    _fs_data.fat_size = ext_bootstruct->table_size_32; 
+    _fs_data.fat_size = ext_bootstruct->table_size_32;
 
     int root_dir_sectors = ((bootstruct->root_entry_count * 32) + (bootstruct->bytes_per_sector - 1)) / bootstruct->bytes_per_sector;
     int data_sectors = _fs_data.total_sectors - (bootstruct->reserved_sector_count + (bootstruct->table_count * _fs_data.fat_size) + root_dir_sectors);

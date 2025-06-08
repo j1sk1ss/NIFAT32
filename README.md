@@ -176,20 +176,20 @@ In the original FAT32 design, the boot structure is stored in the first sector, 
 
 ```
 #define HASH_CONST 2654435761U
-#define PRIME1     73856093U
-#define PRIME2     19349663U
-#define PRIME3     83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+#define BS_PRIME1 73856093U
+#define BS_PRIME2 19349663U
+#define BS_PRIME3 83492791U
+#define GET_BOOTSECTOR(number, total_sectors) ((((number) * BS_PRIME1 + BS_PRIME2) * BS_PRIME3) % (total_sectors))
 ```
 
 ```
 Ext boot checksum: 2706677872
 Boot checksum: 2250935889
-[i=0] encoded bootsector has been written at ca=37545/131072!
-[i=1] encoded bootsector has been written at ca=58404/131072!
-[i=2] encoded bootsector has been written at ca=79263/131072!
-[i=3] encoded bootsector has been written at ca=100122/131072!
-[i=4] encoded bootsector has been written at ca=120981/131072!
+[i=0] encoded bootsector has been written at sa=37545/131072!
+[i=1] encoded bootsector has been written at sa=58404/131072!
+[i=2] encoded bootsector has been written at sa=79263/131072!
+[i=3] encoded bootsector has been written at sa=100122/131072!
+[i=4] encoded bootsector has been written at sa=120981/131072!
 ```
 
 This method physically decompress data on disk/flash drive:
@@ -197,6 +197,23 @@ This method physically decompress data on disk/flash drive:
 <p align="center">
 	<img src="graphs/bs_decompression.png" alt="Decompression"/>
 </p>
+
+Same method of physical decompression was applied to file allocation table:
+
+```
+#define HASH_CONST 2654435761U
+#define FAT_PRIME1 79156913U
+#define FAT_PRIME2 91383663U
+#define FAT_PRIME3 38812191U
+#define GET_FATSECTOR(number, total_sectors) ((((number) + FAT_PRIME1 * FAT_PRIME2) * FAT_PRIME3) % (total_sectors))
+```
+
+```
+FAT written at sa=110657
+FAT written at sa=125536
+FAT written at sa=9343
+FAT written at sa=24222
+```
 
 Unfortunately, this solution will make the filesystem unusable for boot sectors in operating systems — unless they implement:
 - Hamming-code decoding logic,

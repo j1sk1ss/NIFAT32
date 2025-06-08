@@ -61,13 +61,6 @@ int main(int argc, char* argv[]) {
 
     memset(fat_table, 0, total_clusters * sizeof(uint32_t));
     _initialize_fat(fat_table, total_sectors, total_clusters);
-    if (!_write_fats(fd, fat_table, fat_size, total_clusters)) {
-        fprintf(stderr, "Error writing FAT tables\n");
-        free(fat_table);
-        close(fd);
-        return EXIT_FAILURE;
-    }
-
     if (!_write_root_directory(fd, data_start, fat_size)) {
         fprintf(stderr, "Error initializing root directory\n");
         free(fat_table);
@@ -89,8 +82,8 @@ int main(int argc, char* argv[]) {
         printf("Created empty FAT32 volume at '%s'\n", opt.save_path);
     }
 
-    if (!_write_fats(fd, fat_table, fat_size, total_clusters)) {
-        fprintf(stderr, "Error updating FAT tables\n");
+    if (!_write_fats(fd, fat_table, fat_size, total_sectors)) {
+        fprintf(stderr, "Error writting FAT tables\n");
     }
 
     free(fat_table);
@@ -285,19 +278,29 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
 }
 
 /* Generate first clusters, reserve clusters for bootstructs */
-static int _initialize_fat(uint32_t* fat_table, uint32_t total_sectors, uint32_t total_clusters) {
+static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
     fat_table[0] = FAT_ENTRY_RESERVED | (0xF8 << 24);
     fat_table[1] = FAT_ENTRY_END;
     fat_table[2] = FAT_ENTRY_END;
 
     uint32_t cluster_for_bs = 0;
-    uint32_t cluster_for_backup;
+    uint32_t cluster_for_backup = 0;
 
+    /* Bootsector */
     fat_table[cluster_for_bs] = FAT_ENTRY_RESERVED | (0xF8 << 24);
     for (int i = 0; i < opt.bsbc; i++) {
-        unsigned int sector = GET_BOOTSECTOR(i, total_sectors);
+        uint32_t sector = GET_BOOTSECTOR(i, ts);
         cluster_for_backup = sector / opt.spc;
-        if (cluster_for_backup < total_clusters) {
+        if (cluster_for_backup < tc) {
+            fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+        }
+    }
+
+    /* FATs */
+    for (int i = 0; i < opt.fc; i++) {
+        uint32_t sa = GET_FATSECTOR(i, ts) + RESERVED_SECTORS;
+        cluster_for_backup = sa / opt.spc;
+        if (cluster_for_backup < tc) {
             fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
         }
     }
@@ -305,12 +308,12 @@ static int _initialize_fat(uint32_t* fat_table, uint32_t total_sectors, uint32_t
     return 1;
 }
 
-static int _write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_t total_clusters) {
-    off_t offset = RESERVED_SECTORS * BYTES_PER_SECTOR;
-    uint32_t fat_bytes  = fat_size * BYTES_PER_SECTOR;
+static int _write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_t ts) {
+    uint32_t fat_bytes = fat_size * BYTES_PER_SECTOR;
     for (int i = 0; i < opt.fc; i++) {
-        if (pwrite(fd, fat_table, fat_bytes, offset) != fat_bytes) return 0;
-        offset += fat_bytes;
+        uint32_t sa = GET_FATSECTOR(i, ts) + RESERVED_SECTORS;
+        if (pwrite(fd, fat_table, fat_bytes, sa * BYTES_PER_SECTOR) != fat_bytes) return 0;
+        printf("FAT written at sa=%u\n", sa);
     }
 
     return 1;

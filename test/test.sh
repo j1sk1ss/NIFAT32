@@ -17,9 +17,18 @@ if [ "$1" == "--debug" ]; then
     shift
 fi
 
+DEL_BIN=0
+if [ "$1" == "--del-bin" ]; then
+    DEL_BIN=1
+    shift
+fi
+
 cd ..
-gcc-14 $BUILD_FLAGS test/fat32_test.c nifat32.c src/* std/* -o test/fat32_test || exit 1
+gcc-14 $BUILD_FLAGS test/nifat32_test.c nifat32.c src/* std/* -o test/nifat32_test -g || exit 1
 
 cd test || exit 1
-./fat32_test "$1"
-rm fat32_test
+./nifat32_test $1
+
+if [ DEL_BIN == 1 ]; then
+    rm nifat32_test
+fi

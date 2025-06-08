@@ -29,16 +29,21 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define LAST_LONG_ENTRY      0x40
 
 #define HASH_CONST 2654435761U
-#define PRIME1     73856093U
-#define PRIME2     19349663U
-#define PRIME3     83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+#define BS_PRIME1 73856093U
+#define BS_PRIME2 19349663U
+#define BS_PRIME3 83492791U
+#define GET_BOOTSECTOR(number, total_sectors) ((((number) * BS_PRIME1 + BS_PRIME2) * BS_PRIME3) % (total_sectors))
+
+#define FAT_PRIME1 79156913U
+#define FAT_PRIME2 91383663U
+#define FAT_PRIME3 38812191U
+#define GET_FATSECTOR(number, total_sectors) ((((number) + FAT_PRIME1 * FAT_PRIME2) * FAT_PRIME3) % (total_sectors))
 
 #define BYTES_PER_SECTOR 	512
 #define SECTORS_PER_CLUSTER 8
 #define CLUSTER_SIZE 		(BYTES_PER_SECTOR * SECTORS_PER_CLUSTER)
 #define RESERVED_SECTORS 	32
-#define FAT_COUNT 			3
+#define FAT_COUNT 			4
 #define ROOT_DIR_CLUSTER 	2
 #define DEFAULT_VOLUME_SIZE 64
 #define FAT_ENTRY_FREE 		0x00000000

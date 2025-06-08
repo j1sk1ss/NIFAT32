@@ -20,6 +20,53 @@ int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t
     return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
+typedef struct {
+    char  val1[128];
+    char  val2;
+    short val3;
+    int   val4;
+    long  val5;
+} __attribute__((packed)) test_val_t;
+
+typedef struct {
+    char* fullname;
+    char* name;
+    char* ext;
+} filename_t;
+
+static filename_t filenames[] = {
+    {
+        .fullname = "test.txt",
+        .name = "test",
+        .ext = "txt"
+    },
+    {
+        .fullname = "asd.bin",
+        .name = "asd",
+        .ext = "bin"
+    },
+    {
+        .fullname = "123.dr",
+        .name = "123",
+        .ext = "dr"
+    },
+    {
+        .fullname = "terrr",
+        .name = "terrr",
+        .ext = ""
+    },
+    {
+        .fullname = "test1.txt",
+        .name = "test1",
+        .ext = "txt"
+    },
+    {
+        .fullname = "test2.txt",
+        .name = "test2",
+        .ext = "txt"
+    }
+};
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Test count requiered!\n");
@@ -49,15 +96,21 @@ int main(int argc, char* argv[]) {
     int handled_errors = 0;
     int unhundled_errors = 0;
 
-    const char* target_file = "test.txt";
-    char target_fatname[128] = { 0 };
-    name_to_fatname(target_file, target_fatname);
-
-    const char* data = "Hello there! This is a custom data!\n123345786780-764234][']\t\t\n\r\bqqq`12";
-    int data_size = strlen(data) + 1;
+    test_val_t data = {
+        .val2 = 0xA1,
+        .val3 = 0xF34,
+        .val4 = 0xDEA,
+        .val5 = 0xDEAD
+    };
+    
+    strncpy(data.val1, "Test data from structure! Hello there from structure, I guess..", 128);
 
     int offset = 0;
     while (count-- > 0) {
+        const char* target_file = filenames[count % 6].fullname;
+        char target_fatname[128] = { 0 };
+        name_to_fatname(target_file, target_fatname);
+
         if (!(count % 1000)) {
             time_t now = time(NULL);
             struct tm* tm_info = localtime(&now);
@@ -69,14 +122,12 @@ int main(int argc, char* argv[]) {
             );
         }
 
-        if (!NIFAT32_content_exists(target_fatname)) {
+        if (!NIFAT32_content_exists(target_file)) {
             handled_errors++;
-            fprintf(stderr, "File not found, but should be presented in FS!\n");
-
             cinfo_t file = { .type = STAT_FILE };
-            str_memcpy(file.file_name, "test", 5);
-            str_memcpy(file.file_extension, "txt", 4);
-            name_to_fatname("test.txt", file.full_name);
+            str_memcpy(file.file_name, filenames[count % 6].name, strlen(filenames[count % 6].name) + 1);
+            str_memcpy(file.file_extension, filenames[count % 6].ext, strlen(filenames[count % 6].ext) + 1);
+            name_to_fatname(target_file, file.full_name);
             if (!NIFAT32_put_content(PUT_TO_ROOT, &file)) {
                 handled_errors++;
                 fprintf(stderr, "File creation error!\n");
@@ -91,29 +142,17 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        int write_size = 0;
-        if ((write_size = NIFAT32_write_buffer2content(ci, offset, (const_buffer_t)data, data_size) > 0)) {
-            // fprintf(stderr, "Write %i from %i!\n", write_size, data_size);
-        }
-
-        int read_size = 0;
         unsigned char buffer[8192] = { 0 };
-        if ((read_size = NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, 8192)) > 0) {
-            // fprintf(stderr, "Read %i from %i!\n", read_size, sizeof(buffer));
-        }
+        NIFAT32_write_buffer2content(ci, offset, (const_buffer_t)&data, sizeof(test_val_t));
+        NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, 8192);
 
-        offset += data_size;
-        if (memcmp(data, buffer, data_size)) {
+        offset += sizeof(test_val_t);
+        if (!memcmp((const_buffer_t)&data, (const_buffer_t)buffer, sizeof(test_val_t))) {
             unhundled_errors++;
         }
 
         NIFAT32_close_content(ci);
     }
-
-    fprintf(stdout, 
-        "Summary hundled error count: %i\nSummary unhundled error count: %i\n",
-        handled_errors, unhundled_errors
-    );
 
     return EXIT_SUCCESS;
 }
