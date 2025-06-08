@@ -14,11 +14,7 @@
 #include "include/disk.h"
 #include "include/str.h"
 #include "include/entry.h"
-
-#define CONTENT_TABLE_SIZE	50
-
-/* Content Index - ci */
-typedef int ci_t;
+#include "include/ctable.h"
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -66,50 +62,6 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define PRIME2     19349663U
 #define PRIME3     83492791U
 #define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
-
-typedef struct fat_file {
-	char name[8];
-	char extension[4];
-} file_t;
-
-typedef struct fat_directory {
-	char name[11];
-} directory_t;
-
-typedef enum {
-	CONTENT_TYPE_FILE,
-	CONTENT_TYPE_DIRECTORY
-} content_type_t;
-
-typedef struct {
-	union {
-		directory_t* directory;
-		file_t*      file;
-	};
-	
-	cluster_addr_t parent_cluster;
-	cluster_addr_t data_cluster;
-	directory_entry_t meta;
-	content_type_t content_type;
-	lock_t lock;
-} content_t;
-
-#define NOT_PRESENT	0x00
-#define STAT_FILE	0x01
-#define STAT_DIR	0x02
-
-typedef struct {
-	char full_name[12];
-	char file_name[8];
-	char file_extension[4];
-	int  type;
-	int  size;
-	unsigned short creation_time;
-	unsigned short creation_date;
-	unsigned short last_accessed;
-	unsigned short last_modification_time;
-	unsigned short last_modification_date;
-} cinfo_t;
 
 /*
 Init function. 
