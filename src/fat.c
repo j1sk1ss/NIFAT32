@@ -1,8 +1,8 @@
 #include "../include/fat.h"
 
-static unsigned int* _fat = NULL;
+static cluster_val_t* _fat = NULL;
 int cache_fat_init(fat_data_t* fi) {
-    _fat = (unsigned int*)malloc_s(fi->total_clusters * sizeof(unsigned int));
+    _fat = (cluster_val_t*)malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
         print_error("malloc_s() error!");
         return 0;
@@ -13,9 +13,14 @@ int cache_fat_init(fat_data_t* fi) {
 }
 
 static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi, int fat) {
-    cluster_offset_t fat_offset  = ca * 4;
-    sector_addr_t fat_sector = GET_FATSECTOR(fat, fi->total_sectors) + fi->first_fat_sector + (fat_offset / fi->cluster_size);
-    if (!DSK_writeoff_sectors(fat_sector, fat_offset % fi->cluster_size, (unsigned char*)&value, sizeof(cluster_status_t), 1)) {
+    cluster_offset_t fat_offset = ca * sizeof(cluster_val_t) * sizeof(encoded_t);
+    sector_addr_t fat_sector = fi->sectors_padd + GET_FATSECTOR(fat, fi->total_sectors) + (fat_offset / fi->bytes_per_sector);
+    
+    decoded_t table_buffer[sizeof(cluster_val_t)] = { 0 };
+    pack_memory((const byte_t*)&value, table_buffer, sizeof(cluster_val_t));
+    if (
+        !DSK_writeoff_sectors(fat_sector, fat_offset % fi->bytes_per_sector, (const unsigned char*)table_buffer, sizeof(table_buffer), 1)
+    ) {
         print_error("Could not write new FAT32 cluster number to sector.");
         return 0;
     }
@@ -31,20 +36,29 @@ int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
 }
 
 static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
-    cluster_offset_t fat_offset = ca * 4;
-    sector_addr_t fat_sector  = GET_FATSECTOR(fat, fi->total_sectors) + fi->first_fat_sector + (fat_offset / fi->cluster_size);
-    cluster_val_t table_value = FAT_CLUSTER_BAD;
-    if (!DSK_readoff_sectors(fat_sector, fat_offset % fi->cluster_size, (unsigned char*)&table_value, sizeof(cluster_val_t), 1)) {
+    cluster_offset_t fat_offset = ca * sizeof(cluster_val_t) * sizeof(encoded_t);
+    sector_addr_t fat_sector = fi->sectors_padd + GET_FATSECTOR(fat, fi->total_sectors) + (fat_offset / fi->bytes_per_sector);
+    
+    encoded_t table_buffer[sizeof(cluster_val_t)] = { 0 };
+    if (
+        !DSK_readoff_sectors(fat_sector, fat_offset % fi->bytes_per_sector, (unsigned char*)table_buffer, sizeof(table_buffer), 1
+    )) {
         print_error("Could not read sector that contains FAT32 table entry needed.");
         return FAT_CLUSTER_BAD;
     }
 
-    return table_value;
-} 
+    cluster_val_t table_value = 0;
+    unpack_memory(table_buffer, (byte_t*)&table_value, sizeof(cluster_val_t));
+    return table_value & 0x0FFFFFFF;
+}
 
 cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
+    print_debug("read_fat(ca=%u)", ca);
     if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return FAT_CLUSTER_BAD;
-    if (_fat && _fat[ca] != FAT_CLUSTER_BAD) return _fat[ca];
+    if (_fat && _fat[ca] != FAT_CLUSTER_BAD) {
+        print_debug("cached read_fat(ca=%u) -> %u", ca, _fat[ca]);
+        return _fat[ca];
+    }
 
     int wrong = -1;
     int val_freq = 0;
@@ -69,6 +83,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
         write_fat(ca, table_value, fi);
     }
 
+    print_debug("read_fat(ca=%u) -> %u", ca, table_value);
     return table_value;
 }
 
@@ -94,4 +109,8 @@ int is_cluster_bad(cluster_val_t cluster) {
 
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
     return write_fat(cluster, FAT_CLUSTER_BAD, fi);
+}
+
+int is_cluster_reserved(cluster_val_t cluster) {
+    return cluster == FAT_CLUSTER_RESERVED ? 1 : 0;
 }

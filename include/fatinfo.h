@@ -12,7 +12,7 @@ typedef struct fat_data {
 	unsigned int  cluster_size;
 	unsigned int  sectors_per_cluster;
 	unsigned int  ext_root_cluster;
-	unsigned int  first_fat_sector;
+	unsigned int  sectors_padd;
 } fat_data_t;
 
 #endif

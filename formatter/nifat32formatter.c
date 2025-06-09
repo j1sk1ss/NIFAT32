@@ -298,24 +298,37 @@ static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
 
     /* FATs */
     for (int i = 0; i < opt.fc; i++) {
-        uint32_t sa = GET_FATSECTOR(i, ts) + RESERVED_SECTORS;
+        long long total_reserved = tc * sizeof(uint32_t) * sizeof(encoded_t);
+        uint32_t sa = RESERVED_SECTORS + GET_FATSECTOR(i, ts);
         cluster_for_backup = sa / opt.spc;
-        if (cluster_for_backup < tc) {
+
+        int c = 0;
+        for (; cluster_for_backup < tc && total_reserved > 0; cluster_for_backup++, c++) {
             fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+            total_reserved -= opt.spc * BYTES_PER_SECTOR;
         }
+
+        printf("Reserved %u for FAT %i\n", c, i);
     }
 
     return 1;
 }
 
 static int _write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_t ts) {
-    uint32_t fat_bytes = fat_size * BYTES_PER_SECTOR;
+    uint32_t fat_bytes = fat_size * BYTES_PER_SECTOR * sizeof(encoded_t);
+    unsigned char* encoded_fat = (unsigned char*)malloc(fat_bytes);
+    if (!encoded_fat) return 0;
+
+    memset(encoded_fat, 0, fat_bytes);
+    _pack_memory((unsigned char*)fat_table, (unsigned short*)encoded_fat, fat_size * BYTES_PER_SECTOR);
+    
     for (int i = 0; i < opt.fc; i++) {
-        uint32_t sa = GET_FATSECTOR(i, ts) + RESERVED_SECTORS;
-        if (pwrite(fd, fat_table, fat_bytes, sa * BYTES_PER_SECTOR) != fat_bytes) return 0;
-        printf("FAT written at sa=%u\n", sa);
+        uint32_t sa = RESERVED_SECTORS + GET_FATSECTOR(i, ts);
+        if (pwrite(fd, encoded_fat, fat_bytes, sa * BYTES_PER_SECTOR) != fat_bytes) return 0;
+        printf("Encoded (Hamming) FAT written at sa=%u/%u\n", sa, ts);
     }
 
+    free(encoded_fat);
     return 1;
 }
 

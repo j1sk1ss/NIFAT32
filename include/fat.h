@@ -6,6 +6,7 @@
 #include "fatinfo.h"
 #include "logging.h"
 #include "threading.h"
+#include "hamming.h"
 
 #define FAT_CLUSTER_FREE     0x00000000
 #define FAT_CLUSTER_BAD      0x0FFFFFF7
@@ -99,5 +100,12 @@ Return 1 if write to FAT success.
 Return 0 if something goes wrong.
 */
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi);
+
+/*
+Check if cluster is reserved.
+Return 1 if it is bad.
+Return 0 if it is not.
+*/
+int is_cluster_reserved(cluster_val_t cluster);
 
 #endif

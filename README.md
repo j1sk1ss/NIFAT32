@@ -81,24 +81,15 @@ The final algorithm is simple: </br>
 We allocate a buffer for the table and fill it by reading from disk using majority voting. On write, we update all FAT copies to maintain consistency:
 
 ```
-int cache_fat_init(fat_data_t* fi) {
-    _fat = (unsigned int*)malloc_s(fi->total_clusters * sizeof(unsigned int));
-    if (!_fat) {
-        print_error("malloc_s() error!");
-        return 0;
-    }
-
-    for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) _fat[ca] = FAT_CLUSTER_BAD;
-    return 1;
-}
-
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
+    if (ca < fi->root_cluster || ca > fi->total_clusters) return 0;
     if (_fat) _fat[ca] = value;
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
     return 1;
 }
 
 cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
+    if (ca < fi->root_cluster || ca > fi->total_clusters) return 0;
     if (_fat && _fat[ca] != FAT_CLUSTER_BAD) return _fat[ca];
 
     int wrong = -1;
@@ -127,7 +118,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
 }
 ```
 
-But error-correcting coding of the whole FAT is necessary, according to the test results (see below). Results with static injection of 1 million random bit flips (boot sector decompression and Hamming coding + FAT decompression and major voting without error-correcting coding):
+But error-correcting coding of the whole FAT is necessary, according to the test results (see below). Results with static injection of 1 million random bit flips (boot sector decompression and Hamming encoding + FAT decompression and major voting without error-cerrection encoding):
 
 <p align="center">
 	<img src="graphs/FAT_errors.png" alt="Errors due bit-flip injection"/>
@@ -378,6 +369,23 @@ int ATA_write_sector(uint32_t lba, const uint8_t* buffer) {
 This is why this part becomes tricky when we need to encode data that fits exactly into one sector using Hamming code — because the encoding adds 2 extra bytes at the end, increasing the total size. </br>
 In the case of the **boot sector**, this is not a problem, since the data easily fits within a single sector even after encoding. </br>
 However, when dealing with the `FAT`, determining the best method to read and retrieve data from the encoded disk space becomes more complicated.
+
+## Result noise resistance
+
+This is an example of a disk segment affected by a Single Event Upset (SEU), resulting in 10 million bit flips across a total of 64,000,000 bytes.
+
+```
+00 00 00 00 01 00 00 00 00 00 04 00 08 00 00 00 00 01 00 00 00 00 00 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 10 00 00 00 00 01 00 00 00 00 01 00 00 00 00 01 00 00 00 00 00 08 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 20 00 20 00 40 00 20 00 00 00 00 00 00 00 00 20 00 40 10 01 00 00 00 00 00 00 00 08 00 10 00 20 00 00 40 00 08 00 00 00 20 00 00 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 01
+```
+
+**Note:** The original segment was completely filled with zeros. </br>
+In result, with bootsector decompression and Hamming noise-immune encoding, FAT decompression, noise-immune encoding and majority voting mechanism, we got next:
+
+```
+1 mln = 0 handled errors
+10 mln = 6 handled errors
+```
+
 
 ## Benchmark
 

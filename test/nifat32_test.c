@@ -13,10 +13,12 @@
 static int disk_fd = 0;
 
 int _mock_sector_read_(sector_addr_t sa, sector_offset_t offset, buffer_t buffer, int buff_size) {
+    if (!buff_size) return 1;
     return pread(disk_fd, buffer, buff_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
 int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t data, int data_size) {
+    if (!data_size) return 1;
     return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
@@ -112,7 +114,7 @@ int main(int argc, char* argv[]) {
         char target_fatname[128] = { 0 };
         name_to_fatname(target_file, target_fatname);
 
-        if (!(count % 100)) {
+        if (!(count % 1000)) {
             time_t now = time(NULL);
             struct tm* tm_info = localtime(&now);
             char time_str[20];
@@ -150,6 +152,19 @@ int main(int argc, char* argv[]) {
         offset += sizeof(test_val_t);
         if (memcmp((const_buffer_t)&data, (const_buffer_t)buffer, sizeof(test_val_t))) {
             unhundled_errors++;
+
+            printf("\n Source data: ");
+            for (int i = 0; i < sizeof(test_val_t); i++) {
+                printf("0x%x ", ((const_buffer_t)&data)[i]);
+            }
+
+            printf("\n Read result: ");
+            for (int i = 0; i < sizeof(test_val_t); i++) {
+                printf("0x%x ", buffer[i]);
+            }
+
+            fflush(stdout);
+            while (1);
         }
 
         NIFAT32_close_content(ci);

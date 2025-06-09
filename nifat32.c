@@ -70,7 +70,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
 	_fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ext_bootstruct->table_size_32;
     _fs_data.sectors_per_cluster = bootstruct->sectors_per_cluster;
     _fs_data.bytes_per_sector = bootstruct->bytes_per_sector;
-    _fs_data.first_fat_sector = bootstruct->reserved_sector_count;
+    _fs_data.sectors_padd = bootstruct->reserved_sector_count;
     _fs_data.ext_root_cluster = ext_bootstruct->root_cluster;
     _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
     for (int i = 0; i < CONTENT_TABLE_SIZE; i++) {
@@ -89,7 +89,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     print_debug("Root dir sectors:          %d", root_dir_sectors);
     print_debug("Data sectors:              %d", data_sectors);
     print_debug("Total clusters:            %u", _fs_data.total_clusters);
-    print_debug("First FAT sector:          %u", _fs_data.first_fat_sector);
+    print_debug("First FAT sector:          %u", _fs_data.sectors_padd);
     print_debug("First data sector:         %u", _fs_data.first_data_sector);
     print_debug("Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
     print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
@@ -253,18 +253,18 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
         return FAT_CLUSTER_BAD;
     }
 
-    int max_iterations = _fs_data.total_clusters;
-    cluster_addr_t cluster = content->data_cluster;
     if (lca == FAT_CLUSTER_BAD) {
+        int max_iterations = _fs_data.total_clusters;
+        cluster_addr_t cluster = content->data_cluster;
         while (!is_cluster_end(cluster) && !is_cluster_bad(cluster) && max_iterations-- > 0) {
             lca = cluster;
             cluster = read_fat(cluster, &_fs_data);
         }
-    }
 
-    if (max_iterations <= 0) {
-        print_error("Can't allocate cluster!");
-        return FAT_CLUSTER_BAD;
+        if (max_iterations <= 0) {
+            print_error("Can't allocate cluster!");
+            return FAT_CLUSTER_BAD;
+        }
     }
 
     cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
