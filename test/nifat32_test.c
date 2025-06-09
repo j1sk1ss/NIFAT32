@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
         char target_fatname[128] = { 0 };
         name_to_fatname(target_file, target_fatname);
 
-        if (!(count % 1000)) {
+        if (!(count % 100)) {
             time_t now = time(NULL);
             struct tm* tm_info = localtime(&now);
             char time_str[20];

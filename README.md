@@ -48,27 +48,12 @@ This issue arises from a bit-flip within the `directory_entry_t` file name field
 One such flip occurred in the file name `"TEST    TXT "`, resulting in it becoming `"TEST   0TXT "` due changing symbol ' ' (dec=32, bin=100000) to symbol '0' (dec=48, bin=110000). This change triggered a checksum verification failure. </br>
 However, this scenario **should not be considered as a major improvement**. In the original FAT32, a similar bit-flip would simply corrupt the file name and result in the classic `"File not found"` error.  
 The difference is that in this modified version, the error is **accompanied by a clear diagnostic** — a checksum verification failure — which aids in identifying the source of corruption. </br>
-For a visual reference, below are the results of testing the **unmodified FAT32** system with **only checksum implementation enabled**: </br>
+For a visual reference, below are the results of testing the **unmodified FAT32** system with **only checksum implementation enabled** with dynamic bit-flip injection: </br>
 (X-axis: number of bit-flips in data, Y-axis: count of handled errors)
 
 <p align="center">
 	<img src="graphs/bitflips_source.png" alt="Errors due bit-flip injection"/>
 </p>
-
-Here we can see, that count of hundled error continue to grow after stop of bit-flip injection. In test program was implemented self-repair mechanism for re-creating broken entries:
-
-```
-if (!NIFAT32_content_exists(target_fatname)) {
-	cinfo_t file = { .type = STAT_FILE };
-	str_memcpy(file.file_name, "test", 5);
-	str_memcpy(file.file_extension, "txt", 4);
-	name_to_fatname("test.txt", file.full_name);
-	if (!NIFAT32_put_content(PUT_TO_ROOT, &file)) {
-		handled_errors++;
-        ... 
-	}
-}
-```
 
 However, according to the test data, the bit-flip occurred in the most critical area — the File Allocation Table (FAT) and its copies (or directly in the root `directory_entry_t`). As a result, this particular test case does not provide much insight, since the outcome is both expected and obvious: the `FAT32` file system was **not designed** to withstand upset events. </br>
 The original implementation can handle certain types of corruption, such as partial damage to the boot sector or the FAT itself (as long as the actual cell values remain untouched). However, it fails to operate reliably when an `SEU` occurs within clusters — for example, altering a file name directly or breaking the cluster chain in the main FAT. According to the specification, `FAT32` reads data only from the main FAT and synchronizes it with its copies **only during write operations**. </br>
@@ -141,6 +126,12 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     return table_value;
 }
 ```
+
+But error-correcting coding of the whole FAT is necessary, according to the test results (see below). Results with static injection of 1 million random bit flips (boot sector decompression and Hamming coding + FAT decompression and major voting without error-correcting coding):
+
+<p align="center">
+	<img src="graphs/FAT_errors.png" alt="Errors due bit-flip injection"/>
+</p>
 
 ## Boot structure
 FAT32 has many data structures that are used during work. For example in source design we have:
