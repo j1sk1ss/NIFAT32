@@ -48,7 +48,7 @@ int dealloc_cluster(const cluster_addr_t cluster, fat_data_t* fi) {
 
 int readoff_cluster(cluster_addr_t cluster, cluster_offset_t offset, buffer_t buffer, int buff_size, fat_data_t* fi) {
     print_debug("readoff_cluster(cluster=%u, offset=%u, size=%i)", cluster, offset, buff_size);
-    sector_addr_t start_sect = (cluster - 2) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
+    sector_addr_t start_sect = (cluster - fi->ext_root_cluster) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
     return DSK_readoff_sectors(start_sect, offset, buffer, buff_size, fi->sectors_per_cluster);
 }
 
@@ -58,7 +58,7 @@ int read_cluster(cluster_addr_t cluster, buffer_t buffer, int buff_size, fat_dat
 
 int writeoff_cluster(cluster_addr_t cluster, cluster_offset_t offset, const_buffer_t data, int data_size, fat_data_t* fi) {
     print_debug("writeoff_cluster(cluster=%u, offset=%u, size=%i)", cluster, offset, data_size);
-    sector_addr_t start_sect = (cluster - 2) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
+    sector_addr_t start_sect = (cluster - fi->ext_root_cluster) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
     return DSK_writeoff_sectors(start_sect, offset, data, data_size, fi->sectors_per_cluster);
 }
 

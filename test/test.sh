@@ -13,7 +13,7 @@ if [ "$1" == "--new-image" ]; then
 fi
 
 if [ "$1" == "--debug" ]; then
-    BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -DDEBUG_LOGS"
+    BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -DDEBUG_LOGS -g"
     shift
 fi
 
@@ -24,7 +24,7 @@ if [ "$1" == "--del-bin" ]; then
 fi
 
 cd ..
-gcc-14 $BUILD_FLAGS test/nifat32_test.c nifat32.c src/* std/* -o test/nifat32_test -g || exit 1
+gcc-14 $BUILD_FLAGS test/nifat32_test.c nifat32.c src/* std/* -o test/nifat32_test || exit 1
 
 cd test || exit 1
 ./nifat32_test $1

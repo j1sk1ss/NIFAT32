@@ -290,6 +290,10 @@ Another approach for implementing noise-immune encoding is the use of [Reed–So
 Below is a basic implementation of Hamming encoding and decoding.
 
 ```
+#define GET_BIT(b, i) ((b >> i) & 1)
+#define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
+#define TOGGLE_BIT(b, i) (b ^ (1 << i))
+
 encoded_t encode_hamming_15_11(decoded_t data) {
     encoded_t encoded = 0;
     encoded = SET_BIT(encoded, 2, GET_BIT(data, 0));

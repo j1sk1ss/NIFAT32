@@ -97,12 +97,13 @@ int main(int argc, char* argv[]) {
     int unhundled_errors = 0;
 
     test_val_t data = {
-        .val2 = 0xA1,
+        .val2 = 0x1A,
         .val3 = 0xF34,
         .val4 = 0xDEA,
         .val5 = 0xDEAD
     };
     
+    memset(data.val1, 0, 128);
     strncpy(data.val1, "Test data from structure! Hello there from structure, I guess..", 128);
 
     int offset = 0;
@@ -142,12 +143,12 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        unsigned char buffer[8192] = { 0 };
+        unsigned char buffer[sizeof(test_val_t)] = { 0 };
         NIFAT32_write_buffer2content(ci, offset, (const_buffer_t)&data, sizeof(test_val_t));
-        NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, 8192);
+        NIFAT32_read_content2buffer(ci, offset, (buffer_t)buffer, sizeof(test_val_t));
 
         offset += sizeof(test_val_t);
-        if (!memcmp((const_buffer_t)&data, (const_buffer_t)buffer, sizeof(test_val_t))) {
+        if (memcmp((const_buffer_t)&data, (const_buffer_t)buffer, sizeof(test_val_t))) {
             unhundled_errors++;
         }
 

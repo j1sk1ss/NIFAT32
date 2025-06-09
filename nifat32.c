@@ -32,7 +32,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     unpack_memory((encoded_t*)encoded_bs, decoded_bs, sector_size);
 
     fat_BS_t* bootstruct = (fat_BS_t*)decoded_bs;
-    fat_extBS_32_t* ext_bootstruct = (fat_extBS_32_t*)bootstruct->extended_section;
+    fat_extBS_32_t* ext_bootstruct = &bootstruct->extended_section;
 
     checksum_t bcheck = bootstruct->checksum;
     bootstruct->checksum = 0;
@@ -323,11 +323,15 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
     ca = lca;
     while (data_size > 0 && !is_cluster_bad(ca = _add_cluster_to_content(ci, ca))) {
-        int writable = (data_size > (int)_fs_data.cluster_size) ? (int)_fs_data.cluster_size : data_size;
-        write_cluster(ca, data + total_written, writable, &_fs_data);
+        if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
+        else {
+            int writable = (data_size > (int)_fs_data.cluster_size) ? (int)_fs_data.cluster_size : data_size;
+            writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data);
 
-        data_size -= writable;
-        total_written += writable;
+            offset = 0;
+            data_size -= writable;
+            total_written += writable;
+        }
     }
 
     return total_written;
