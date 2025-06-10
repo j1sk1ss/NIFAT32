@@ -1,6 +1,6 @@
 # Noise-Immune FAT32 File system
 ## Main goal
-The main goal of this project is to make the FAT32 filesystem simpler, more secure, and make it work in use cases where `SEU` is common. </br> 
+The main goal of this project is to make the FAT32 filesystem simpler, more secure, and make it work in use cases where `SEU` is common in the fewest steps. </br> 
 A secondary goal is to make this filesystem work on embedded systems for my other project called [CDBMS](https://github.com/j1sk1ss/CordellDBMS.PETPRJ) and update the core functionality to a thread-safe context.
 
 ## Why?
@@ -327,7 +327,7 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 ```
 
 The main limitation of this algorithm is its restricted error correction capability: it can correct single-bit errors and detect (but not correct) double-bit errors. This makes it insufficient in environments where frequent or multiple simultaneous bit-flips occur. Additionally, this method requires extra space for control bits. While this overhead is usually manageable, it becomes critical when dealing with sectors. </br>
-**Sectors** represent the lowest-level abstraction that divides the disk into the smallest addressable units. Every disk I/O syscall reads or writes an entire sector from or to the disk. A basic implementation of such a syscall, taken from the CordellOS project, looks like this:
+**Sectors** represent the lowest-level abstraction that divides the disk into the smallest addressable units. Every disk I/O syscall reads or writes an entire sector from or to the disk. A basic implementation of such a syscall, taken from my hobby OS project, looks like this:
 
 ```
 int ATA_read_sector(uint32_t lba, uint8_t* buffer) {
@@ -386,6 +386,12 @@ In result, with bootsector decompression and Hamming noise-immune encoding, FAT 
 10 mln = 6 handled errors
 ```
 
+We have reached our target goal of increasing the noise immunity of `FAT32` by implementing a number of techniques:
+- Physical decompression of data structures (`bootstruct` and `FAT`)
+- Hamming-code encoding for data structures (`bootstruct`, `directory_entry`, and `FAT`)
+- Majority voting for FAT
+
+In addition, thread-safe spinlocks were implemented for FAT read/write operations and cluster allocation algorithms.
 
 ## Benchmark
 
