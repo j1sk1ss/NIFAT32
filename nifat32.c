@@ -117,15 +117,16 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
 Find cluster active cluster by path.
 Return FAT_CLUSTER_BAD if path invalid.
 */
-#define PATH_SPLITTER '/'
-static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* entry, cluster_addr_t* parent) {
-    print_debug("_get_cluster_by_path(path=%s)", path);
+static cluster_addr_t _get_cluster_by_path(
+    const char* path, directory_entry_t* entry, cluster_addr_t* parent, unsigned char mode
+) {
+    print_debug("_get_cluster_by_path(path=%s, mode=%p)", path, mode);
 
     cluster_addr_t parent_cluster = _fs_data.ext_root_cluster;
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
 
     unsigned int start = 0;
-    directory_entry_t file_info;
+    directory_entry_t current_entry;
     for (unsigned int iterator = 0; iterator <= str_strlen(path); iterator++) {
         if (path[iterator] == PATH_SPLITTER || !path[iterator]) {
             char name_buffer[32]    = { 0 };
@@ -133,34 +134,48 @@ static cluster_addr_t _get_cluster_by_path(const char* path, directory_entry_t* 
 
             str_memcpy(name_buffer, path + start, iterator - start);
             name_to_fatname(name_buffer, fatname_buffer);
-            if (entry_search(fatname_buffer, active_cluster, &file_info, &_fs_data) < 0) {
-                return FAT_CLUSTER_BAD;
+
+            if (entry_search(fatname_buffer, active_cluster, &current_entry, &_fs_data) < 0) {
+                if (GET_MODE(mode) == CR_MODE) {
+                    create_entry(
+                        fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_MODE, 
+                        alloc_cluster(&_fs_data), 1, &current_entry, &_fs_data
+                    );
+
+                    if (entry_add(active_cluster, &current_entry, &_fs_data) < 0) {
+                        print_error("Can't add new entry with mode=%p", mode);
+                        dealloc_cluster(current_entry.cluster, &_fs_data);
+                    }
+                }
+                else {
+                    return FAT_CLUSTER_BAD;
+                }
             }
 
             start = iterator + 1;
             parent_cluster = active_cluster;
-            active_cluster = file_info.cluster;
+            active_cluster = current_entry.cluster;
         }
     }
 
-    if (entry)  str_memcpy(entry, &file_info, sizeof(directory_entry_t));
+    if (entry)  str_memcpy(entry, &current_entry, sizeof(directory_entry_t));
     if (parent) *parent = parent_cluster;
     return active_cluster;    
 }
 
 int NIFAT32_content_exists(const char* path) {
-    return _get_cluster_by_path(path, NULL, NULL) != FAT_CLUSTER_BAD;
+    return _get_cluster_by_path(path, NULL, NULL, DF_MODE) != FAT_CLUSTER_BAD;
 }
 
-ci_t NIFAT32_open_content(const char* path) {
-    print_debug("NIFAT32_open_content(path=%s)", path);
+ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
+    print_debug("NIFAT32_open_content(path=%s, mode=%p)", path, mode);
     content_t* fat_content = create_content();
     if (!fat_content) {
         print_error("_create_content() error!");
         return -1;
     }
     
-    cluster_addr_t cluster = _get_cluster_by_path(path, &fat_content->meta, &fat_content->parent_cluster);
+    cluster_addr_t cluster = _get_cluster_by_path(path, &fat_content->meta, &fat_content->parent_cluster, mode);
     if (is_cluster_bad(cluster)) {
         print_error("Entry not found!");
         unload_content_system(fat_content);
@@ -352,8 +367,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 
     directory_entry_t new_meta;
     create_entry(
-        info->file_name, info->file_extension, 
-        info->type == STAT_DIR, content->meta.cluster, 
+        info->full_name, info->type == STAT_DIR, content->meta.cluster, 
         content->meta.file_size, &new_meta, &_fs_data
     );
 
@@ -384,16 +398,21 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
         return 0;
     }
 
-    directory_entry_t new_meta = { 0 };
-    create_entry(info->file_name, info->file_extension, info->type == STAT_DIR, alloc_cluster(&_fs_data), 1, &new_meta, &_fs_data);
-    int is_add = entry_add(target, &new_meta, &_fs_data);
+    directory_entry_t entry;
+    create_entry(
+        info->full_name, info->type == STAT_DIR, 
+        alloc_cluster(&_fs_data), 1, &entry, &_fs_data
+    );
+
+    int is_add = entry_add(target, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
+        dealloc_cluster(entry.cluster, &_fs_data);
         return 0;
     }
 
     if (reserve > NO_RESERVE) {
-        cluster_addr_t lca = new_meta.cluster;
+        cluster_addr_t lca = entry.cluster;
         for (; reserve > NO_RESERVE; reserve--) {
             lca = _add_cluster_to_chain(lca);
         }

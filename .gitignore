@@ -2,3 +2,4 @@
 builds
 formatter/nifat32
 *.img
+.DS_Store

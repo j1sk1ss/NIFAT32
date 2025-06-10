@@ -65,3 +65,31 @@ int name_to_fatname(const char* name, char* fatname) {
     fatname[j] = 0;
     return 1;
 }
+
+int path_to_fatnames(const char* path, char* fatnames) {
+    str_strcpy(fatnames, path);
+
+    int i;
+    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i++);
+    name_to_fatname(path + i, fatnames + i);
+    
+    str_uppercase(fatnames);
+    return 1;
+}
+
+int extract_name(const char* path, char* name) {
+    int i;
+    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i++);
+    str_strcpy(name, path + i);
+    return 1;
+}
+
+int unpack_83_name(const char* name83, char* name, char* ext) {
+    if (!name83 || !name || !ext) return 0;
+    for (int i = 0; i < 8; i++) name[i] = name83[i];
+    for (int i = 0; i < 3; i++) ext[i] = name83[8 + i];
+
+    name[8] = 0; 
+    ext[3]  = 0;
+    return 1;
+}

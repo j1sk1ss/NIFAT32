@@ -83,14 +83,32 @@ Return 0 if content not exists.
 */
 int NIFAT32_content_exists(const char* path);
 
+// Mode flags (bitmask)
+#define RW_MODE    0b00000001 /* Read-write mode */
+#define CR_MODE    0b00000010 /* Create everything mode */
+#define CR_RW_MODE 0b00000011 /* Create + read/write mode (combination of CR_MODE | RW_MODE) */
+#define DIR_MODE   0b00000100 /* Directory mode */
+#define FILE_MODE  0b00001000 /* File mode */
+
+// Macro to combine mode and target into a single byte
+// Assumes mode uses lower 4 bits and target uses upper 4 bits
+#define MODE(mode, target) ((target << 4) | (mode & 0x0F))
+#define DF_MODE MODE(0, 0) /* Default mode - do nothing special */
+
+// Macro to extract mode (lower 4 bits)
+#define GET_MODE(combined) (combined & 0x0F)
+
+// Macro to extract target (upper 4 bits)
+#define GET_MODE_TARGET(combined) ((combined >> 4) & 0x0F)
 /*
 Open content to content table.
 Params:
 - path - Path to content (dir or file).
+- mode - Content open mode.
 
 Return content index or negative error code.
 */
-ci_t NIFAT32_open_content(const char* path);
+ci_t NIFAT32_open_content(const char* path, unsigned char mode);
 
 /*
 Get summary info about content.

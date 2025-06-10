@@ -38,32 +38,32 @@ typedef struct {
 
 static filename_t filenames[] = {
     {
-        .fullname = "test.txt",
+        .fullname = "root/test.txt",
         .name = "test",
         .ext = "txt"
     },
     {
-        .fullname = "asd.bin",
+        .fullname = "root/tdir/asd.bin",
         .name = "asd",
         .ext = "bin"
     },
     {
-        .fullname = "123.dr",
+        .fullname = "root/dir/dir2/dir3/123.dr",
         .name = "123",
         .ext = "dr"
     },
     {
-        .fullname = "terrr",
+        .fullname = "root/terrr/terrr",
         .name = "terrr",
         .ext = ""
     },
     {
-        .fullname = "test1.txt",
+        .fullname = "root/test1.txt",
         .name = "test1",
         .ext = "txt"
     },
     {
-        .fullname = "test2.txt",
+        .fullname = "root/test2.txt",
         .name = "test2",
         .ext = "txt"
     }
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
     while (count-- > 0) {
         const char* target_file = filenames[count % 6].fullname;
         char target_fatname[128] = { 0 };
-        name_to_fatname(target_file, target_fatname);
+        path_to_fatnames(target_file, target_fatname);
 
         if (!(count % 1000)) {
             time_t now = time(NULL);
@@ -125,20 +125,7 @@ int main(int argc, char* argv[]) {
             );
         }
 
-        if (!NIFAT32_content_exists(target_file)) {
-            handled_errors++;
-            cinfo_t file = { .type = STAT_FILE };
-            str_memcpy(file.file_name, filenames[count % 6].name, strlen(filenames[count % 6].name) + 1);
-            str_memcpy(file.file_extension, filenames[count % 6].ext, strlen(filenames[count % 6].ext) + 1);
-            name_to_fatname(target_file, file.full_name);
-            if (!NIFAT32_put_content(PUT_TO_ROOT, &file, NO_RESERVE)) {
-                handled_errors++;
-                fprintf(stderr, "File creation error!\n");
-                continue;
-            }
-        }
-
-        ci_t ci = NIFAT32_open_content(target_fatname);
+        ci_t ci = NIFAT32_open_content(target_fatname, MODE(CR_MODE, FILE_MODE));
         if (ci < 0) {
             unhundled_errors++;
             fprintf(stderr, "Can't open content, but this content should be presented or created!\n");

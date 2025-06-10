@@ -34,7 +34,7 @@ int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, f
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)name, str_strlen(name));
+    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -156,7 +156,7 @@ int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)old->file_name, str_strlen((char*)old->file_name));
+    checksum_t name_hash = crc32(0, (const_buffer_t)old->file_name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -264,7 +264,7 @@ int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* f
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)meta->file_name, str_strlen((char*)meta->file_name));
+    checksum_t name_hash = crc32(0, (const_buffer_t)meta->file_name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -308,16 +308,9 @@ int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* f
 }
 
 int create_entry(
-    const char* name, const char* ext, char is_dir, cluster_addr_t first_cluster, 
+    const char* fullname, char is_dir, cluster_addr_t first_cluster, 
     unsigned int file_size, directory_entry_t* entry, fat_data_t* fi
 ) {
-    char tmp_filename[25] = { 0 };
-    str_strcpy(tmp_filename, name);
-    if (!is_dir) {
-        str_strcat(tmp_filename, ".");
-        str_strcat(tmp_filename, ext);
-    }
-    
     entry->cluster = first_cluster;
     if (!set_cluster_end(first_cluster, fi)) {
         print_error("Can't set allocated cluster as <END> for entry!");
@@ -330,8 +323,8 @@ int create_entry(
         entry->attributes = FILE_ARCHIVE;
     }
 
-    name_to_fatname(tmp_filename, (char*)entry->file_name);
-    entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, str_strlen((char*)entry->file_name));
+    str_memcpy(entry->file_name, fullname, 11);
+    entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, 11);
 
     entry->checksum = 0;
     entry->checksum = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
