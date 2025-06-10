@@ -194,7 +194,7 @@ int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_
     return -2;
 }
 
-int entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
+static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     print_debug("entry_erase_rec(cluster=%u, file=%i)", ca, file);
     if (file) {
         cluster_addr_t prev_cluster = 0;
@@ -280,6 +280,11 @@ int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* f
             ) {
                 if (entry->name_hash != name_hash) continue;
                 if (!str_strncmp((char*)entry->file_name, (char*)meta->file_name, 11)) {
+                    if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
+                        print_error("Cluster chain delete failed. Aborting...");
+                        break;
+                    }
+
                     entry->file_name[0] = ENTRY_FREE;
                     pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
                     if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {

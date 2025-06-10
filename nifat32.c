@@ -390,7 +390,6 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
     return 1;
 }
 
-/* TODO: recursive delete for dirs */
 int NIFAT32_delete_content(ci_t ci) {
     print_debug("NIFAT32_delete_content(ci=%i)", ci);
     content_t* content = get_content_from_table(ci);
@@ -425,9 +424,8 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     }
     else if (content->content_type == CONTENT_TYPE_FILE) {
         str_memcpy(info->full_name, content->meta.file_name, 11);
-        str_memcpy(info->file_name, content->meta.file_name, 8);
-        info->file_name[7] = 0;
-        str_memcpy(info->file_extension, content->meta.file_name + 8, 3);
+        str_strncpy(info->file_name, (char*)content->meta.file_name, 8);
+        str_strncpy(info->file_extension, (char*)content->meta.file_name + 8, 3);
         info->type = STAT_FILE;
     }
     else {
