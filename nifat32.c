@@ -237,6 +237,33 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
     return total_readden;
 }
 
+static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
+    print_debug("_add_cluster_to_chain(hca=%i)", hca);
+    cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
+    if (!is_cluster_bad(allocated_cluster)) {
+        if (!set_cluster_end(allocated_cluster, &_fs_data)) {
+            print_error("Can't set cluster to <END> state!");
+            dealloc_cluster(allocated_cluster, &_fs_data);
+            return FAT_CLUSTER_BAD;
+        }
+
+        if (!write_fat(hca, allocated_cluster, &_fs_data)) {
+            print_error("Allocated cluster can't be added to content!");
+            dealloc_cluster(allocated_cluster, &_fs_data);
+            return FAT_CLUSTER_BAD;
+        }
+
+        return allocated_cluster;
+    }
+    else {
+        print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
+        dealloc_cluster(allocated_cluster, &_fs_data);
+        return FAT_CLUSTER_BAD;
+    }
+
+    return FAT_CLUSTER_BAD;
+}
+
 /*
 Params:
 - ci - Content that needs new cluster.
@@ -267,29 +294,7 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
         }
     }
 
-    cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
-    if (!is_cluster_bad(allocated_cluster)) {
-        if (!set_cluster_end(allocated_cluster, &_fs_data)) {
-            print_error("Can't set cluster to <END> state!");
-            dealloc_cluster(allocated_cluster, &_fs_data);
-            return FAT_CLUSTER_BAD;
-        }
-
-        if (!write_fat(lca, allocated_cluster, &_fs_data)) {
-            print_error("Allocated cluster can't be added to content!");
-            dealloc_cluster(allocated_cluster, &_fs_data);
-            return FAT_CLUSTER_BAD;
-        }
-
-        return allocated_cluster;
-    }
-    else {
-        print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
-        dealloc_cluster(allocated_cluster, &_fs_data);
-        return FAT_CLUSTER_BAD;
-    }
-
-    return FAT_CLUSTER_BAD;
+    return _add_cluster_to_chain(lca);
 }
 
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size) {
@@ -360,8 +365,8 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     return 1;
 }
 
-int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
-    print_debug("NIFAT32_put_content(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
+int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
+    print_debug("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
     cluster_addr_t target = _fs_data.ext_root_cluster;
     if (ci != PUT_TO_ROOT) {
         content_t* content = get_content_from_table(ci);
@@ -385,6 +390,13 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info) {
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
         return 0;
+    }
+
+    if (reserve > NO_RESERVE) {
+        cluster_addr_t lca = new_meta.cluster;
+        for (; reserve > NO_RESERVE; reserve--) {
+            lca = _add_cluster_to_chain(lca);
+        }
     }
 
     return 1;

@@ -195,7 +195,7 @@ int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_
 }
 
 static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
-    print_debug("entry_erase_rec(cluster=%u, file=%i)", ca, file);
+    print_debug("_entry_erase_rec(cluster=%u, file=%i)", ca, file);
     if (file) {
         cluster_addr_t prev_cluster = 0;
         while (!is_cluster_end(ca) && !is_cluster_bad(ca) && !is_cluster_free(ca)) {
@@ -231,7 +231,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
             for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
                 if (entry->file_name[0] == ENTRY_END) break;
                 if (_validate_entry(entry) && entry->file_name[0] != ENTRY_FREE) {
-                    if (entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
+                    if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
                         print_warn("Recursive erase error!");
                     }
                 }

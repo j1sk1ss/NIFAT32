@@ -42,7 +42,6 @@ int create_entry(
 int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
 int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
 int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_entry_t* new, fat_data_t* fi);
-int entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi);
 int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* fi);
 
 #endif

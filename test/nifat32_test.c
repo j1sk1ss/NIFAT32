@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
             str_memcpy(file.file_name, filenames[count % 6].name, strlen(filenames[count % 6].name) + 1);
             str_memcpy(file.file_extension, filenames[count % 6].ext, strlen(filenames[count % 6].ext) + 1);
             name_to_fatname(target_file, file.full_name);
-            if (!NIFAT32_put_content(PUT_TO_ROOT, &file)) {
+            if (!NIFAT32_put_content(PUT_TO_ROOT, &file, NO_RESERVE)) {
                 handled_errors++;
                 fprintf(stderr, "File creation error!\n");
                 continue;

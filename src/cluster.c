@@ -1,5 +1,9 @@
 #include "../include/cluster.h"
 
+int get_cluster_count(unsigned int size, fat_data_t* fi) {
+    return size / (fi->sectors_per_cluster * fi->bytes_per_sector);
+}
+
 lock_t _allocater_lock = NULL_LOCK;
 static cluster_addr_t last_allocated_cluster = CLUSTER_OFFSET;
 cluster_addr_t alloc_cluster(fat_data_t* fi) {

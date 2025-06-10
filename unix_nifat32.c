@@ -129,7 +129,7 @@ upper:
                     }
                 }
 
-                NIFAT32_put_content(root_ci, &file_info);
+                NIFAT32_put_content(root_ci, &file_info, NO_RESERVE);
                 break;
             }
 
@@ -149,7 +149,7 @@ upper:
                     }
                 }
 
-                NIFAT32_put_content(root_ci, &dir_info);
+                NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
                 break;
             }
 

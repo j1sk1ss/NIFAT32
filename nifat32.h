@@ -158,17 +158,21 @@ Return 0 if something goes wrong.
 int NIFAT32_close_content(ci_t ci);
 
 #define PUT_TO_ROOT -1
+#define NO_RESERVE  1
 /*
 Add content to target content index. 
 Note: PUT_TO_ROOT will put content into the root directory.
 Params:
 - ci - Root content index. Should be directory.
 - info - Pointer to info about new content.
+- reserve - Reserved cluster count for content. 
+            Note: This option can be NO_RESERVE.
+			Note 2: Will reserve cluster chain for defragmentation prevent.
 
 Return 1 if operation was success.
 Return 0 if something goes wrong.
 */
-int NIFAT32_put_content(const ci_t ci, cinfo_t* info);
+int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve);
 
 /*
 Delete content by content index.
