@@ -1,7 +1,6 @@
 #include "nifat32.h"
 
-static fat_data_t _fs_data = { 0 };
-static content_t* _content_table[CONTENT_TABLE_SIZE] = { NULL };
+static fat_data_t _fs_data;
 
 int NIFAT32_init(int bs_num, unsigned int ts) {
     if (bs_num > 5) {
@@ -67,15 +66,12 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     }
 
     _fs_data.fat_type = 32;
-	_fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ext_bootstruct->table_size_32;
+    _fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ext_bootstruct->table_size_32;
     _fs_data.sectors_per_cluster = bootstruct->sectors_per_cluster;
     _fs_data.bytes_per_sector = bootstruct->bytes_per_sector;
     _fs_data.sectors_padd = bootstruct->reserved_sector_count;
     _fs_data.ext_root_cluster = ext_bootstruct->root_cluster;
     _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
-    for (int i = 0; i < CONTENT_TABLE_SIZE; i++) {
-        _content_table[i] = NULL;
-    }
 
     print_debug("NIFAT32 init success! Stats from boot sector:");
     print_debug("FAT type:                  %i", _fs_data.fat_type);
@@ -95,8 +91,12 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
 
     if (bs_num > 0) {
-        if (!DSK_write_sector(GET_BOOTSECTOR(0, ts), (const_buffer_t)encoded_bs, sector_size)) {
-            print_warn("Attempt for bootsector restore failed!");
+        print_warn("%i of boot sector records are incorrect. Attempt to fix...", bs_num);
+        for (int i = 0; i < 5; i++) {
+            if (i == bs_num) continue;
+            if (!DSK_write_sector(GET_BOOTSECTOR(i, ts), (const_buffer_t)encoded_bs, sector_size)) {
+                print_warn("Attempt for bootsector restore failed!");
+            }
         }
     }
 
@@ -169,69 +169,36 @@ int NIFAT32_content_exists(const char* path) {
 
 ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
     print_debug("NIFAT32_open_content(path=%s, mode=%p)", path, mode);
-    content_t* fat_content = create_content();
-    if (!fat_content) {
-        print_error("_create_content() error!");
+    ci_t ci;
+    if ((ci = alloc_ci()) < 0) {
+        print_error("Ctable is full!");
         return -1;
     }
     
-    cluster_addr_t cluster = _get_cluster_by_path(path, &fat_content->meta, &fat_content->parent_cluster, mode);
-    if (is_cluster_bad(cluster)) {
+    cluster_addr_t rca;
+    directory_entry_t meta;
+    cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode);
+    if (is_cluster_bad(ca)) {
         print_error("Entry not found!");
-        unload_content_system(fat_content);
         return -2;
     }
     else {
-        print_debug("NIFAT32_open_content: Content cluster is: %u", cluster);
+        print_debug("NIFAT32_open_content: Content cluster is: %u", ca);
     }
     
-    fat_content->data_cluster = cluster;
-    if ((fat_content->meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY) {
-        fat_content->file = (file_t*)malloc_s(sizeof(file_t));
-        if (!fat_content->file) {
-            print_error("_create_file() error!");
-            unload_content_system(fat_content);
-            return -3;
-        }
-
-        fat_content->content_type = CONTENT_TYPE_FILE;             
-        str_memcpy(fat_content->file->name, fat_content->meta.file_name, 11);
-    }
-    else {
-        fat_content->directory = (directory_t*)malloc_s(sizeof(directory_t));
-        if (!fat_content->directory) {
-            unload_content_system(fat_content);
-            return -4;
-        }
-
-        fat_content->content_type = CONTENT_TYPE_DIRECTORY;
-        str_memcpy(fat_content->directory->name, fat_content->meta.file_name, 11);
-    }
-
-    ci_t ci = add_content2table(fat_content);
-    if (ci < 0) {
-        print_error("An error occurred in _add_content2table(). Aborting...");
-        unload_content_system(fat_content);
-        return -5;
-    }
-
+    setup_content(ci, (meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta);
     return ci;
 }
 
 int NIFAT32_close_content(ci_t ci) {
-    return remove_content_from_table(ci);
+    return destroy_content(ci);
 }
 
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size) {
     print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
-    content_t* content = get_content_from_table(ci);
-    if (!content) {
-        print_warn("Content or file not found!");
-        return 0;
-    }
 
     int total_readden = 0;
-    cluster_addr_t ca = content->data_cluster;
+    cluster_addr_t ca = get_content_data_ca(ci);
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
@@ -289,15 +256,9 @@ Return FAT_CLUSTER_BAD if comething goes wrong.
 */
 static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca) {
     print_debug("_add_cluster_to_content(ci=%i, lca=%i)", ci, lca);
-    content_t* content = get_content_from_table(ci);
-    if (!content) {
-        print_error("Content not found by ci=%i", ci);
-        return FAT_CLUSTER_BAD;
-    }
-
     if (lca == FAT_CLUSTER_BAD) {
         int max_iterations = _fs_data.total_clusters;
-        cluster_addr_t cluster = content->data_cluster;
+        cluster_addr_t cluster = get_content_data_ca(ci);
         while (!is_cluster_end(cluster) && !is_cluster_bad(cluster) && max_iterations-- > 0) {
             lca = cluster;
             cluster = read_fat(cluster, &_fs_data);
@@ -314,14 +275,9 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
 
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size) {
     print_debug("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
-    content_t* content = get_content_from_table(ci);
-    if (!content || content->content_type != CONTENT_TYPE_FILE) {
-        print_warn("Content or file not found!");
-        return 0;
-    }
-
+    
     int total_written = 0;
-    cluster_addr_t ca = content->data_cluster;
+    cluster_addr_t ca = get_content_data_ca(ci);
     cluster_addr_t lca = ca;
     while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
@@ -359,19 +315,13 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     print_debug("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
-    content_t* content = get_content_from_table(ci);
-    if (!content) {
-        print_error("Content not found!");
-        return 0;
-    }
-
-    directory_entry_t new_meta;
+    directory_entry_t meta;
     create_entry(
-        info->full_name, info->type == STAT_DIR, content->meta.cluster, 
-        content->meta.file_size, &new_meta, &_fs_data
+        info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), 
+        get_content_size(ci), &meta, &_fs_data
     );
 
-    if (!entry_edit(content->parent_cluster, &content->meta, &new_meta, &_fs_data)) {
+    if (!entry_edit(get_content_root_ca(ci), get_content_name(ci), &meta, &_fs_data)) {
         print_error("entry_edit() encountered an error. Aborting...");
         return 0;
     }
@@ -382,16 +332,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     print_debug("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
     cluster_addr_t target = _fs_data.ext_root_cluster;
-    if (ci != PUT_TO_ROOT) {
-        content_t* content = get_content_from_table(ci);
-        if (!content) {
-            print_error("Content not found!");
-            return 0;
-        }
-
-        target = content->meta.cluster;
-    }
-
+    if (ci != PUT_TO_ROOT) target = get_content_data_ca(ci);
     int is_found = entry_search((char*)info->full_name, target, NULL, &_fs_data);
     if (is_found < 0 && is_found != -4) {
         print_error("entry_search() encountered an error [%i]. Aborting...", is_found);
@@ -400,8 +341,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 
     directory_entry_t entry;
     create_entry(
-        info->full_name, info->type == STAT_DIR, 
-        alloc_cluster(&_fs_data), 1, &entry, &_fs_data
+        info->full_name, info->type == STAT_DIR, alloc_cluster(&_fs_data), 1, &entry, &_fs_data
     );
 
     int is_add = entry_add(target, &entry, &_fs_data);
@@ -423,16 +363,8 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 
 int NIFAT32_delete_content(ci_t ci) {
     print_debug("NIFAT32_delete_content(ci=%i)", ci);
-    content_t* content = get_content_from_table(ci);
-    if (!content) {
-        print_error("Content not found!");
-        NIFAT32_close_content(ci);
-        return 0;
-    }
-   
-    if (!entry_remove(content->parent_cluster, &content->meta, &_fs_data)) {
+    if (!entry_remove(get_content_root_ca(ci), get_content_name(ci), &_fs_data)) {
         print_error("entry_remove() encountered an error. Aborting...");
-        NIFAT32_close_content(ci);
         return 0;
     }
 
@@ -441,28 +373,5 @@ int NIFAT32_delete_content(ci_t ci) {
 }
 
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
-    content_t* content = get_content_from_table(ci);
-    if (!content) {
-        print_error("Content ci=%i not found!", ci);
-        info->type = NOT_PRESENT;
-        return 0;
-    }
-
-    if (content->content_type == CONTENT_TYPE_DIRECTORY) {
-        info->size = 0;
-        str_memcpy(info->full_name, content->directory->name, 11);
-        info->type = STAT_DIR;
-    }
-    else if (content->content_type == CONTENT_TYPE_FILE) {
-        str_memcpy(info->full_name, content->meta.file_name, 11);
-        str_strncpy(info->file_name, (char*)content->meta.file_name, 8);
-        str_strncpy(info->file_extension, (char*)content->meta.file_name + 8, 3);
-        info->type = STAT_FILE;
-    }
-    else {
-        print_error("Unknown content_type! content_type=%i", content->content_type);
-        return 0;
-    }
-
-    return 1;
+    return stat_content(ci, info);
 }

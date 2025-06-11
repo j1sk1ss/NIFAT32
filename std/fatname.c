@@ -70,16 +70,30 @@ int path_to_fatnames(const char* path, char* fatnames) {
     str_strcpy(fatnames, path);
 
     int i;
-    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i++);
+    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i--);
     name_to_fatname(path + i, fatnames + i);
     
     str_uppercase(fatnames);
     return 1;
 }
 
+int path_to_83(char* path) {
+    int len = str_strlen(path);
+    int i = len - 1;
+
+    while (i > 0 && path[i] != PATH_SPLITTER) i--;
+    if (path[i] == PATH_SPLITTER) i++;
+    
+    char tmp[16] = { 0 };
+    name_to_fatname(path + i, tmp);
+    str_memcpy(path + i, tmp, 11);
+    str_uppercase(path);
+    return 1;
+}
+
 int extract_name(const char* path, char* name) {
     int i;
-    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i++);
+    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i--);
     str_strcpy(name, path + i);
     return 1;
 }

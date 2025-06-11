@@ -144,7 +144,7 @@ int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
     return -1;
 }
 
-int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_entry_t* new, fat_data_t* fi) {
+int entry_edit(cluster_addr_t ca, const char* name, const directory_entry_t* meta, fat_data_t* fi) {
     print_debug("entry_edit(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -156,7 +156,7 @@ int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)old->file_name, 11);
+    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -171,8 +171,8 @@ int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_
                 entry->file_name[0] != ENTRY_FREE
             ) {
                 if (entry->name_hash != name_hash) continue;
-                if (!str_strncmp((char*)entry->file_name, (char*)old->file_name, 11)) {
-                    str_memcpy(entry, new, sizeof(directory_entry_t));
+                if (!str_strncmp((char*)entry->file_name, name, 11)) {
+                    str_memcpy(entry, meta, sizeof(directory_entry_t));
                     pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
                     if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {
                         print_error("Writing updated directory entry failed. Aborting...");
@@ -252,7 +252,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     return -2;
 }
 
-int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* fi) {
+int entry_remove(cluster_addr_t ca, const char* name, fat_data_t* fi) {
     print_debug("entry_remove(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -264,7 +264,7 @@ int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* f
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)meta->file_name, 11);
+    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -279,7 +279,7 @@ int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* f
                 entry->file_name[0] != ENTRY_FREE
             ) {
                 if (entry->name_hash != name_hash) continue;
-                if (!str_strncmp((char*)entry->file_name, (char*)meta->file_name, 11)) {
+                if (!str_strncmp((char*)entry->file_name, name, 11)) {
                     if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
                         print_error("Cluster chain delete failed. Aborting...");
                         break;

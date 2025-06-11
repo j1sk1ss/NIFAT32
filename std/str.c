@@ -35,18 +35,18 @@ int str_memcmp(const void* firstPointer, const void* secondPointer, size_t num) 
 }
 
 char* str_strncpy(char* dst, const char* src, int n) {
-	int	i = 0;
-	while (i < n && src[i]) {
-		dst[i] = src[i];
-		i++;
-	}
+    int i = 0;
+    while (i < n && src[i]) {
+        dst[i] = src[i];
+        i++;
+    }
 
-	while (i < n) {
-		dst[i] = '\0';
-		i++;
-	}
+    while (i < n) {
+        dst[i] = '\0';
+        i++;
+    }
 
-	return dst;
+    return dst;
 }
 
 int str_strcmp(const char* f, const char* s) {
@@ -80,14 +80,14 @@ int str_atoi(const char *str) {
         str++;
     }
 
-	while (*str >= '0' && *str <= '9' && *str) {
-		num = num * 10 + (str[i] - 48);
+    while (*str >= '0' && *str <= '9' && *str) {
+        num = num * 10 + (str[i] - 48);
         if (neg == 1 && num > INT_MAX) return INT_MAX;
         if (neg == -1 && -num < INT_MIN) return INT_MIN;
-		str++;
-	}
+        str++;
+    }
     
-	return (num * neg);
+    return (num * neg);
 }
 
 unsigned int str_strlen(const char* str) {
@@ -103,14 +103,14 @@ unsigned int str_strlen(const char* str) {
 char* str_strcpy(char* dst, const char* src) {
     if (str_strlen(src) <= 0) return NULL;
 
-	int	i = 0;
-	while (src[i]) {
-		dst[i] = src[i];
-		i++;
-	}
+    int i = 0;
+    while (src[i]) {
+        dst[i] = src[i];
+        i++;
+    }
 
-	dst[i] = '\0';
-	return (dst);
+    dst[i] = '\0';
+    return (dst);
 }
 
 char* str_strcat(char* dest, const char* src) {
@@ -136,8 +136,8 @@ int str_islower(int c) {
 }
 
 int str_tolower(int c) {
-	if (!str_islower(c)) return c | 32;
-	return c;
+    if (!str_islower(c)) return c | 32;
+    return c;
 }
 
 int str_toupper(int c) {

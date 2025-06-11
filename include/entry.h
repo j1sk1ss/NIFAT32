@@ -26,12 +26,12 @@
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */
 
 typedef struct directory_entry {
-	unsigned char  file_name[11];
-	checksum_t     name_hash;
-	unsigned char  attributes;
-	cluster_addr_t cluster;
-	unsigned int   file_size;
-	checksum_t     checksum;
+    unsigned char  file_name[11];
+    checksum_t     name_hash;
+    unsigned char  attributes;
+    cluster_addr_t cluster;
+    unsigned int   file_size;
+    checksum_t     checksum;
 } __attribute__((packed)) directory_entry_t;
 
 int create_entry(
@@ -41,7 +41,7 @@ int create_entry(
 
 int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
 int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
-int entry_edit(cluster_addr_t ca, const directory_entry_t* old, const directory_entry_t* new, fat_data_t* fi);
-int entry_remove(cluster_addr_t ca, const directory_entry_t* meta, fat_data_t* fi);
+int entry_edit(cluster_addr_t ca, const char* name, const directory_entry_t* meta, fat_data_t* fi);
+int entry_remove(cluster_addr_t ca, const char* name, fat_data_t* fi);
 
 #endif

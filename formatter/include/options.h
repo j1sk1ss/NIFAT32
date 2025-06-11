@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define SAVE_OPTION		"-o"
-#define SOURCE_OPTION	"-s"
+#define SAVE_OPTION     "-o"
+#define SOURCE_OPTION   "-s"
 #define OUTPUT_SIZE     "--volume-size" /* In MB */
 #define SPC             "--spc"         /* Sectors per cluster */
 #define FAT_COUNT_OPT   "--fc"

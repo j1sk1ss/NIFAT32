@@ -52,7 +52,7 @@ For a visual reference, below are the results of testing the **unmodified FAT32*
 (X-axis: number of bit-flips in data, Y-axis: count of handled errors)
 
 <p align="center">
-	<img src="graphs/bitflips_source.png" alt="Errors due bit-flip injection"/>
+    <img src="graphs/bitflips_source.png" alt="Errors due bit-flip injection"/>
 </p>
 
 However, according to the test data, the bit-flip occurred in the most critical area — the File Allocation Table (FAT) and its copies (or directly in the root `directory_entry_t`). As a result, this particular test case does not provide much insight, since the outcome is both expected and obvious: the `FAT32` file system was **not designed** to withstand upset events. </br>
@@ -121,7 +121,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
 But error-correcting coding of the whole FAT is necessary, according to the test results (see below). Results with static injection of 1 million random bit flips (boot sector decompression and Hamming encoding + FAT decompression and major voting without error-cerrection encoding):
 
 <p align="center">
-	<img src="graphs/FAT_errors.png" alt="Errors due bit-flip injection"/>
+    <img src="graphs/FAT_errors.png" alt="Errors due bit-flip injection"/>
 </p>
 
 ## Boot structure
@@ -131,21 +131,21 @@ FAT32 has many data structures that are used during work. For example in source 
 
 ```
 typedef struct fat_BS {
-	unsigned char  bootjmp[3];
-	unsigned char  oem_name[8];
-	unsigned short bytes_per_sector;
-	unsigned char  sectors_per_cluster;
-	unsigned short reserved_sector_count;
-	unsigned char  table_count;
-	unsigned short root_entry_count;
-	unsigned short total_sectors_16;
-	unsigned char  media_type;
-	unsigned short table_size_16;
-	unsigned short sectors_per_track;
-	unsigned short head_side_count;
-	unsigned int   hidden_sector_count;
-	unsigned int   total_sectors_32;
-	unsigned char  extended_section[sizeof(fat_extBS_32_t)];
+    unsigned char  bootjmp[3];
+    unsigned char  oem_name[8];
+    unsigned short bytes_per_sector;
+    unsigned char  sectors_per_cluster;
+    unsigned short reserved_sector_count;
+    unsigned char  table_count;
+    unsigned short root_entry_count;
+    unsigned short total_sectors_16;
+    unsigned char  media_type;
+    unsigned short table_size_16;
+    unsigned short sectors_per_track;
+    unsigned short head_side_count;
+    unsigned int   hidden_sector_count;
+    unsigned int   total_sectors_32;
+    unsigned char  extended_section[sizeof(fat_extBS_32_t)];
 } __attribute__((packed)) fat_BS_t;
 ```
 
@@ -177,7 +177,7 @@ Boot checksum: 2250935889
 This method physically decompress data on disk/flash drive:
 
 <p align="center">
-	<img src="graphs/bs_decompression.png" alt="Decompression"/>
+    <img src="graphs/bs_decompression.png" alt="Decompression"/>
 </p>
 
 Same method of physical decompression was applied to file allocation table:
@@ -208,30 +208,30 @@ The next step involves modifying the original data structures to optimize them f
 
 ```
 typedef struct directory_entry {
-	uint8_t file_name[11];
-	uint8_t attributes;
-	uint8_t reserved0;
-	uint8_t creation_time_tenths;
-	uint16_t creation_time;
-	uint16_t creation_date;
-	uint16_t last_accessed;
-	uint16_t high_bits;
-	uint16_t last_modification_time;
-	uint16_t last_modification_date;
-	uint16_t low_bits;
-	uint32_t file_size;
+    uint8_t file_name[11];
+    uint8_t attributes;
+    uint8_t reserved0;
+    uint8_t creation_time_tenths;
+    uint16_t creation_time;
+    uint16_t creation_date;
+    uint16_t last_accessed;
+    uint16_t high_bits;
+    uint16_t last_modification_time;
+    uint16_t last_modification_date;
+    uint16_t low_bits;
+    uint32_t file_size;
 } __attribute__((packed)) directory_entry_t;
 ```
 
 And updated version:
 ```
 typedef struct directory_entry {
-	unsigned char file_name[11];
-	unsigned int  name_hash;
-	unsigned char attributes;
-	unsigned int  cluster;
-	unsigned int  file_size;
-	unsigned int  checksum;
+    unsigned char file_name[11];
+    unsigned int  name_hash;
+    unsigned char attributes;
+    unsigned int  cluster;
+    unsigned int  file_size;
+    unsigned int  checksum;
 } __attribute__((packed)) directory_entry_t;
 ```
 
@@ -255,13 +255,13 @@ This optimization leads to better performance and fewer disk accesses. The impro
 - **X-axis** represents the number of entries in the directory.
 
 <p align="center">
-	<img src="graphs/io.png" alt="IO count depends on entry count"/>
+    <img src="graphs/io.png" alt="IO count depends on entry count"/>
 </p>
 
 But if we start implementation of error-correction methods such as `Hamming Code` (Hamming code is better for single-bit errors. For large data blocks like stored data or entire FAT, we will use `Reed-Solomon code`. About implementation of this approach we will speak below), we multiply size of modified `directory_entry_t` by 2, and receive something similar to old results: 30 bytes, that in the end will lead to incrementing of syscalls count:
 
 <p align="center">
-	<img src="graphs/io_hamming.png" alt="IO count depends on entry count"/>
+    <img src="graphs/io_hamming.png" alt="IO count depends on entry count"/>
 </p>
 
 The main detail here is that error-correction in `directory_entry_t` happens every time we iterate through a cluster.
@@ -331,38 +331,38 @@ The main limitation of this algorithm is its restricted error correction capabil
 
 ```
 int ATA_read_sector(uint32_t lba, uint8_t* buffer) {
-	_ata_wait();
-	_prepare_for_reading(lba);
-	if (!_is_ata_ready()) {
-		return 0;
-	}
+    _ata_wait();
+    _prepare_for_reading(lba);
+    if (!_is_ata_ready()) {
+        return 0;
+    }
 
-	for (int n = 0; n < SECTOR_SIZE / 2; n++) {
-		uint16_t value = i386_inw(DATA_REGISTER);
-		buffer[n * 2] = value & 0xFF;
-		buffer[n * 2 + 1] = value >> 8;
-	}
+    for (int n = 0; n < SECTOR_SIZE / 2; n++) {
+        uint16_t value = i386_inw(DATA_REGISTER);
+        buffer[n * 2] = value & 0xFF;
+        buffer[n * 2 + 1] = value >> 8;
+    }
 
-	return 1;
+    return 1;
 }
 
 int ATA_write_sector(uint32_t lba, const uint8_t* buffer) {
-	if (lba == BOOT_SECTOR) return -1;
+    if (lba == BOOT_SECTOR) return -1;
 
-	_ata_wait();
-	_prepare_for_writing(lba);
+    _ata_wait();
+    _prepare_for_writing(lba);
 
-	int timeout = 9000000;
-	while ((i386_inb(STATUS_REGISTER) & ATA_SR_BSY) == 0) 
-		if (--timeout < 0) return -1;
-		else continue;
-	
-	for (int i = 0; i < SECTOR_SIZE / 2; i++) {
-		uint16_t data = *((uint16_t*)(buffer + i * 2));
-		i386_outw(DATA_REGISTER, data);
-	}
+    int timeout = 9000000;
+    while ((i386_inb(STATUS_REGISTER) & ATA_SR_BSY) == 0) 
+        if (--timeout < 0) return -1;
+        else continue;
+    
+    for (int i = 0; i < SECTOR_SIZE / 2; i++) {
+        uint16_t data = *((uint16_t*)(buffer + i * 2));
+        i386_outw(DATA_REGISTER, data);
+    }
 
-	return 1;
+    return 1;
 }
 ```
 

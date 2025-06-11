@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <time.h>
 
 #define fd_fprintf(fmt, ...)   fprintf(stdout, fmt, ##__VA_ARGS__)
 #define fd_vfprintf(fmt, args) vfprintf(stdout, fmt, args)

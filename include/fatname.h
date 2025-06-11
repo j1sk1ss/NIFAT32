@@ -1,3 +1,34 @@
+/*
+License:
+    MIT License
+
+    Copyright (c) 2025 Nikolay 
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+Description:
+    This file contains main tools for working with fat name style 8.3
+
+Dependencies:
+    - str.h - String functions.
+*/
+
 #ifndef FATNAME_H_
 #define FATNAME_H_
 
@@ -37,6 +68,16 @@ Params:
 Return 1.
 */
 int path_to_fatnames(const char* path, char* fatnames);
+
+/*
+Convert path to 8.3 in one memory.
+Example: root/tdir/dir2/name.ext to ROOT/TDIR/DIR2/NAME    EXT
+Params:
+- path - Source path.
+
+Return 1.
+*/
+int path_to_83(char* path);
 
 /*
 Extract file name from path. 
