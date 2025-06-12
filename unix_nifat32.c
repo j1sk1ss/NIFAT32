@@ -240,13 +240,13 @@ upper:
                 if (strlen(current_path) > 1) ci = NIFAT32_open_content(current_path, DF_MODE);
                 else ci = NIFAT32_open_content(".", DF_MODE);
                 if (ci >= 0) {
-                    unsigned char cluster_data[4096] = { 0 };
-                    NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 4096);
+                    unsigned char cluster_data[8192] = { 0 };
+                    NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 8192);
 
-                    unsigned char decoded[2048] = { 0 };
-                    unpack_memory((encoded_t*)cluster_data, decoded, 2048);
+                    unsigned char decoded[4096] = { 0 };
+                    unpack_memory((encoded_t*)cluster_data, decoded, sizeof(decoded));
 
-                    unsigned int entries = (4096 / sizeof(short)) / sizeof(directory_entry_t);
+                    unsigned int entries = (sizeof(cluster_data) / sizeof(short)) / sizeof(directory_entry_t);
                     directory_entry_t* entry = (directory_entry_t*)decoded;
                     for (unsigned int i = 0; i < entries; i++, entry++) {
                         if (entry->file_name[0] == ENTRY_END) break;
