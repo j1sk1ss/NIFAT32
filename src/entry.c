@@ -72,6 +72,7 @@ int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, f
     return -4;
 }
 
+/* TODO: cache */
 int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
     print_debug("entry_add(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);

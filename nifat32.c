@@ -344,7 +344,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     create_entry(
         info->full_name, info->type == STAT_DIR, alloc_cluster(&_fs_data), 1, &entry, &_fs_data
     );
-
+    
     int is_add = entry_add(target, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
