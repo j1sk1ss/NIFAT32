@@ -59,7 +59,7 @@ typedef struct {
     int (*read_sector)(sector_addr_t, sector_offset_t, unsigned char*, int);
     int (*write_sector)(sector_addr_t, sector_offset_t, const unsigned char*, int);
     int sector_size;
-} io_t;
+} disk_io_t;
 
 /*
 Setup disk ubstraction layer.

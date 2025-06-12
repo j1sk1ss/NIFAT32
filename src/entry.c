@@ -79,7 +79,7 @@ int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
     buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
     if (!cluster_data || !decoded_cluster) {
         print_error("malloc_s() error!");
-        if (cluster_data) free_s(cluster_data);
+        if (cluster_data)    free_s(cluster_data);
         if (decoded_cluster) free_s(decoded_cluster);
         return -1;
     }

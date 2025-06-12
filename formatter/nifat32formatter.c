@@ -255,7 +255,7 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     ext.checksum = 0;
     ext.checksum = _crc32(0, (uint8_t*)&ext, sizeof(ext));
 
-    memcpy(bs.extended_section, &ext, sizeof(ext));
+    memcpy(&bs.extended_section, &ext, sizeof(ext));
     bs.checksum = 0;
     bs.checksum = _crc32(0, (uint8_t*)&bs, sizeof(bs));
     fprintf(stdout, "Bootstruct checksum: %u, ext. section: %u\n", bs.checksum, ext.checksum);

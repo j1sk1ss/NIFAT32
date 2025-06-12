@@ -85,7 +85,7 @@ typedef struct fat_BS {
     unsigned short head_side_count;
     unsigned int   hidden_sector_count;
     unsigned int   total_sectors_32;
-    unsigned char  extended_section[sizeof(fat_extBS_32_t)];
+    fat_extBS_32_t extended_section;
     unsigned int   checksum;
 } __attribute__((packed)) fat_BS_t;
 

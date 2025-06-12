@@ -1,6 +1,6 @@
 #include "../include/str.h"
 
-void* str_memcpy(void* destination, const void* source, size_t num) {
+void* str_memcpy(void* destination, const void* source, unsigned int num) {
     unsigned int num_dwords = num / 4;
     unsigned int num_bytes  = num % 4;
     unsigned int* dest32 = (unsigned int*)destination;
@@ -12,7 +12,7 @@ void* str_memcpy(void* destination, const void* source, size_t num) {
     return destination;
 }
 
-void* str_memset(void* pointer, unsigned char value, size_t num) {
+void* str_memset(void* pointer, unsigned char value, unsigned int num) {
     unsigned int num_dwords = num / 4;
     unsigned int num_bytes  = num % 4;
     unsigned int* dest32 = (unsigned int*)pointer;
@@ -20,16 +20,16 @@ void* str_memset(void* pointer, unsigned char value, size_t num) {
     unsigned char val8   = (unsigned char)value;
     unsigned int val32   = value | (value << 8) | (value << 16) | (value << 24);
     for (unsigned int i = 0; i < num_dwords; i++) dest32[i] = val32;
-    for (unsigned int i = 0; i < num_bytes; i++) dest8[i] = val8;
+    for (unsigned int i = 0; i < num_bytes; i++)  dest8[i]  = val8;
     return pointer;
 }
 
-int str_memcmp(const void* firstPointer, const void* secondPointer, size_t num) {
+int str_memcmp(const void* firstPointer, const void* secondPointer, unsigned int num) {
     const unsigned char* u8Ptr1 = (const unsigned char *)firstPointer;
     const unsigned char* u8Ptr2 = (const unsigned char *)secondPointer;
-    for (unsigned short i = 0; i < num; i++)
-        if (u8Ptr1[i] != u8Ptr2[i])
-            return 1;
+    for (unsigned short i = 0; i < num; i++) {
+        if (u8Ptr1[i] != u8Ptr2[i]) return 1;
+    }
 
     return 0;
 }
@@ -42,7 +42,7 @@ char* str_strncpy(char* dst, const char* src, int n) {
     }
 
     while (i < n) {
-        dst[i] = '\0';
+        dst[i] = 0;
         i++;
     }
 
@@ -59,35 +59,14 @@ int str_strcmp(const char* f, const char* s) {
     return (unsigned char)(*f) - (unsigned char)(*s);
 }
 
-int str_strncmp(const char* str1, const char* str2, size_t n) {
-    for (size_t i = 0; i < n; ++i) {
-        if (str1[i] != str2[i] || (str1[i] == 0 || str2[i] == 0)) {
+int str_strncmp(const char* str1, const char* str2, unsigned int n) {
+    for (unsigned int i = 0; i < n; ++i) {
+        if (str1[i] != str2[i] || (!str1[i] || !str2[i])) {
             return (unsigned char)str1[i] - (unsigned char)str2[i];
         }
     }
 
     return 0;
-}
-
-int str_atoi(const char *str) {
-    int neg = 1;
-    long long num = 0;
-    size_t i = 0;
-
-    while (*str == ' ') str++;
-    if (*str == '-' || *str == '+') {
-        neg = *str == '-' ? -1 : 1;
-        str++;
-    }
-
-    while (*str >= '0' && *str <= '9' && *str) {
-        num = num * 10 + (str[i] - 48);
-        if (neg == 1 && num > INT_MAX) return INT_MAX;
-        if (neg == -1 && -num < INT_MIN) return INT_MIN;
-        str++;
-    }
-    
-    return (num * neg);
 }
 
 unsigned int str_strlen(const char* str) {
@@ -109,8 +88,8 @@ char* str_strcpy(char* dst, const char* src) {
         i++;
     }
 
-    dst[i] = '\0';
-    return (dst);
+    dst[i] = 0;
+    return dst;
 }
 
 char* str_strcat(char* dest, const char* src) {
@@ -118,36 +97,18 @@ char* str_strcat(char* dest, const char* src) {
     return dest;
 }
 
-int is_number(char* s) {
-    while (*s) {
-        if (!str_isdigit(*s)) return 0;
-        s++;
-    }
-
-    return 1;
-}
-
-int str_isdigit(int c) {
-    return (c >= '0' && c <= '9');
-}
-
-int str_islower(int c) {
+static int _str_islower(int c) {
     return c >= 'a' && c <= 'z';
 }
 
-int str_tolower(int c) {
-    if (!str_islower(c)) return c | 32;
-    return c;
-}
-
 int str_toupper(int c) {
-    if (str_islower(c)) return c - 'a' + 'A';
+    if (_str_islower(c)) return c - 'a' + 'A';
     else return c;
 }
 
 int str_uppercase(char* str) {
     if (!str) return 0;
-    for (int i = 0; str[i] != '\0'; i++) {
+    for (int i = 0; str[i]; i++) {
         str[i] = str_toupper(str[i]);
     }
 

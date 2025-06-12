@@ -43,7 +43,7 @@ static void* __malloc_s(size_t size, size_t offset, int prepare_mem) {
     if (!size) return NULL;
     if (prepare_mem) __coalesce_memory();
 
-    size = (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
+    size   = (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
     offset = (offset + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
     mm_block_t* current = _mm_head;
     
