@@ -29,7 +29,7 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
         }
         else if (is_cluster_reserved(cluster_status)) {
             if (reserved++ > 3) {
-                cluster += 300;
+                cluster += 6;
                 reserved = 0;
             }
         }

@@ -3,7 +3,8 @@
 static fat_data_t _fs_data;
 
 int NIFAT32_init(int bs_num, unsigned int ts) {
-    if (bs_num > 5) {
+    print_log("NIFAT32 init. Reading %i bootsector at sa=%i", bs_num, GET_BOOTSECTOR(bs_num, ts));
+    if (bs_num >= 5) {
         print_error("Init error! No reserved sectors!");
         return 0;
     }
@@ -42,7 +43,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     bootstruct->checksum     = crc32(0, (buffer_t)bootstruct, sizeof(fat_BS_t));
     if (bootstruct->checksum != bcheck || ext_bootstruct->checksum != exbcheck) {
         print_error(
-            "Checksum check error! %u != %u or %u != %u. Moving to reserved sector!", 
+            "Checksum check error! [bootstruct=%u != %u] or [ext_bootstruct=%u != %u]. Moving to reserved sector!", 
             bootstruct->checksum, bcheck, ext_bootstruct->checksum, exbcheck
         );
         return NIFAT32_init(bs_num + 1, ts);
@@ -199,7 +200,7 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
 
     int total_readden = 0;
     cluster_addr_t ca = get_content_data_ca(ci);
-    while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0) {
+    do {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
             int readeble = (buff_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : buff_size;
@@ -214,7 +215,7 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
         }
 
         ca = read_fat(ca, &_fs_data);
-    }
+    } while (!is_cluster_end(ca) && !is_cluster_bad(ca) && buff_size > 0);
 
     return total_readden;
 }
@@ -279,7 +280,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
     int total_written = 0;
     cluster_addr_t ca = get_content_data_ca(ci);
     cluster_addr_t lca = ca;
-    while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0) {
+    do {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
             int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
@@ -295,13 +296,13 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
         lca = ca;
         ca  = read_fat(ca, &_fs_data);
-    }
+    } while (!is_cluster_end(ca) && !is_cluster_bad(ca) && data_size > 0);
 
     ca = lca;
     while (data_size > 0 && !is_cluster_bad(ca = _add_cluster_to_content(ci, ca))) {
         if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
         else {
-            int writable = (data_size > (int)_fs_data.cluster_size) ? (int)_fs_data.cluster_size : data_size;
+            int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
             writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data);
 
             offset = 0;
