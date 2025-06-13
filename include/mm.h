@@ -34,8 +34,8 @@ Dependencies:
 #ifndef MM_H_
 #define MM_H_
 
-#include <stddef.h>
 #include "str.h"
+#include "null.h"
 #include "logging.h"
 #include "threading.h"
 
@@ -50,7 +50,7 @@ Dependencies:
 
 typedef struct mm_block {
     unsigned int     magic;
-    size_t           size;
+    unsigned int     size;
     unsigned char    free;
     struct mm_block* next;
 } mm_block_t;
@@ -74,7 +74,7 @@ Params:
 Return NULL if can't allocate memory.
 Return pointer to allocated memory.
 */
-void* malloc_s(size_t size);
+void* malloc_s(unsigned int size);
 
 /*
 Allocate memory block with offset.
@@ -87,7 +87,7 @@ Params:
 Return NULL if can't allocate memory.
 Return pointer to allocated memory.
 */
-void* malloc_off_s(size_t size, size_t offset);
+void* malloc_off_s(unsigned int size, unsigned int offset);
 
 /*
 Realloc pointer to new location with new size.
@@ -101,7 +101,7 @@ Params:
 Return NULL if can't allocate data.
 Return pointer to new allocated area.
 */
-void* realloc_s(void* ptr, size_t elem);
+void* realloc_s(void* ptr, unsigned int elem);
 
 /*
 Free allocated memory.

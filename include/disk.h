@@ -26,7 +26,6 @@ Description:
     This file contains main tools for working with disk / flash etc.
 
 Dependencies:
-    - stddef.h - For NULL.
     - logging.h - Logging tools.
     - threading.h - Locks for IO operations.
 */
@@ -34,7 +33,7 @@ Dependencies:
 #ifndef DISK_H_
 #define DISK_H_
 
-#include <stddef.h>
+#include "null.h"
 #include "logging.h"
 #include "threading.h"
 

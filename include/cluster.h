@@ -37,6 +37,7 @@ Dependencies:
 #define CLUSTER_H_
 
 #include "fat.h"
+#include "null.h"
 #include "disk.h"
 #include "fatinfo.h"
 #include "logging.h"

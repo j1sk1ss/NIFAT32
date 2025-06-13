@@ -39,6 +39,7 @@ Dependencies:
 
 #include "mm.h"
 #include "disk.h"
+#include "null.h"
 #include "hamming.h"
 #include "fatinfo.h"
 #include "logging.h"

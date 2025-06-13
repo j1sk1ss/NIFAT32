@@ -1,7 +1,7 @@
 #ifndef STR_H_
 #define STR_H_
 
-#include <stddef.h>
+#include "null.h"
 
 /*
 Memory special functions. 

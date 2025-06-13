@@ -26,7 +26,6 @@ Description:
     This file contains main tools for working with content table and ci.
 
 Dependencies:
-    - stddef.h - For NULL.
     - mm.h - FS memory manager.
     - entry.h - For directry_entry_t structure.
     - threading.h - Locks for table write.
@@ -36,11 +35,11 @@ Dependencies:
 #ifndef CTABLE_H_
 #define CTABLE_H_
 
-#include <stddef.h>
 #include "mm.h"
+#include "fat.h"
+#include "null.h"
 #include "entry.h"
 #include "threading.h"
-#include "fat.h"
 
 #define CONTENT_TABLE_SIZE 50
 

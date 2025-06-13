@@ -1,7 +1,7 @@
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
 
-#include <stddef.h>
+#include "include/null.h"
 #include "include/hamming.h"
 #include "include/threading.h"
 #include "include/checksum.h"

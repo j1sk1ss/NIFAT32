@@ -405,8 +405,8 @@ static int _copy_files_to_fs(
                 continue;
             }
 
-            uint32_t start_cluster = 0;
             size_t file_size = 0;
+            uint32_t start_cluster = 0;
             if (!_copy_file(fd, src_file, fat_table, &start_cluster, &file_size, data_start, total_clusters, &last_alloc)) {
                 fclose(src_file);
                 continue;

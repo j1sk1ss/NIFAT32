@@ -17,7 +17,7 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
-#include <stdio.h>
+#include "null.h"
 #include <stdarg.h>
 
 typedef struct {
