@@ -72,6 +72,7 @@ typedef struct {
     cluster_addr_t data_cluster;
     directory_entry_t meta;
     content_type_t content_type;
+    unsigned char mode;
 } content_t;
 
 #define NOT_PRESENT 0x00
@@ -86,13 +87,20 @@ typedef struct {
     int  size;
 } cinfo_t;
 
+int setup_content(
+    ci_t ci, int is_dir, const char* name83, 
+    cluster_addr_t root, cluster_addr_t data, 
+    directory_entry_t* meta, unsigned char mode
+);
+
 int ctable_init();
 ci_t alloc_ci();
-int setup_content(ci_t ci, int is_dir, const char* name83, cluster_addr_t root, cluster_addr_t data, directory_entry_t* meta);
+
 cluster_addr_t get_content_data_ca(const ci_t ci);
 unsigned int get_content_size(const ci_t ci);
 cluster_addr_t get_content_root_ca(const ci_t ci);
 const char* get_content_name(const ci_t ci);
+unsigned char get_content_mode(const ci_t ci);
 int stat_content(const ci_t ci, cinfo_t* info);
 int destroy_content(ci_t ci);
 

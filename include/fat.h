@@ -50,10 +50,8 @@ Dependencies:
 #define FAT_CLUSTER_RESERVED 0x0FFFFFF8
 #define FAT_CLUSTER_END      0x0FFFFFFF
 
-#define FAT_PRIME1 79156913U
-#define FAT_PRIME2 91383663U
-#define FAT_PRIME3 38812191U
-#define GET_FATSECTOR(number, total_sectors) ((((number) + FAT_PRIME1 * FAT_PRIME2) * FAT_PRIME3) % (total_sectors))
+#define FAT_MULTIPLIER 340573321U     // Another prime, far from above
+#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % ts)
 
 typedef unsigned int cluster_offset_t;
 typedef unsigned int cluster_addr_t;

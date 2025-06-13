@@ -1,9 +1,9 @@
 #ifndef HAMMING_H_
 #define HAMMING_H_
 
-#define GET_BIT(b, i) ((b >> i) & 1)
-#define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
-#define TOGGLE_BIT(b, i) (b ^ (1 << i))
+#define GET_BIT(byte, pos)      ((byte >> pos) & 1)
+#define SET_BIT(byte, pos, bit) (bit ? (byte | (1 << pos)) : (byte & ~(1 << pos)))
+#define TOGGLE_BIT(byte, pos)   (byte ^ (1 << pos))
 
 typedef unsigned char byte_t;
 typedef unsigned short encoded_t;

@@ -53,15 +53,8 @@ typedef struct fat_BS {
     checksum_t     checksum;
 } __attribute__((packed)) fat_BS_t;
 
-/*
-https://en.wikipedia.org/wiki/Golden_ratio
-2^32 / φ, where φ = +-1.618
-*/
-#define HASH_CONST 2654435761U
-#define PRIME1     73856093U
-#define PRIME2     19349663U
-#define PRIME3     83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+#define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
 
 /*
 Init function. 
@@ -83,28 +76,36 @@ Return 0 if content not exists.
 */
 int NIFAT32_content_exists(const char* path);
 
-// Mode flags (bitmask)
-#define RW_MODE    0b00000001 /* Read-write mode */
-#define CR_MODE    0b00000010 /* Create everything mode */
-#define CR_RW_MODE 0b00000011 /* Create + read/write mode (combination of CR_MODE | RW_MODE) */
-#define DIR_MODE   0b00000100 /* Directory mode */
-#define FILE_MODE  0b00001000 /* File mode */
+/* Open mode flags */
+#define R_MODE     0b0001  // Read mode
+#define W_MODE     0b0010  // Write mode
+#define CR_MODE    0b0100  // Create mode
 
-// Macro to combine mode and target into a single byte
-// Assumes mode uses lower 4 bits and target uses upper 4 bits
-#define MODE(mode, target) ((target << 4) | (mode & 0x0F))
-#define DF_MODE MODE(0, 0) /* Default mode - do nothing special */
+/* Create target flags */
+#define NO_TARGET   0b0000
+#define FILE_TARGET 0b0001
+#define DIR_TARGET  0b0010
 
-// Macro to extract mode (lower 4 bits)
-#define GET_MODE(combined) (combined & 0x0F)
+/* Pack mode */
+#define MODE(mode, target) (((target & 0b1111) << 4) | (mode & 0b1111))
 
-// Macro to extract target (upper 4 bits)
-#define GET_MODE_TARGET(combined) ((combined >> 4) & 0x0F)
+/* Default mode (RW) */
+#define DF_MODE MODE((R_MODE | W_MODE), NO_TARGET)
+
+/* Unpack macro */
+#define GET_MODE(byte)        ((byte) & 0b1111)
+#define GET_MODE_TARGET(byte) (((byte) >> 4) & 0b1111)
+#define IS_READ_MODE(byte)    (GET_MODE(byte) & R_MODE)
+#define IS_WRITE_MODE(byte)   (GET_MODE(byte) & W_MODE)
+#define IS_CREATE_MODE(byte)  (GET_MODE(byte) & CR_MODE)
+
 /*
 Open content to content table.
 Params:
 - path - Path to content (dir or file).
 - mode - Content open mode.
+         Note: If mode is CR_MODE, function will create all directories in path.
+         For last entry in path will use DIR_ or FILE_ MODE. 
 
 Return content index or negative error code.
 */

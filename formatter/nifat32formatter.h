@@ -28,16 +28,10 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define ENTRY_JAPAN          0x05
 #define LAST_LONG_ENTRY      0x40
 
-#define HASH_CONST 2654435761U
-#define BS_PRIME1 73856093U
-#define BS_PRIME2 19349663U
-#define BS_PRIME3 83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * BS_PRIME1 + BS_PRIME2) * BS_PRIME3) % (total_sectors))
-
-#define FAT_PRIME1 79156913U
-#define FAT_PRIME2 91383663U
-#define FAT_PRIME3 38812191U
-#define GET_FATSECTOR(number, total_sectors) ((((number) + FAT_PRIME1 * FAT_PRIME2) * FAT_PRIME3) % (total_sectors))
+#define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
+#define FAT_MULTIPLIER 340573321U     // Another prime, far from above
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
+#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % ts)
 
 #define BYTES_PER_SECTOR     512
 #define SECTORS_PER_CLUSTER  8
@@ -53,7 +47,7 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define DIR_ENTRY_SIZE       32
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
-typedef struct fat_extBS_32 {
+typedef struct {
     unsigned int   table_size_32;
     unsigned short extended_flags;
     unsigned short fat_version;
@@ -70,7 +64,7 @@ typedef struct fat_extBS_32 {
     unsigned int   checksum;
 } __attribute__((packed)) fat_extBS_32_t;
 
-typedef struct fat_BS {
+typedef struct {
     unsigned char  bootjmp[3];
     unsigned char  oem_name[8];
     unsigned short bytes_per_sector;
@@ -92,7 +86,7 @@ typedef struct fat_BS {
 /* from http://wiki.osdev.org/FAT */
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */
 
-typedef struct directory_entry {
+typedef struct {
     unsigned char  file_name[11];
     unsigned int   name_hash;
     unsigned char  attributes;

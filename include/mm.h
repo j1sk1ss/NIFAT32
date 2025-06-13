@@ -44,10 +44,6 @@ Dependencies:
 #define MM_BLOCK_MAGIC      0xC07DEL
 #define NO_OFFSET           0
 
-#define GET_BIT(b, i) ((b >> i) & 1)
-#define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
-#define TOGGLE_BIT(b, i) (b ^ (1 << i))
-
 typedef struct mm_block {
     unsigned int     magic;
     unsigned int     size;

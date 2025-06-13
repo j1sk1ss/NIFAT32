@@ -33,7 +33,7 @@ ci_t alloc_ci() {
 }
 
 int setup_content(
-    ci_t ci, int is_dir, const char* name83, cluster_addr_t root, cluster_addr_t data, directory_entry_t* meta
+    ci_t ci, int is_dir, const char* name83, cluster_addr_t root, cluster_addr_t data, directory_entry_t* meta, unsigned char mode
 ) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     _content_table[ci].content_type = is_dir ? CONTENT_TYPE_DIRECTORY : CONTENT_TYPE_FILE;
@@ -50,7 +50,8 @@ int setup_content(
 
     str_memcpy(&_content_table[ci].meta, meta, sizeof(directory_entry_t));
     _content_table[ci].parent_cluster = root;
-    _content_table[ci].data_cluster   = data;
+    _content_table[ci].data_cluster = data;
+    _content_table[ci].mode = mode;
     return 1;
 }
 
@@ -72,6 +73,11 @@ const char* get_content_name(const ci_t ci) {
 cluster_addr_t get_content_root_ca(const ci_t ci) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return FAT_CLUSTER_BAD;
     return _content_table[ci].parent_cluster;
+}
+
+unsigned char get_content_mode(const ci_t ci) {
+    if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
+    return _content_table[ci].mode;
 }
 
 int stat_content(const ci_t ci, cinfo_t* info) {

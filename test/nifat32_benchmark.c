@@ -150,10 +150,13 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "=============================\n\n\n");
 
             open_ops = write_ops = read_ops = 0;
+            name_to_fatname("root", target_fatname);
+            // ci_t ci = NIFAT32_open_content(target_fatname, DF_MODE);
+            // if (ci >= 0) NIFAT32_delete_content(ci);
         }
 
         long start = _current_time_us();
-        ci_t ci = NIFAT32_open_content(target_fatname, MODE(CR_MODE, FILE_MODE));
+        ci_t ci = NIFAT32_open_content(target_fatname, MODE(R_MODE | W_MODE | CR_MODE, FILE_TARGET));
         long end = _current_time_us();
         total_open_time_us += (end - start);
         open_ops++;

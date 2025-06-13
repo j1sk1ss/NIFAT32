@@ -1,7 +1,7 @@
 #ifndef FATINFO_H_
 #define FATINFO_H_
 
-typedef struct fat_data {
+typedef struct {
     unsigned int  fat_size;
     unsigned int  fat_type;
     unsigned char fat_count;

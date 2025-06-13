@@ -139,7 +139,7 @@ static cluster_addr_t _get_cluster_by_path(
             if (entry_search(fatname_buffer, active_cluster, &current_entry, &_fs_data) < 0) {
                 if (GET_MODE(mode) == CR_MODE) {
                     create_entry(
-                        fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_MODE, 
+                        fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_TARGET, 
                         alloc_cluster(&_fs_data), 1, &current_entry, &_fs_data
                     );
 
@@ -187,7 +187,7 @@ ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
         print_debug("NIFAT32_open_content: Content cluster is: %u", ca);
     }
     
-    setup_content(ci, (meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta);
+    setup_content(ci, (meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
     return ci;
 }
 
@@ -197,6 +197,10 @@ int NIFAT32_close_content(ci_t ci) {
 
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size) {
     print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
+    if (!IS_READ_MODE(get_content_mode(ci))) {
+        print_error("Can't open content ci=%i. No access to read!", ci);
+        return 0;
+    }
 
     int total_readden = 0;
     cluster_addr_t ca = get_content_data_ca(ci);
@@ -276,7 +280,11 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
 
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size) {
     print_debug("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
-    
+    if (!IS_WRITE_MODE(get_content_mode(ci))) {
+        print_error("Can't open content ci=%i. No access to write!", ci);
+        return 0;
+    }
+
     int total_written = 0;
     cluster_addr_t ca = get_content_data_ca(ci);
     cluster_addr_t lca = ca;

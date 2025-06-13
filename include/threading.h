@@ -49,8 +49,7 @@ re-define this function for getting thread uniq id.
 #define sched_yield()
 
 typedef volatile unsigned int lock_t;
-typedef unsigned char         lock_stat_t;
-typedef unsigned short        owner_t;
+typedef unsigned short owner_t;
 
 int THR_require_read(lock_t* lock);
 int THR_release_read(lock_t* lock);
