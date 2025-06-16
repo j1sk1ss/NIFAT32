@@ -43,9 +43,6 @@ Of course, there are existing hardware-level techniques to mitigate the effects 
 - [ECC (Error-Correcting Code)](https://community.fs.com/encyclopedia/ecc-memory.html)
 - [ROM (Read-only memory)](https://en.wikipedia.org/wiki/Read-only_memory)
 
-However, there's an important limitation: these methods (in case with `ECC`) typically operate on `RAM`, not on `Flash` memory. This means that while data stored in volatile memory (RAM) can often be automatically corrected if flipped by radiation, the same guarantees do not apply to `RWM` (read/write memory, such as Flash). </br>
-When it comes to `ROM`, the situation is different due to its immutable nature and underlying physical properties. As explained in this [article](https://hackernoon.com/differences-between-ram-rom-and-flash-memory-all-you-need-to-know-ghr341i), ROM is inherently more resistant to SEUs thanks to the way it's physically implemented.  
-
 ## Impact of SEU
 To validate the potential impact of SEU on program stability, a controlled test environment was developed featuring fault-injection mechanisms that directly target memory. While it's understood that, in real-world scenarios, programs typically reside in RAM protected by ECC (Error-Correcting Code) — which mitigates bit-flipping — the **data used and stored by the program remains vulnerable**. </br>
 This subtle but crucial detail can lead to significant reliability issues and degraded user experience.  
