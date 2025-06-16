@@ -88,9 +88,8 @@ typedef struct {
 } cinfo_t;
 
 int setup_content(
-    ci_t ci, int is_dir, const char* name83, 
-    cluster_addr_t root, cluster_addr_t data, 
-    directory_entry_t* meta, unsigned char mode
+    ci_t ci, int is_dir, const char* __restrict name83, cluster_addr_t root, cluster_addr_t data, 
+    directory_entry_t* __restrict meta, unsigned char mode
 );
 
 int ctable_init();

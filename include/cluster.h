@@ -92,7 +92,9 @@ Params:
 
 Return count of readden bytes.
 */
-int readoff_cluster(cluster_addr_t ca, cluster_offset_t offset, buffer_t buffer, int buff_size, fat_data_t* fi);
+int readoff_cluster(
+    cluster_addr_t ca, cluster_offset_t offset, buffer_t __restrict buffer, int buff_size, fat_data_t* __restrict fi
+);
 
 /*
 Read data from cluster.
@@ -104,7 +106,7 @@ Params:
 
 Return count of readden bytes.
 */
-int read_cluster(cluster_addr_t ca, buffer_t buffer, int buff_size, fat_data_t* fi);
+int read_cluster(cluster_addr_t ca, buffer_t __restrict buffer, int buff_size, fat_data_t* __restrict fi);
 
 /*
 Write data to cluster with offset.
@@ -117,7 +119,9 @@ Params:
 
 Return count of written bytes.
 */
-int writeoff_cluster(cluster_addr_t ca, cluster_offset_t offset, const_buffer_t data, int data_size, fat_data_t* fi);
+int writeoff_cluster(
+    cluster_addr_t ca, cluster_offset_t offset, const_buffer_t __restrict data, int data_size, fat_data_t* __restrict fi
+);
 
 /*
 Write data to cluster.
@@ -129,6 +133,6 @@ Params:
 
 Return count of written bytes.
 */
-int write_cluster(cluster_addr_t ca, const_buffer_t data, int data_size, fat_data_t* fi);
+int write_cluster(cluster_addr_t ca, const_buffer_t __restrict data, int data_size, fat_data_t* __restrict fi);
 
 #endif

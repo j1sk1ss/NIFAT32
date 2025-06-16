@@ -9,7 +9,7 @@ static int _validate_entry(directory_entry_t* entry) {
 }
 
 static int __read_encoded_cluster__(
-    cluster_addr_t ca, buffer_t enc, int enc_size, buffer_t dec, int dec_size, fat_data_t* fi
+    cluster_addr_t ca, buffer_t __restrict enc, int enc_size, buffer_t __restrict dec, int dec_size, fat_data_t* __restrict fi
 ) {
     print_debug("__read_encoded_cluster__(ca=%u)", ca);
     if (!enc || !dec) return 0;
@@ -22,7 +22,7 @@ static int __read_encoded_cluster__(
     return 1;
 }
 
-int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
+int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
     print_debug("entry_search(name=%s, cluster=%u)", name, ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -73,7 +73,7 @@ int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, f
 }
 
 /* TODO: cache */
-int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
+int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
     print_debug("entry_add(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -145,7 +145,7 @@ int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi) {
     return -1;
 }
 
-int entry_edit(cluster_addr_t ca, const char* name, const directory_entry_t* meta, fat_data_t* fi) {
+int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
     print_debug("entry_edit(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -253,7 +253,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     return -2;
 }
 
-int entry_remove(cluster_addr_t ca, const char* name, fat_data_t* fi) {
+int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi) {
     print_debug("entry_remove(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -309,8 +309,8 @@ int entry_remove(cluster_addr_t ca, const char* name, fat_data_t* fi) {
 }
 
 int create_entry(
-    const char* fullname, char is_dir, cluster_addr_t first_cluster, 
-    unsigned int file_size, directory_entry_t* entry, fat_data_t* fi
+    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
+    unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
 ) {
     entry->cluster = first_cluster;
     if (!set_cluster_end(first_cluster, fi)) {

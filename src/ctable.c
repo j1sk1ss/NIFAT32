@@ -33,7 +33,8 @@ ci_t alloc_ci() {
 }
 
 int setup_content(
-    ci_t ci, int is_dir, const char* name83, cluster_addr_t root, cluster_addr_t data, directory_entry_t* meta, unsigned char mode
+    ci_t ci, int is_dir, const char* __restrict name83, cluster_addr_t root, cluster_addr_t data, 
+    directory_entry_t* __restrict meta, unsigned char mode
 ) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     _content_table[ci].content_type = is_dir ? CONTENT_TYPE_DIRECTORY : CONTENT_TYPE_FILE;

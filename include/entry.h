@@ -35,13 +35,13 @@ typedef struct directory_entry {
 } __attribute__((packed)) directory_entry_t;
 
 int create_entry(
-    const char* fullname, char is_dir, cluster_addr_t first_cluster, 
-    unsigned int file_size, directory_entry_t* entry, fat_data_t* fi
+    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
+    unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
 );
 
-int entry_search(const char* name, cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
-int entry_add(cluster_addr_t ca, directory_entry_t* meta, fat_data_t* fi);
-int entry_edit(cluster_addr_t ca, const char* name, const directory_entry_t* meta, fat_data_t* fi);
-int entry_remove(cluster_addr_t ca, const char* name, fat_data_t* fi);
+int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);
 
 #endif

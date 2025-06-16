@@ -1,6 +1,6 @@
 #include "../include/str.h"
 
-void* str_memcpy(void* destination, const void* source, unsigned int num) {
+void* str_memcpy(void* __restrict destination, const void* __restrict source, unsigned int num) {
     unsigned int num_dwords = num / 4;
     unsigned int num_bytes  = num % 4;
     unsigned int* dest32 = (unsigned int*)destination;
