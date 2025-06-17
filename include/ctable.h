@@ -83,8 +83,8 @@ typedef struct {
     char full_name[12];
     char file_name[8];
     char file_extension[4];
+    unsigned int size;
     int  type;
-    int  size;
 } cinfo_t;
 
 int setup_content(

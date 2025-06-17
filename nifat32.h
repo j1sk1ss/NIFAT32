@@ -167,6 +167,19 @@ Return count of bytes that was written by function.
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size);
 
 /*
+Trancate content will change occupied size of content.
+Note: Will save data in result clusters.
+Params:
+- ci - Target content index.
+- offset - Trancate offset in bytes.
+- size - Result size of file in bytes.
+
+Return 1 if operation success.
+Return 0 if simething goes wrong.
+*/
+int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size);
+
+/*
 Close content from table and release all resources.
 Params:
 - ci - Content index.

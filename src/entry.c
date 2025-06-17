@@ -145,7 +145,9 @@ int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t*
     return -1;
 }
 
-int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
+int entry_edit(
+    cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+) {
     print_debug("entry_edit(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -312,6 +314,7 @@ int create_entry(
     const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
     unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
 ) {
+    entry->checksum = 0;
     entry->cluster = first_cluster;
     if (!set_cluster_end(first_cluster, fi)) {
         print_error("Can't set allocated cluster as <END> for entry!");
@@ -326,9 +329,7 @@ int create_entry(
 
     str_memcpy(entry->file_name, fullname, 11);
     entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, 11);
-
-    entry->checksum = 0;
-    entry->checksum = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
+    entry->checksum  = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
     print_debug("_create_entry=%s/%u", entry->file_name, entry->attributes);
     return 1; 
 }

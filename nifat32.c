@@ -286,10 +286,14 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
     }
 
     int total_written = 0;
-    cluster_addr_t ca = get_content_data_ca(ci);
+    unsigned int total_size = 0;
+    cluster_addr_t ca  = get_content_data_ca(ci);
     cluster_addr_t lca = ca;
     do {
-        if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
+        if (offset > _fs_data.cluster_size) {
+            total_size += _fs_data.cluster_size;
+            offset -= _fs_data.cluster_size;
+        }
         else {
             int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
             if (!writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data)) {
@@ -308,7 +312,10 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
     ca = lca;
     while (data_size > 0 && !is_cluster_bad(ca = _add_cluster_to_content(ci, ca))) {
-        if (offset > _fs_data.cluster_size) offset -= _fs_data.cluster_size;
+        if (offset > _fs_data.cluster_size) {
+            total_size += _fs_data.cluster_size;
+            offset -= _fs_data.cluster_size;
+        }
         else {
             int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
             writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data);
@@ -319,6 +326,9 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
         }
     }
 
+    directory_entry_t entry;
+    create_entry(get_content_name(ci), 0, get_content_data_ca(ci), total_size + total_written, &entry, &_fs_data);
+    entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
     return total_written;
 }
 
@@ -326,8 +336,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     print_debug("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
     directory_entry_t meta;
     create_entry(
-        info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), 
-        get_content_size(ci), &meta, &_fs_data
+        info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta, &_fs_data
     );
 
     if (!entry_edit(get_content_root_ca(ci), get_content_name(ci), &meta, &_fs_data)) {
@@ -335,6 +344,39 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
         return 0;
     }
     
+    return 1;
+}
+
+int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
+    print_debug("NIFAT32_truncate_content(ci=%i, offset=%u, size=%i)", ci, offset, size);
+    if (!IS_WRITE_MODE(get_content_mode(ci))) {
+        print_error("Can't open content ci=%i. No access to write!", ci);
+        return 0;
+    }
+
+    unsigned int end_size = size;
+    cluster_addr_t ca = get_content_data_ca(ci);
+    cluster_addr_t start_ca = FAT_CLUSTER_BAD, end_ca = FAT_CLUSTER_BAD;
+    do {
+        if (end_ca != FAT_CLUSTER_BAD) dealloc_cluster(ca, &_fs_data);
+        if (offset > _fs_data.cluster_size) {
+            offset -= _fs_data.cluster_size;
+            dealloc_cluster(ca, &_fs_data);
+        }
+        else {
+            if (start_ca == FAT_CLUSTER_BAD) start_ca = ca;
+            if ((size -= _fs_data.cluster_size) < 0 && end_ca == FAT_CLUSTER_BAD) {
+                set_cluster_end(ca, &_fs_data);
+                end_ca = ca;
+            }
+        }
+
+        ca = read_fat(ca, &_fs_data);
+    } while (!is_cluster_end(ca) && !is_cluster_bad(ca));
+
+    directory_entry_t entry;
+    create_entry(get_content_name(ci), 0, start_ca, end_size, &entry, &_fs_data);
+    entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
     return 1;
 }
 
@@ -350,7 +392,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 
     directory_entry_t entry;
     create_entry(
-        info->full_name, info->type == STAT_DIR, alloc_cluster(&_fs_data), 1, &entry, &_fs_data
+        info->full_name, info->type == STAT_DIR, alloc_cluster(&_fs_data), reserve * _fs_data.cluster_size, &entry, &_fs_data
     );
     
     int is_add = entry_add(target, &entry, &_fs_data);

@@ -7,14 +7,7 @@
 #include "nifat32.h"
 
 typedef enum {
-    CD,
-    READ,
-    WRITE,
-    LS,
-    RM,
-    MKDIR,
-    MKFILE,
-    UNKNOWN
+    CD, READ, WRITE, LS, RM, MKDIR, MKFILE, TRUNC, UNKNOWN
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
@@ -25,6 +18,7 @@ cmd_t _get_cmd(const char* input) {
     else if (!strcmp(input, "rm"))     return RM;
     else if (!strcmp(input, "mkdir"))  return MKDIR;
     else if (!strcmp(input, "mkfile")) return MKFILE;
+    else if (!strcmp(input, "trunc"))  return TRUNC;
     return UNKNOWN;
 }
 
@@ -130,6 +124,8 @@ upper:
             case MKFILE: {
                 const char* file_name = cmds[1];
                 const char* file_ext  = cmds[2];
+                int reserve = NO_RESERVE;
+                if (cmds[3]) reserve = atoi(cmds[3]);
                 
                 cinfo_t file_info = { .type = STAT_FILE };
                 str_memcpy(file_info.file_name, file_name, strlen(file_name) + 1);
@@ -148,9 +144,9 @@ upper:
                     }
                 }
 
-                NIFAT32_put_content(root_ci, &file_info, NO_RESERVE);
-                break;
+                NIFAT32_put_content(root_ci, &file_info, reserve);
             }
+            break;
 
             case MKDIR: {
                 const char* name = cmds[1];
@@ -169,8 +165,8 @@ upper:
                 }
 
                 NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
-                break;
             }
+            break;
 
             case RM: {
                 char path_buffer[256] = { 0 };
@@ -186,8 +182,8 @@ upper:
                 ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
                 if (ci >= 0) NIFAT32_delete_content(ci);
                 else printf("Content not found!\n");
-                break;
             }
+            break;
 
             case READ: {
                 char path_buffer[256] = { 0 };
@@ -218,8 +214,7 @@ upper:
                 strcpy(path_buffer, current_path);
 
                 char fatbuffer[24] = { 0 };
-                const char* path = cmds[1];
-                name_to_fatname(path, fatbuffer);
+                name_to_fatname(cmds[1], fatbuffer);
 
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
@@ -235,6 +230,29 @@ upper:
             }
             break;
             
+            case TRUNC: {
+                char path_buffer[256] = { 0 };
+                strcpy(path_buffer, current_path);
+
+                char fatbuffer[24] = { 0 };
+                name_to_fatname(cmds[1], fatbuffer);
+
+                if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
+                strcat(path_buffer, fatbuffer);
+
+                int offset = atoi(cmds[2]);
+                int size   = atoi(cmds[3]);
+                ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
+                if (ci >= 0) {
+                    NIFAT32_truncate_content(ci, offset, size);
+                    NIFAT32_close_content(ci);
+                }
+                else {
+                    printf("Content not found!\n");
+                }
+            }
+            break;
+
             case LS: {
                 ci_t ci = -1;
                 if (strlen(current_path) > 1) ci = NIFAT32_open_content(current_path, DF_MODE);
@@ -262,9 +280,8 @@ upper:
                 else {
                     printf("Content not found!\n");
                 }
-
-                break;
             }
+            break;
             
             default: break;
         }
