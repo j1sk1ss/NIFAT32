@@ -83,6 +83,7 @@ int _get_cached_entry(const char* name, checksum_t name_hash, cluster_addr_t ca,
         int loaded = 0;
         for (int i = 0; i < _cache_size; i++) {
             if (_entry_cache[i].free) continue;
+            if (_entry_cache[i].root_ca != ca) continue;
             if (_entry_cache[i].entry.name_hash != name_hash) continue;
             if (!str_strncmp((char*)_entry_cache[i].entry.file_name, name, 11)) {
                 _entry_cache[i].used++;
