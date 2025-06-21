@@ -3,14 +3,7 @@
 The main goal of this project is to make the FAT32 filesystem simpler, more secure, and make it work in use cases where `SEU` is common in the fewest steps. </br> 
 A secondary goal is to make this filesystem work on embedded systems for my other project called [CDBMS](https://github.com/j1sk1ss/CordellDBMS.PETPRJ) and update the core functionality to a thread-safe context.
 
-## Why?
-- Firstly, I have my own project that needs a noise-immune FS.
-- Secondly, we currently have ECC RAM, but we have no way to protect data in non-ROM memory from SEU.
-- Thirdly, it will be cheaper if we can use software solutions instead of hardware ones.
-- Fourthly, although modern file systems like exFAT, ZFS, and NTFS offer advanced features and are designed to work in a wide range of environments, they generally lack built-in mechanisms for error correction at the level of individual data blocks. While some (like ZFS) provide error detection through checksums and metadata validation, they do not implement true error correction codes (ECC) such as Hamming or Reed–Solomon, which can autonomously recover corrupted bits.
-
 ## Abstract
-
 Despite the continued use of the FAT32 file system in legacy and resource-constrained environments, there have been surprisingly few modern efforts to adapt or enhance it for contemporary embedded or lightweight desktop applications. The widespread migration toward more advanced file systems—such as [EXT4](https://wiki.osdev.org/Ext4) for desktop systems or [LittleFS](https://github.com/littlefs-project/littlefs) for embedded platforms—is driven by FAT32’s well-documented limitations, including lack of robustness, limited file size support, and weak fault tolerance mechanisms.
 
 However, these modern alternatives often sacrifice the principal strength of FAT32: its simplicity. Minimalism in file system design can be an asset in environments where resource efficiency and deterministic behavior are paramount, particularly in single-threaded or low-memory systems. Furthermore, simplicity directly contributes to lower implementation error rates—an important consideration for safety- or reliability-critical domains.
