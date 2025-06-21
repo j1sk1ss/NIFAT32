@@ -359,15 +359,17 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
     cluster_addr_t start_ca = FAT_CLUSTER_BAD, end_ca = FAT_CLUSTER_BAD;
     do {
         if (end_ca != FAT_CLUSTER_BAD) dealloc_cluster(ca, &_fs_data);
-        if (offset > _fs_data.cluster_size) {
-            offset -= _fs_data.cluster_size;
-            dealloc_cluster(ca, &_fs_data);
-        }
         else {
-            if (start_ca == FAT_CLUSTER_BAD) start_ca = ca;
-            if ((size -= _fs_data.cluster_size) < 0 && end_ca == FAT_CLUSTER_BAD) {
-                set_cluster_end(ca, &_fs_data);
-                end_ca = ca;
+            if (offset > _fs_data.cluster_size) {
+                offset -= _fs_data.cluster_size;
+                dealloc_cluster(ca, &_fs_data);
+            }
+            else {
+                if (start_ca == FAT_CLUSTER_BAD) start_ca = ca;
+                if ((size -= _fs_data.cluster_size) < 0 && end_ca == FAT_CLUSTER_BAD) {
+                    set_cluster_end(ca, &_fs_data);
+                    end_ca = ca;
+                }
             }
         }
 
