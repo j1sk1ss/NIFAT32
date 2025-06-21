@@ -67,7 +67,14 @@ Params:
 Return 1 if init success.
 Return 0 if something goes wrong.
 */
-int cache_fat_init(fat_data_t* fi);
+int fat_cache_init(fat_data_t* fi);
+
+/*
+Unload allocated fat cache table.
+Return 1 if operation success.
+Return 0 if cache was NULL.
+*/
+int fat_cache_unload();
 
 /*
 Read 4 bytes from FAT for target cluster.

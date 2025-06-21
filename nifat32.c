@@ -2,9 +2,9 @@
 
 static fat_data_t _fs_data;
 
-int NIFAT32_init(int bs_num, unsigned int ts) {
-    print_log("NIFAT32 init. Reading %i bootsector at sa=%i", bs_num, GET_BOOTSECTOR(bs_num, ts));
-    if (bs_num >= 5) {
+int NIFAT32_init(nifat32_params* params) {
+    print_log("NIFAT32 init. Reading %i bootsector at sa=%i", params->bs_num, GET_BOOTSECTOR(params->bs_num, params->ts));
+    if (params->bs_num >= 5) {
         print_error("Init error! No reserved sectors!");
         return 0;
     }
@@ -17,7 +17,7 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
         return 0;
     }
 
-    if (!DSK_read_sector(GET_BOOTSECTOR(bs_num, ts), encoded_bs, sector_size)) {
+    if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
         free_s(encoded_bs);
         return 0;
@@ -46,7 +46,9 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
             "Checksum check error! [bootstruct=%u != %u] or [ext_bootstruct=%u != %u]. Moving to reserved sector!", 
             bootstruct->checksum, bcheck, ext_bootstruct->checksum, exbcheck
         );
-        return NIFAT32_init(bs_num + 1, ts);
+
+        params->bs_num++;
+        return NIFAT32_init(params);
     }
     else {
         bootstruct->checksum     = bcheck;
@@ -91,22 +93,30 @@ int NIFAT32_init(int bs_num, unsigned int ts) {
     print_debug("Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
     print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
 
-    if (bs_num > 0) {
-        print_warn("%i of boot sector records are incorrect. Attempt to fix...", bs_num);
+    if (params->bs_num > 0) {
+        print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
         for (int i = 0; i < 5; i++) {
-            if (i == bs_num) continue;
-            if (!DSK_write_sector(GET_BOOTSECTOR(i, ts), (const_buffer_t)encoded_bs, sector_size)) {
+            if (i == params->bs_num) continue;
+            if (!DSK_write_sector(GET_BOOTSECTOR(i, params->ts), (const_buffer_t)encoded_bs, sector_size)) {
                 print_warn("Attempt for bootsector restore failed!");
             }
         }
     }
 
-    if (!cache_fat_init(&_fs_data)) {
-        print_warn("FAT cache init error!");
+    if (params->fat_cache) {
+        if (!fat_cache_init(&_fs_data)) {
+            print_warn("FAT cache init error!");
+        }
     }
 
     if (!ctable_init()) {
         print_warn("Ctable init error!");
+    }
+
+    if (params->entry_cache) {
+        if (!entry_cache_init(params->entry_cache)) {
+            print_warn("Entry cache init error!");
+        }
     }
 
     free_s(encoded_bs);
@@ -490,4 +500,10 @@ int NIFAT32_delete_content(ci_t ci) {
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     print_log("NIFAT32_stat_content(ci=%i)", ci);
     return stat_content(ci, info);
+}
+
+int NIFAT32_unload() {
+    entry_cache_unload();
+    fat_cache_unload();
+    return 1;
 }

@@ -22,8 +22,89 @@ static int __read_encoded_cluster__(
     return 1;
 }
 
+typedef struct {
+    cluster_addr_t root_ca;
+    directory_entry_t entry;
+    short used;
+    char free;
+} entry_cache_t;
+
+lock_t _cache_lock = NULL_LOCK;
+static int _cache_size = 0;
+static entry_cache_t* _entry_cache = NULL;
+
+int entry_cache_init(int cache_size) {
+    _entry_cache = (entry_cache_t*)malloc_s(sizeof(directory_entry_t*) * cache_size);
+    if (!_entry_cache) {
+        print_error("malloc_s() error!");
+        return 0;
+    }
+
+    _cache_size = cache_size;
+    for (int i = 0; i < cache_size; i++) {
+        _entry_cache[i].free = 1;
+    }
+
+    return 1;
+}
+
+int entry_cache_unload() {
+    if (!_entry_cache) return 0;
+    free_s(_entry_cache);
+    return 0;
+}
+
+static int _cache_entry(cluster_addr_t ca, directory_entry_t* entry) {
+    print_debug("_cache_entry(ca=%u, entry=%.11s)", ca, entry->file_name);
+    if (!_entry_cache) return 0;
+    if (THR_require_write(&_cache_lock, get_thread_num())) {
+        int cached = 0;
+        for (int i = 0; i < _cache_size; i++) {
+            if (_entry_cache[i].free || _entry_cache[i].used-- < 0) {
+                str_memcpy(&_entry_cache[i].entry, entry, sizeof(directory_entry_t));
+                _entry_cache[i].used = 16;
+                _entry_cache[i].free = 0;
+                cached = 1;
+                break;
+            }
+        }
+
+        THR_release_write(&_cache_lock, get_thread_num());
+        return cached;
+    }
+
+    return 0;
+}
+
+int _get_cached_entry(const char* name, checksum_t name_hash, cluster_addr_t ca, directory_entry_t* entry) {
+    print_debug("_get_cached_entry(name=%s, ca=%u)", name, ca);
+    if (!_entry_cache) return 0;
+    if (THR_require_read(&_cache_lock)) {
+        int loaded = 0;
+        for (int i = 0; i < _cache_size; i++) {
+            if (_entry_cache[i].free) continue;
+            if (_entry_cache[i].entry.name_hash != name_hash) continue;
+            if (!str_strncmp((char*)_entry_cache[i].entry.file_name, name, 11)) {
+                _entry_cache[i].used++;
+                str_memcpy(entry, &_entry_cache[i].entry, sizeof(directory_entry_t));
+                loaded = 1;
+                break;
+            }
+        }
+
+        THR_release_read(&_cache_lock);
+        return loaded;
+    }
+
+    return 0;
+}
+
 int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
     print_debug("entry_search(name=%s, cluster=%u)", name, ca);
+    cluster_addr_t root_ca = ca;
+    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
+    if (_get_cached_entry(name, name_hash, ca, meta)) return 1;
+    
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
     buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
@@ -34,7 +115,6 @@ int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry
         return -1;
     }
 
-    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -57,6 +137,7 @@ int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry
                         break;
                     }
                     
+                    _cache_entry(root_ca, entry);
                     free_s(decoded_cluster);
                     free_s(cluster_data);
                     return 1;
@@ -85,6 +166,7 @@ int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t*
         return -1;
     }
 
+    cluster_addr_t root_ca = ca;
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -108,6 +190,7 @@ int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t*
                     return -6;
                 }
 
+                _cache_entry(root_ca, entry);
                 free_s(decoded_cluster);
                 free_s(cluster_data);
                 return 1;

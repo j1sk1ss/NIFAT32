@@ -1,7 +1,7 @@
 #include "../include/fat.h"
 
 static cluster_val_t* _fat = NULL;
-int cache_fat_init(fat_data_t* fi) {
+int fat_cache_init(fat_data_t* fi) {
     _fat = (cluster_val_t*)malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
         print_error("malloc_s() error!");
@@ -9,6 +9,12 @@ int cache_fat_init(fat_data_t* fi) {
     }
 
     for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) _fat[ca] = FAT_CLUSTER_BAD;
+    return 1;
+}
+
+int fat_cache_unload() {
+    if (_fat) free_s(_fat);
+    else return 0;
     return 1;
 }
 

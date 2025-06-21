@@ -53,6 +53,15 @@ typedef struct fat_BS {
     checksum_t     checksum;
 } __attribute__((packed)) fat_BS_t;
 
+#define CACHE    1
+#define NO_CACHE 0
+typedef struct {
+    char fat_cache;
+    int entry_cache;
+    int bs_num;
+    unsigned int ts;
+} nifat32_params;
+
 #define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
 #define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
 
@@ -62,13 +71,18 @@ Note: This function also init memory manager.
 Note 2: For noise-immunity purpuses for initialization of NIFAT32 we
 should know end count of sectors.
 Params:
-- bs_num - Bootsector number.
-- ts - Total sectors in filesystem.
+- params - NIFAT32 setup params.
 
 Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
-int NIFAT32_init(int bs_num, unsigned int ts);
+int NIFAT32_init(nifat32_params* params);
+
+/*
+Unload sequence. Perform all cleanup tasks.
+Return 1.
+*/
+int NIFAT32_unload();
 
 /*
 Return 1 if content exists.
