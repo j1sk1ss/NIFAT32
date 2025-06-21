@@ -29,6 +29,7 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
 } 
 
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
+    print_debug("write_fat(ca=%u, value=%u)", ca, value);
     if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
     if (_fat) _fat[ca] = value;
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);

@@ -96,6 +96,7 @@ int ctable_init();
 ci_t alloc_ci();
 
 cluster_addr_t get_content_data_ca(const ci_t ci);
+int set_content_data_ca(const ci_t ci, cluster_addr_t ca);
 unsigned int get_content_size(const ci_t ci);
 cluster_addr_t get_content_root_ca(const ci_t ci);
 const char* get_content_name(const ci_t ci);

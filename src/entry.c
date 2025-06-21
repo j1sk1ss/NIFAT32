@@ -199,20 +199,7 @@ int entry_edit(
 
 static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     print_debug("_entry_erase_rec(cluster=%u, file=%i)", ca, file);
-    if (file) {
-        cluster_addr_t prev_cluster = 0;
-        while (!is_cluster_end(ca) && !is_cluster_bad(ca) && !is_cluster_free(ca)) {
-            cluster_addr_t next_cluster = read_fat(ca, fi);
-            if (!dealloc_cluster(ca, fi)) {
-                print_error("dealloc_cluster() encountered an error. Aborting...");
-                return 0;
-            }
-
-            ca = next_cluster;
-        }
-
-        return 1;
-    }
+    if (file) return dealloc_chain(ca, fi);
     else {
         int decoded_len = fi->cluster_size / sizeof(encoded_t);
         buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -224,12 +211,14 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
             return -1;
         }
 
+        cluster_addr_t nca = ca;
         unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
         while (!is_cluster_end(ca)) {
             if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
                 break;
             }
             
+            nca = read_fat(ca, fi);
             directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
             for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
                 if (entry->file_name[0] == ENTRY_END) break;
@@ -240,11 +229,11 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
                 }
             }
 
-            ca = read_fat(ca, fi);
-        }
+            if (!dealloc_cluster(ca, fi)) {
+                print_warn("dealloc_cluster() encountered an error.");
+            }
 
-        if (!dealloc_cluster(ca, fi)) {
-            print_warn("dealloc_cluster() encountered an error.");
+            ca = nca;
         }
 
         free_s(decoded_cluster);
@@ -316,10 +305,6 @@ int create_entry(
 ) {
     entry->checksum = 0;
     entry->cluster = first_cluster;
-    if (!set_cluster_end(first_cluster, fi)) {
-        print_error("Can't set allocated cluster as <END> for entry!");
-        return 0;
-    }
 
     if (is_dir) entry->attributes = FILE_DIRECTORY;
     else {
@@ -330,6 +315,6 @@ int create_entry(
     str_memcpy(entry->file_name, fullname, 11);
     entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, 11);
     entry->checksum  = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
-    print_debug("_create_entry=%s/%u", entry->file_name, entry->attributes);
+    print_debug("_create_entry=%.11s, is_dir=%i", entry->file_name, is_dir);
     return 1; 
 }

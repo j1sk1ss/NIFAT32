@@ -148,6 +148,20 @@ Return 0 if io error.
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc);
 
 /*
+Copy sector to destination sector.
+Note: copy buffer should be greater or equals to sector size.
+Params:
+- src - Source start sector.
+- dst - Destination start sector.
+- sc - Sector count.
+- buffer - Copy buffer.
+- buff_size - Copy buffer size.
+
+Return count of readden and written bytes.
+*/
+int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char* buffer, int buff_size);
+
+/*
 Return sector size.
 */
 int DSK_get_sector_size();

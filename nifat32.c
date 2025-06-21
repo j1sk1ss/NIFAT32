@@ -137,15 +137,22 @@ static cluster_addr_t _get_cluster_by_path(
             name_to_fatname(name_buffer, fatname_buffer);
 
             if (entry_search(fatname_buffer, active_cluster, &current_entry, &_fs_data) < 0) {
-                if (GET_MODE(mode) == CR_MODE) {
-                    create_entry(
-                        fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_TARGET, 
-                        alloc_cluster(&_fs_data), 1, &current_entry, &_fs_data
-                    );
+                if (IS_CREATE_MODE(mode)) {
+                    cluster_addr_t nca = alloc_cluster(&_fs_data);
+                    if (set_cluster_end(nca, &_fs_data)) {
+                        create_entry(
+                            fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_TARGET, 
+                            nca, _fs_data.cluster_size, &current_entry, &_fs_data
+                        );
 
-                    if (entry_add(active_cluster, &current_entry, &_fs_data) < 0) {
-                        print_error("Can't add new entry with mode=%p", mode);
-                        dealloc_cluster(current_entry.cluster, &_fs_data);
+                        if (entry_add(active_cluster, &current_entry, &_fs_data) < 0) {
+                            print_error("Can't add new entry with mode=%p", mode);
+                            dealloc_cluster(current_entry.cluster, &_fs_data);
+                        }
+                    }
+                    else {
+                        print_error("set_cluster_end() error!");
+                        return FAT_CLUSTER_BAD;
                     }
                 }
                 else {
@@ -165,11 +172,12 @@ static cluster_addr_t _get_cluster_by_path(
 }
 
 int NIFAT32_content_exists(const char* path) {
+    print_log("NIFAT32_content_exists(path=%s)", path);
     return _get_cluster_by_path(path, NULL, NULL, DF_MODE) != FAT_CLUSTER_BAD;
 }
 
 ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
-    print_debug("NIFAT32_open_content(path=%s, mode=%p)", path, mode);
+    print_log("NIFAT32_open_content(path=%s, mode=%p)", path, mode);
     ci_t ci;
     if ((ci = alloc_ci()) < 0) {
         print_error("Ctable is full!");
@@ -180,7 +188,8 @@ ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
     directory_entry_t meta;
     cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode);
     if (is_cluster_bad(ca)) {
-        print_error("Entry not found!");
+        print_error("Entry path=%s not found!", path);
+        destroy_content(ci);
         return -2;
     }
     else {
@@ -192,11 +201,12 @@ ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
 }
 
 int NIFAT32_close_content(ci_t ci) {
+    print_log("NIFAT32_close_content(ci=%i)", ci);
     return destroy_content(ci);
 }
 
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size) {
-    print_debug("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
+    print_log("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
     if (!IS_READ_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to read!", ci);
         return 0;
@@ -279,7 +289,7 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
 }
 
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size) {
-    print_debug("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
+    print_log("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
     if (!IS_WRITE_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to write!", ci);
         return 0;
@@ -327,13 +337,13 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
     }
 
     directory_entry_t entry;
-    create_entry(get_content_name(ci), 0, get_content_data_ca(ci), total_size + total_written, &entry, &_fs_data);
-    entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
+    // create_entry(get_content_name(ci), 0, get_content_data_ca(ci), total_size + total_written, &entry, &_fs_data);
+    // entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
     return total_written;
 }
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
-    print_debug("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
+    print_log("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
     directory_entry_t meta;
     create_entry(
         info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta, &_fs_data
@@ -348,7 +358,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 }
 
 int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
-    print_debug("NIFAT32_truncate_content(ci=%i, offset=%u, size=%i)", ci, offset, size);
+    print_log("NIFAT32_truncate_content(ci=%i, offset=%u, size=%i)", ci, offset, size);
     if (!IS_WRITE_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to write!", ci);
         return 0;
@@ -383,7 +393,7 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
 }
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
-    print_debug("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
+    print_log("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
     cluster_addr_t target = _fs_data.ext_root_cluster;
     if (ci != PUT_TO_ROOT) target = get_content_data_ca(ci);
     int is_found = entry_search((char*)info->full_name, target, NULL, &_fs_data);
@@ -393,8 +403,14 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     }
 
     directory_entry_t entry;
+    cluster_addr_t entry_ca = alloc_cluster(&_fs_data);
+    if (!set_cluster_end(entry_ca, &_fs_data)) {
+        print_error("set_cluster_end() error!");
+        return 0;
+    }
+
     create_entry(
-        info->full_name, info->type == STAT_DIR, alloc_cluster(&_fs_data), reserve * _fs_data.cluster_size, &entry, &_fs_data
+        info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry, &_fs_data
     );
     
     int is_add = entry_add(target, &entry, &_fs_data);
@@ -414,8 +430,54 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     return 1;
 }
 
+int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
+    print_log("NIFAT32_copy_content(src=%i, dst=%i, deep=%i)", src, dst, deep);
+    dealloc_chain(get_content_data_ca(dst), &_fs_data);
+    switch (deep) {
+        case DEEP_COPY: {
+            cluster_addr_t dst_ca = alloc_cluster(&_fs_data);
+            if (!set_cluster_end(dst_ca, &_fs_data)) {
+                print_error("set_cluster_end() error!");
+                return 0;
+            }
+
+            set_content_data_ca(dst, dst_ca);
+            cluster_addr_t src_ca = get_content_data_ca(src);
+            buffer_t copy_buffer  = (buffer_t)malloc_s(_fs_data.bytes_per_sector);
+            if (!copy_buffer) {
+                print_error("malloc_s() error!");
+                return 0;
+            }
+
+            do {
+                if (!copy_cluster(src_ca, dst_ca, copy_buffer, _fs_data.bytes_per_sector, &_fs_data)) {
+                    print_error("copy_cluster() error. Aborting...");
+                    free_s(copy_buffer);
+                    return 0;
+                }
+
+                src_ca = read_fat(src_ca, &_fs_data);
+                dst_ca = _add_cluster_to_chain(dst_ca);
+            } while (!is_cluster_end(src_ca) && !is_cluster_bad(src_ca) && !is_cluster_bad(dst_ca));
+
+            free_s(copy_buffer);
+            break;
+        }
+        case SHALLOW_COPY: {
+            set_content_data_ca(dst, get_content_data_ca(src));
+            break;
+        }
+        default: {
+            print_error("Unknown deep=%i type!", deep);
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 int NIFAT32_delete_content(ci_t ci) {
-    print_debug("NIFAT32_delete_content(ci=%i)", ci);
+    print_log("NIFAT32_delete_content(ci=%i)", ci);
     if (!entry_remove(get_content_root_ca(ci), get_content_name(ci), &_fs_data)) {
         print_error("entry_remove() encountered an error. Aborting...");
         return 0;
@@ -426,5 +488,6 @@ int NIFAT32_delete_content(ci_t ci) {
 }
 
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
+    print_log("NIFAT32_stat_content(ci=%i)", ci);
     return stat_content(ci, info);
 }

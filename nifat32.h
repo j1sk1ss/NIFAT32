@@ -207,6 +207,24 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve);
 
+#define DEEP_COPY    0x01
+#define SHALLOW_COPY 0x02
+/*
+Copy content data to destination place.
+Note: deep parametr can set copy type: 
+- DEEP_COPY copy all data from source with new cluster creation in destination.
+- SHALLOW_COPY create link in dst to src data.
+Note 2: NIFAT32_copy_content will deallocate all previous data in dst.
+Params:
+- src - Source content index.
+- dst - Destination content index.
+- deep - Copy type.
+
+Return 1 if copy success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep);
+
 /*
 Delete content by content index.
 Note: This function will close this content.

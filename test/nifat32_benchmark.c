@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "=============================\n\n\n");
 
             open_ops = write_ops = read_ops = 0;
-            name_to_fatname("root", target_fatname);
+            // name_to_fatname("root", target_fatname);
             // ci_t ci = NIFAT32_open_content(target_fatname, DF_MODE);
             // if (ci >= 0) NIFAT32_delete_content(ci);
         }
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "\n Read result [%i]: ", readden);
             for (int i = 0; i < sizeof(test_val_t); i++) printf("0x%x ", buffer[i]);
             
-            fprintf(stdout, "Total files: %i, with size=%iMB\n", _id, (offset * _id) / (1024 * 1024));
+            fprintf(stdout, "Total files: %i, with size=%iMB\nOffset=%i\n", _id, (offset * _id) / (1024 * 1024), offset);
             fflush(stdout);
             return EXIT_FAILURE;
         }

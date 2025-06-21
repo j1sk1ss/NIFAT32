@@ -61,6 +61,12 @@ cluster_addr_t get_content_data_ca(const ci_t ci) {
     return _content_table[ci].data_cluster;
 }
 
+int set_content_data_ca(const ci_t ci, cluster_addr_t ca) {
+    if (ci > CONTENT_TABLE_SIZE || ci < 0) return FAT_CLUSTER_BAD;
+    _content_table[ci].data_cluster = ca;
+    return 1;
+}
+
 unsigned int get_content_size(const ci_t ci) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     return _content_table[ci].meta.file_size;

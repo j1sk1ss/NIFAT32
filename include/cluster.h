@@ -60,7 +60,7 @@ Return count of cluster for provided data.
 int get_cluster_count(unsigned int size, fat_data_t* fi);
 
 /*
-Allocate cluster from free-clusters on disk and mark cluster as "END_CLUSTER32"
+Allocate cluster from free-clusters on disk and DON'T mark cluster as "END_CLUSTER32"
 [Thread-safe]
 
 Params:
@@ -80,6 +80,17 @@ Return 1 if dealloc success.
 Return 0 if something goes wrong.
 */
 int dealloc_cluster(const cluster_addr_t ca, fat_data_t* fi);
+
+/*
+Deallocate entier cluster chain from start to <END>.
+Params:
+- ca - Start cluster in chain.
+- fi - FS data.
+
+Return 1 if chain deallocated.
+Return 0 if chain is broken (<BAD> or no <END>).
+*/
+int dealloc_chain(cluster_addr_t ca, fat_data_t* fi);
 
 /*
 Read data from cluster with offset.
@@ -134,5 +145,19 @@ Params:
 Return count of written bytes.
 */
 int write_cluster(cluster_addr_t ca, const_buffer_t __restrict data, int data_size, fat_data_t* __restrict fi);
+
+/*
+Copy source cluster content to destination cluster.
+Note: copy buffer should be greater or equals to sector size.
+Params:
+- src - Source cluster.
+- dst - Destination cluster.
+- buffer - Copy buffer.
+- buff_size - Copy buffer size.
+- fi - FS data.
+
+Return count of readden and written bytes.
+*/
+int copy_cluster(cluster_addr_t src, cluster_addr_t dst, buffer_t __restrict buffer, int buff_size, fat_data_t* __restrict fi);
 
 #endif
