@@ -57,7 +57,6 @@ typedef struct fat_BS {
 #define NO_CACHE 0
 typedef struct {
     char fat_cache;
-    int entry_cache;
     int bs_num;
     unsigned int ts;
 } nifat32_params;

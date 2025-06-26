@@ -34,9 +34,6 @@ typedef struct directory_entry {
     checksum_t     checksum;
 } __attribute__((packed)) directory_entry_t;
 
-int entry_cache_init(int cache_size);
-int entry_cache_unload();
-
 int create_entry(
     const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
     unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi

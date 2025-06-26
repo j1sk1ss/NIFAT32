@@ -113,12 +113,6 @@ int NIFAT32_init(nifat32_params* params) {
         print_warn("Ctable init error!");
     }
 
-    if (params->entry_cache) {
-        if (!entry_cache_init(params->entry_cache)) {
-            print_warn("Entry cache init error!");
-        }
-    }
-
     free_s(encoded_bs);
     free_s(decoded_bs);
     return 1;

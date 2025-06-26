@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     }
 
     #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
-    nifat32_params params = { .bs_num = 0, .ts = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, .fat_cache = CACHE, .entry_cache = 100 };
+    nifat32_params params = { .bs_num = 0, .ts = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, .fat_cache = CACHE };
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);
