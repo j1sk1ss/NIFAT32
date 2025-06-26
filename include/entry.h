@@ -2,6 +2,7 @@
 #define ENTRY_H_
 
 #include "mm.h"
+#include "ecache.h"
 #include "logging.h"
 #include "hamming.h"
 #include "fatinfo.h"
@@ -24,7 +25,6 @@
 
 /* from http://wiki.osdev.org/FAT */
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */
-
 typedef struct directory_entry {
     unsigned char  file_name[11];
     checksum_t     name_hash;
@@ -34,12 +34,53 @@ typedef struct directory_entry {
     checksum_t     checksum;
 } __attribute__((packed)) directory_entry_t;
 
+/*
+Create new empty entry.
+Params:
+- fullname - 8.3 name for entry.
+- is_dir - Is this entry for directory.
+- dca - Data cluster address. 
+        Note: This cluster should be marked as <FREE>.
+- file_size - Size of file. If is_dir==1 not used.
+- entry - Place where data will be saved.
+- fi - FS data.
+
+Return 1 if entry data generation complete.
+Return 0 if something goes wrong.
+*/
 int create_entry(
-    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
+    const char* __restrict fullname, char is_dir, cluster_addr_t dca, 
     unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
 );
 
-int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+/*
+Index entry by provided cluster. This function will index all data to balanced binary tree.
+Note: Balancing based on Red&Black mechanism and will took a while. Will give more benefits on big directories.
+Params:
+- ca - Entry ca. Should be a directory ca.
+- cache - Pointer to pointer for cache tree.
+- fi - FS data.
+
+Return 1 if binary tree creation complete.
+Return 0 if something goes wrong.
+*/
+int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __restrict fi);
+
+#define NO_ECACHE NULL
+/*
+Search entry in cluster by name. 
+Params:
+- name - Entry name.
+- ca - Cluster address where we should search.
+- cache - Cache of entry. Can be NO_ECACHE or NULL.
+- meta - Storage for entry data.
+- fi - FS data.
+*/
+int entry_search(
+    const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache,
+    directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+);
+
 int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
 int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
 int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);

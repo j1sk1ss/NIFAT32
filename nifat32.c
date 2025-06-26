@@ -140,7 +140,7 @@ static cluster_addr_t _get_cluster_by_path(
             str_memcpy(name_buffer, path + start, iterator - start);
             name_to_fatname(name_buffer, fatname_buffer);
 
-            if (entry_search(fatname_buffer, active_cluster, &current_entry, &_fs_data) < 0) {
+            if (entry_search(fatname_buffer, active_cluster, NO_ECACHE, &current_entry, &_fs_data) < 0) {
                 if (IS_CREATE_MODE(mode)) {
                     cluster_addr_t nca = alloc_cluster(&_fs_data);
                     if (set_cluster_end(nca, &_fs_data)) {
@@ -400,7 +400,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     print_log("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
     cluster_addr_t target = _fs_data.ext_root_cluster;
     if (ci != PUT_TO_ROOT) target = get_content_data_ca(ci);
-    int is_found = entry_search((char*)info->full_name, target, NULL, &_fs_data);
+    int is_found = entry_search((char*)info->full_name, target, NO_ECACHE, NULL, &_fs_data);
     if (is_found < 0 && is_found != -4) {
         print_error("entry_search() encountered an error [%i]. Aborting...", is_found);
         return 0;
@@ -497,7 +497,6 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
 }
 
 int NIFAT32_unload() {
-    entry_cache_unload();
     fat_cache_unload();
     return 1;
 }

@@ -22,11 +22,8 @@ static int __read_encoded_cluster__(
     return 1;
 }
 
-int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
-    print_debug("entry_search(name=%s, cluster=%u)", name, ca);
-    cluster_addr_t root_ca = ca;
-    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
-    
+int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __restrict fi) {
+    print_debug("entry_cache(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
     buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
@@ -37,6 +34,60 @@ int entry_search(const char* __restrict name, cluster_addr_t ca, directory_entry
         return -1;
     }
 
+    unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
+    while (!is_cluster_end(ca)) {
+        if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
+            break;
+        }
+        
+        directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
+        for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+            if (entry->file_name[0] == ENTRY_END) break;
+            if (
+                _validate_entry(entry) && 
+                entry->file_name[0] != ENTRY_FREE
+            ) {
+                ripemd160_t entry_hash;
+                ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), entry_hash);
+                *cache = ecache_insert(*cache, entry_hash, entry->cluster);
+            }
+        }
+
+        ca = read_fat(ca, fi);
+    }
+
+    free_s(decoded_cluster);
+    free_s(cluster_data);
+    return -4;
+}
+
+int entry_search(
+    const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache, 
+    directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+) {
+    print_debug("entry_search(name=%s, cluster=%u)", name, ca);
+    if (cache != NO_ECACHE) {
+        ripemd160_t entry_hash;
+        ripemd160((const_buffer_t)name, 11, entry_hash);
+        ecache_t* cached_entry = ecache_find(cache, entry_hash);
+        if (!cached_entry) {
+            str_memcpy(meta->file_name, name, 11);
+            meta->cluster = ca;
+            return 1;
+        }
+    }
+
+    int decoded_len = fi->cluster_size / sizeof(encoded_t);
+    buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
+    buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
+    if (!cluster_data || !decoded_cluster) {
+        print_error("malloc_s() error!");
+        if (cluster_data)    free_s(cluster_data);
+        if (decoded_cluster) free_s(decoded_cluster);
+        return -1;
+    }
+
+    checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     while (!is_cluster_end(ca)) {
         if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
