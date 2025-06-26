@@ -79,7 +79,7 @@ int entry_search(
         ripemd160((const_buffer_t)name, 11, entry_hash);
         ecache_t* cached_entry = ecache_find(cache, entry_hash);
         if (!cached_entry) {
-            create_entry(name, 0, ca, 0, meta, fi);
+            create_entry(name, IS_ECACHE_DIR(cached_entry), ca, 0, meta, fi);
             return 1;
         }
     }
