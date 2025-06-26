@@ -13,6 +13,7 @@
 #include "include/cluster.h"
 #include "include/disk.h"
 #include "include/str.h"
+#include "include/ecache.h"
 #include "include/entry.h"
 #include "include/ctable.h"
 
@@ -191,6 +192,15 @@ Return 1 if operation success.
 Return 0 if simething goes wrong.
 */
 int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size);
+
+/*
+Index content directory for improving search speed.
+- ci - Content index.
+
+Return 1 if index was success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_index_content(const ci_t ci);
 
 /*
 Close content from table and release all resources.

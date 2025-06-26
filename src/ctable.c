@@ -33,8 +33,8 @@ ci_t alloc_ci() {
 }
 
 int setup_content(
-    ci_t ci, int is_dir, const char* __restrict name83, cluster_addr_t root, cluster_addr_t data, 
-    directory_entry_t* __restrict meta, unsigned char mode
+    ci_t ci, int is_dir, const char* __restrict name83, cluster_addr_t root, 
+    cluster_addr_t data, directory_entry_t* __restrict meta, unsigned char mode
 ) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     _content_table[ci].content_type = is_dir ? CONTENT_TYPE_DIRECTORY : CONTENT_TYPE_FILE;
@@ -87,6 +87,11 @@ unsigned char get_content_mode(const ci_t ci) {
     return _content_table[ci].mode;
 }
 
+content_type_t get_content_type(const ci_t ci) {
+    if (ci > CONTENT_TABLE_SIZE || ci < 0) return CONTENT_TYPE_UNKNOWN;
+    return _content_table[ci].content_type; 
+}
+
 int stat_content(const ci_t ci, cinfo_t* info) {
     if (_content_table[ci].content_type == CONTENT_TYPE_DIRECTORY) {
         info->size = 0;
@@ -106,9 +111,17 @@ int stat_content(const ci_t ci, cinfo_t* info) {
     return 1;
 }
 
+int index_content(const ci_t ci, fat_data_t* fi) {
+    if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
+    if (_content_table[ci].index.root) ecache_free(_content_table[ci].index.root);
+    entry_index(_content_table[ci].data_cluster, &_content_table[ci].index.root, fi);
+    return 1;
+}
+
 int destroy_content(ci_t ci) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     if (_content_table[ci].content_type == CONTENT_TYPE_EMPTY) return 0;
+    ecache_free(_content_table[ci].index.root);
     _content_table[ci].content_type = CONTENT_TYPE_EMPTY;
     return 1;
 }

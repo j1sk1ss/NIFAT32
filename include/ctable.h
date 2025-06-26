@@ -37,8 +37,10 @@ Dependencies:
 
 #include "mm.h"
 #include "fat.h"
+#include "fatinfo.h"
 #include "null.h"
 #include "entry.h"
+#include "ecache.h"
 #include "threading.h"
 
 #define CONTENT_TABLE_SIZE 50
@@ -63,16 +65,21 @@ typedef enum {
 } content_type_t;
 
 typedef struct {
+    ecache_t* root;
+} content_index_t;
+
+typedef struct {
     union {
         directory_t directory;
         file_t      file;
     };
     
-    cluster_addr_t parent_cluster;
-    cluster_addr_t data_cluster;
+    content_index_t   index;
+    cluster_addr_t    parent_cluster;
+    cluster_addr_t    data_cluster;
     directory_entry_t meta;
-    content_type_t content_type;
-    unsigned char mode;
+    content_type_t    content_type;
+    unsigned char     mode;
 } content_t;
 
 #define NOT_PRESENT 0x00
@@ -101,7 +108,9 @@ unsigned int get_content_size(const ci_t ci);
 cluster_addr_t get_content_root_ca(const ci_t ci);
 const char* get_content_name(const ci_t ci);
 unsigned char get_content_mode(const ci_t ci);
+content_type_t get_content_type(const ci_t ci);
 int stat_content(const ci_t ci, cinfo_t* info);
+int index_content(const ci_t ci, fat_data_t* fi);
 int destroy_content(ci_t ci);
 
 #endif

@@ -76,22 +76,22 @@ int NIFAT32_init(nifat32_params* params) {
     _fs_data.ext_root_cluster = ext_bootstruct->root_cluster;
     _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
 
-    print_debug("NIFAT32 init success! Stats from boot sector:");
-    print_debug("FAT type:                  %i", _fs_data.fat_type);
-    print_debug("Bytes per sector:          %u", _fs_data.bytes_per_sector);
-    print_debug("Sectors per cluster:       %u", _fs_data.sectors_per_cluster);
-    print_debug("Reserved sectors:          %u", bootstruct->reserved_sector_count);
-    print_debug("Number of FATs:            %u", bootstruct->table_count);
-    print_debug("FAT size (in sectors):     %u", _fs_data.fat_size);
-    print_debug("Total sectors:             %u", _fs_data.total_sectors);
-    print_debug("Root entry count:          %u", bootstruct->root_entry_count);
-    print_debug("Root dir sectors:          %d", root_dir_sectors);
-    print_debug("Data sectors:              %d", data_sectors);
-    print_debug("Total clusters:            %u", _fs_data.total_clusters);
-    print_debug("First FAT sector:          %u", _fs_data.sectors_padd);
-    print_debug("First data sector:         %u", _fs_data.first_data_sector);
-    print_debug("Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
-    print_debug("Cluster size (in bytes):   %u", _fs_data.cluster_size);
+    print_info("| NIFAT32 init success! Stats from boot sector:");
+    print_info("| FAT type:                  %i", _fs_data.fat_type);
+    print_info("| Bytes per sector:          %u", _fs_data.bytes_per_sector);
+    print_info("| Sectors per cluster:       %u", _fs_data.sectors_per_cluster);
+    print_info("| Reserved sectors:          %u", bootstruct->reserved_sector_count);
+    print_info("| Number of FATs:            %u", bootstruct->table_count);
+    print_info("| FAT size (in sectors):     %u", _fs_data.fat_size);
+    print_info("| Total sectors:             %u", _fs_data.total_sectors);
+    print_info("| Root entry count:          %u", bootstruct->root_entry_count);
+    print_info("| Root dir sectors:          %d", root_dir_sectors);
+    print_info("| Data sectors:              %d", data_sectors);
+    print_info("| Total clusters:            %u", _fs_data.total_clusters);
+    print_info("| First FAT sector:          %u", _fs_data.sectors_padd);
+    print_info("| First data sector:         %u", _fs_data.first_data_sector);
+    print_info("| Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
+    print_info("| Cluster size (in bytes):   %u", _fs_data.cluster_size);
 
     if (params->bs_num > 0) {
         print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
@@ -202,6 +202,16 @@ ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
     
     setup_content(ci, (meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
     return ci;
+}
+
+int NIFAT32_index_content(const ci_t ci) {
+    print_log("NIFAT32_index_content(ci=%u)", ci);
+    if (get_content_type(ci) != CONTENT_TYPE_DIRECTORY) {
+        print_error("Can't index content ci=%i. This content is not a directory!", ci);
+        return 0;
+    }
+
+    return index_content(ci, &_fs_data);
 }
 
 int NIFAT32_close_content(ci_t ci) {
