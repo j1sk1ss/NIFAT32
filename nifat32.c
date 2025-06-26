@@ -149,7 +149,7 @@ static cluster_addr_t _get_cluster_by_path(
                             nca, _fs_data.cluster_size, &current_entry, &_fs_data
                         );
 
-                        if (entry_add(active_cluster, &current_entry, &_fs_data) < 0) {
+                        if (entry_add(active_cluster, NO_ECACHE, &current_entry, &_fs_data) < 0) {
                             print_error("Can't add new entry with mode=%p", mode);
                             dealloc_cluster(current_entry.cluster, &_fs_data);
                         }
@@ -417,7 +417,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
         info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry, &_fs_data
     );
     
-    int is_add = entry_add(target, &entry, &_fs_data);
+    int is_add = entry_add(target, NO_ECACHE, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
         dealloc_cluster(entry.cluster, &_fs_data);

@@ -75,13 +75,28 @@ Params:
 - cache - Cache of entry. Can be NO_ECACHE or NULL.
 - meta - Storage for entry data.
 - fi - FS data.
+
+Return 1 if entry was found.
+Return -1 if something goes wrong.
+Return -4 if wntry wasn't found.
 */
 int entry_search(
     const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache,
     directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 );
 
-int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+/*
+Add entry to cluster.
+Params:
+- ca - Cluster where entry will be saved.
+- cache - If cache!=NO_ECACHE will insert new cache entry.
+- meta - Entry data for saving.
+- fi - FS data.
+
+Return 1 if entry has been written.
+Return < 0 if something goes wrong.
+*/
+int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
 int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
 int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);
 

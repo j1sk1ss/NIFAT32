@@ -23,7 +23,7 @@ static int __read_encoded_cluster__(
 }
 
 int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __restrict fi) {
-    print_debug("entry_cache(cluster=%u)", ca);
+    print_debug("entry_index(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
     buffer_t decoded_cluster = (buffer_t)malloc_s(decoded_len);
@@ -125,8 +125,7 @@ int entry_search(
     return -4;
 }
 
-/* TODO: cache */
-int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
+int entry_add(cluster_addr_t ca, ecache_t** __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
     print_debug("entry_add(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data    = (buffer_t)malloc_s(fi->cluster_size);
@@ -154,6 +153,12 @@ int entry_add(cluster_addr_t ca, directory_entry_t* __restrict meta, fat_data_t*
             ) {
                 str_memcpy(entry, meta, sizeof(directory_entry_t));
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
+                if (*cache != NO_ECACHE && entry->attributes & FILE_DIRECTORY != FILE_DIRECTORY) {
+                    ripemd160_t entry_hash;
+                    ripemd160((const_buffer_t)meta->file_name, sizeof(meta->file_name), entry_hash);
+                    *cache = ecache_insert(*cache, entry_hash, meta->cluster);
+                }
+
                 pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
                 if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {
                     print_error("Writing new directory entry failed. Aborting...");
@@ -360,10 +365,10 @@ int create_entry(
     entry->checksum = 0;
     entry->cluster = first_cluster;
 
-    if (is_dir) entry->attributes = FILE_DIRECTORY;
+    if (is_dir) entry->attributes |= FILE_DIRECTORY;
     else {
         entry->file_size  = file_size;
-        entry->attributes = FILE_ARCHIVE;
+        entry->attributes |= FILE_ARCHIVE;
     }
 
     str_memcpy(entry->file_name, fullname, 11);
