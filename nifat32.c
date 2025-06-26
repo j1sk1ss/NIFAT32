@@ -413,7 +413,8 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     print_log("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
     cluster_addr_t target = _fs_data.ext_root_cluster;
     if (ci != PUT_TO_ROOT) target = get_content_data_ca(ci);
-    int is_found = entry_search((char*)info->full_name, target, NO_ECACHE, NULL, &_fs_data);
+    ecache_t* entry_cache = get_content_ecache(target);
+    int is_found = entry_search((char*)info->full_name, target, entry_cache, NULL, &_fs_data);
     if (is_found < 0 && is_found != -4) {
         print_error("entry_search() encountered an error [%i]. Aborting...", is_found);
         return 0;
@@ -430,7 +431,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
         info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry, &_fs_data
     );
     
-    int is_add = entry_add(target, NO_ECACHE, &entry, &_fs_data);
+    int is_add = entry_add(target, entry_cache, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
         dealloc_cluster(entry.cluster, &_fs_data);
