@@ -41,8 +41,13 @@
 #pragma region [Data]
 
     static int _id = 1;
-    static const char* _get_name(char* buffer, int id) {
+    static const char* _get_raw_name(char* buffer, int id) {
         snprintf(buffer, 12, "%06d.pg", id < 0 ? _id++ : id);
+        return buffer;
+    }
+
+    static const char* _get_name(char* buffer, int id) {
+        snprintf(buffer, 36, "root/%06d.pg", id < 0 ? _id++ : id);
         return buffer;
     }
 
@@ -62,6 +67,7 @@
 #pragma endregion
 
 int main(int argc, char* argv[]) {
+    fprintf(stdout, "File testing of NIFAT32!\n");
     if (argc < 2) {
         fprintf(stderr, "Test count requiered!\n");
         return EXIT_FAILURE;
@@ -73,18 +79,21 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;        
     }
 
+    fprintf(stdout, "LOG setup complete\n");
+
     disk_fd = open(DISK_PATH, O_RDWR);
     if (disk_fd < 0) {
         fprintf(stderr, "%s not found!\n", DISK_PATH);
         return EXIT_FAILURE;
     }
 
-    int count = atoi(argv[1]);
     if (!DSK_setup(_mock_sector_read_, _mock_sector_write_, SECTOR_SIZE)) {
         fprintf(stderr, "DSK_setup() error!\n");
         close(disk_fd);
         return EXIT_FAILURE;
     }
+
+    fprintf(stdout, "DSK setup complete. FD=%i\n", disk_fd);
 
     #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
     nifat32_params params = { .bs_num = 0, .ts = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, .fat_cache = CACHE };
@@ -94,15 +103,16 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    int count = atoi(argv[1]);
     fprintf(stdout, "Creating %i files in root directory...\n", count);
     while (count-- > 0) {
         char target_fatname[128] = { 0 };
-        char name_buffer[12] = { 0 };
+        char name_buffer[36] = { 0 };
         _get_name(name_buffer, -1);
-        name_to_fatname(name_buffer, target_fatname);
+        path_to_fatnames(name_buffer, target_fatname);
 
         const char* data = "Default data from default file. Nothing interesting here.";
-        ci_t ci = NIFAT32_open_content(target_fatname, MODE(W_MODE | CR_MODE, FILE_TARGET));
+        ci_t ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | CR_MODE, FILE_TARGET));
         if (ci >= 0) {
             NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)data, 58);
             NIFAT32_close_content(ci);
@@ -111,15 +121,17 @@ int main(int argc, char* argv[]) {
 
     srand(time(NULL));
     fprintf(stdout, "Performing tests...\n");
+    ci_t rci = NIFAT32_open_content(NO_RCI, "root", DF_MODE);
+    NIFAT32_index_content(rci);
     for (int i = 0; i < _id; i++) {
         char target_fatname[128] = { 0 };
         char name_buffer[12] = { 0 };
-        _get_name(name_buffer, rand() % (_id + 1));
+        _get_raw_name(name_buffer, rand() % (_id + 1));
         name_to_fatname(name_buffer, target_fatname);
 
         char buffer[512] = { 0 };
         long start = _current_time_us();
-        ci_t ci = NIFAT32_open_content(target_fatname, MODE(R_MODE, FILE_TARGET));
+        ci_t ci = NIFAT32_open_content(rci, target_fatname, DF_MODE);
         long end = _current_time_us();
         total_open_time_us += (end - start);
         open_ops++;
@@ -130,6 +142,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    NIFAT32_close_content(rci);
     fprintf(stdout, "\n==== Performance Summary ====\n");
     if (open_ops) fprintf(stdout, "Avg open time:  %.2f µs\n", total_open_time_us / (double)open_ops);
     fprintf(stdout, "=============================\n\n\n");

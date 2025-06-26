@@ -39,7 +39,7 @@ Dependencies:
 #include "logging.h"
 #include "threading.h"
 
-#define ALLOC_BUFFER_SIZE   131072
+#define ALLOC_BUFFER_SIZE   512000
 #define ALIGNMENT           8  
 #define MM_BLOCK_MAGIC      0xC07DEL
 #define NO_OFFSET           0

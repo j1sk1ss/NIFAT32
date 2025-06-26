@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         }
 
         long start = _current_time_us();
-        ci_t ci = NIFAT32_open_content(target_fatname, MODE(R_MODE | W_MODE | CR_MODE, FILE_TARGET));
+        ci_t ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(R_MODE | W_MODE | CR_MODE, FILE_TARGET));
         long end = _current_time_us();
         total_open_time_us += (end - start);
         open_ops++;

@@ -138,7 +138,7 @@ upper:
 
                 ci_t root_ci = PUT_TO_ROOT;
                 if (strlen(current_path) > 1) {
-                    root_ci = NIFAT32_open_content(current_path, DF_MODE);
+                    root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
                     if (root_ci < 0) {
                         close(disk_fd);
                         return EXIT_FAILURE;
@@ -158,7 +158,7 @@ upper:
 
                 ci_t root_ci = PUT_TO_ROOT;
                 if (strlen(current_path) > 1) {
-                    root_ci = NIFAT32_open_content(current_path, DF_MODE);
+                    root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
                     if (root_ci < 0) {
                         close(disk_fd);
                         return EXIT_FAILURE;
@@ -180,7 +180,7 @@ upper:
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
 
-                ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
+                ci_t ci = NIFAT32_open_content(NO_RCI, path_buffer, DF_MODE);
                 if (ci >= 0) NIFAT32_delete_content(ci);
                 else printf("Content not found!\n");
             }
@@ -197,7 +197,7 @@ upper:
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
 
-                ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
+                ci_t ci = NIFAT32_open_content(NO_RCI, path_buffer, DF_MODE);
                 if (ci >= 0) {
                     char content[512] = { 0 };
                     NIFAT32_read_content2buffer(ci, 0, (buffer_t)content, sizeof(content));
@@ -220,7 +220,7 @@ upper:
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
 
-                ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
+                ci_t ci = NIFAT32_open_content(NO_RCI, path_buffer, DF_MODE);
                 if (ci >= 0) {
                     NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)cmds[2], 512);
                     NIFAT32_close_content(ci);
@@ -243,7 +243,7 @@ upper:
 
                 int offset = atoi(cmds[2]);
                 int size   = atoi(cmds[3]);
-                ci_t ci = NIFAT32_open_content(path_buffer, DF_MODE);
+                ci_t ci = NIFAT32_open_content(NO_RCI, path_buffer, DF_MODE);
                 if (ci >= 0) {
                     NIFAT32_truncate_content(ci, offset, size);
                     NIFAT32_close_content(ci);
@@ -256,8 +256,8 @@ upper:
 
             case LS: {
                 ci_t ci = -1;
-                if (strlen(current_path) > 1) ci = NIFAT32_open_content(current_path, DF_MODE);
-                else ci = NIFAT32_open_content(".", DF_MODE);
+                if (strlen(current_path) > 1) ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
+                else ci = NIFAT32_open_content(NO_RCI, ".", DF_MODE);
                 if (ci >= 0) {
                     unsigned char cluster_data[8192] = { 0 };
                     NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 8192);

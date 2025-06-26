@@ -65,7 +65,7 @@ int entry_search(
     const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache, 
     directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
-    print_debug("entry_search(name=%s, cluster=%u)", name, ca);
+    print_debug("entry_search(name=%s, ca=%u, cache=%s)", name, ca, cache != NO_ECACHE ? "YES" : "NO");
     if (cache != NO_ECACHE) {
         ripemd160_t entry_hash;
         ripemd160((const_buffer_t)name, 11, entry_hash);

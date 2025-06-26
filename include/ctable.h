@@ -109,6 +109,7 @@ cluster_addr_t get_content_root_ca(const ci_t ci);
 const char* get_content_name(const ci_t ci);
 unsigned char get_content_mode(const ci_t ci);
 content_type_t get_content_type(const ci_t ci);
+ecache_t* get_content_ecache(const ci_t ci);
 int stat_content(const ci_t ci, cinfo_t* info);
 int index_content(const ci_t ci, fat_data_t* fi);
 int destroy_content(ci_t ci);

@@ -3,7 +3,11 @@
 static content_t _content_table[CONTENT_TABLE_SIZE];
 
 int ctable_init() {
-    for (int i = 0; i < CONTENT_TABLE_SIZE; i++) _content_table[i].content_type = CONTENT_TYPE_EMPTY;
+    for (ci_t i = 0; i < CONTENT_TABLE_SIZE; i++) {
+        _content_table[i].content_type = CONTENT_TYPE_EMPTY;
+        _content_table[i].index.root   = NO_ECACHE;
+    }
+    
     return 1;
 }
 
@@ -12,6 +16,7 @@ lock_t _content_lock = NULL_LOCK;
 static int _init_content(ci_t ci) {
     _content_table[ci].content_type   = CONTENT_TYPE_UNKNOWN;
     _content_table[ci].parent_cluster = FAT_CLUSTER_BAD;
+    _content_table[ci].index.root     = NO_ECACHE;
     return 1;
 }
 
@@ -42,11 +47,11 @@ int setup_content(
         char name[12] = { 0 };
         char ext[6] = { 0 };
         unpack_83_name(name83, name, ext);
-        str_strcpy(_content_table[ci].file.name, name);
-        str_strcpy(_content_table[ci].file.extension, ext);
+        str_strncpy(_content_table[ci].file.name, name, 8);
+        str_strncpy(_content_table[ci].file.extension, ext, 3);
     }
     else {
-        str_strcpy(_content_table[ci].directory.name, name83);
+        str_strncpy(_content_table[ci].directory.name, name83, 11);
     }
 
     str_memcpy(&_content_table[ci].meta, meta, sizeof(directory_entry_t));
@@ -92,6 +97,11 @@ content_type_t get_content_type(const ci_t ci) {
     return _content_table[ci].content_type; 
 }
 
+ecache_t* get_content_ecache(const ci_t ci) {
+    if (ci > CONTENT_TABLE_SIZE || ci < 0) return NO_ECACHE;
+    return _content_table[ci].index.root;
+}
+
 int stat_content(const ci_t ci, cinfo_t* info) {
     if (_content_table[ci].content_type == CONTENT_TYPE_DIRECTORY) {
         info->size = 0;
@@ -121,7 +131,8 @@ int index_content(const ci_t ci, fat_data_t* fi) {
 int destroy_content(ci_t ci) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     if (_content_table[ci].content_type == CONTENT_TYPE_EMPTY) return 0;
-    ecache_free(_content_table[ci].index.root);
+    if (_content_table[ci].index.root) ecache_free(_content_table[ci].index.root);
     _content_table[ci].content_type = CONTENT_TYPE_EMPTY;
+    _content_table[ci].index.root   = NO_ECACHE;
     return 1;
 }

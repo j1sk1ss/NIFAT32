@@ -121,14 +121,16 @@ int NIFAT32_init(nifat32_params* params) {
 /*
 Find cluster active cluster by path.
 Return FAT_CLUSTER_BAD if path invalid.
+dfca - Default start cluster address. Place where we start search.
 */
 static cluster_addr_t _get_cluster_by_path(
-    const char* path, directory_entry_t* entry, cluster_addr_t* parent, unsigned char mode
+    const char* path, directory_entry_t* entry, cluster_addr_t* parent, unsigned char mode, const ci_t rci
 ) {
-    print_debug("_get_cluster_by_path(path=%s, mode=%p)", path, mode);
+    print_debug("_get_cluster_by_path(path=%s, mode=%p, rci=%i)", path, mode, rci);
 
     cluster_addr_t parent_cluster = _fs_data.ext_root_cluster;
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
+    if (rci != NO_RCI) parent_cluster = active_cluster = get_content_data_ca(rci);
 
     unsigned int start = 0;
     directory_entry_t current_entry;
@@ -140,7 +142,8 @@ static cluster_addr_t _get_cluster_by_path(
             str_memcpy(name_buffer, path + start, iterator - start);
             name_to_fatname(name_buffer, fatname_buffer);
 
-            if (entry_search(fatname_buffer, active_cluster, NO_ECACHE, &current_entry, &_fs_data) < 0) {
+            ecache_t* entry_index = get_content_ecache(rci);
+            if (entry_search(fatname_buffer, active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
                 if (IS_CREATE_MODE(mode)) {
                     cluster_addr_t nca = alloc_cluster(&_fs_data);
                     if (set_cluster_end(nca, &_fs_data)) {
@@ -149,7 +152,7 @@ static cluster_addr_t _get_cluster_by_path(
                             nca, _fs_data.cluster_size, &current_entry, &_fs_data
                         );
 
-                        if (entry_add(active_cluster, NO_ECACHE, &current_entry, &_fs_data) < 0) {
+                        if (entry_add(active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
                             print_error("Can't add new entry with mode=%p", mode);
                             dealloc_cluster(current_entry.cluster, &_fs_data);
                         }
@@ -177,20 +180,20 @@ static cluster_addr_t _get_cluster_by_path(
 
 int NIFAT32_content_exists(const char* path) {
     print_log("NIFAT32_content_exists(path=%s)", path);
-    return _get_cluster_by_path(path, NULL, NULL, DF_MODE) != FAT_CLUSTER_BAD;
+    return _get_cluster_by_path(path, NULL, NULL, DF_MODE, NO_RCI) != FAT_CLUSTER_BAD;
 }
 
-ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
+ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) {
     print_log("NIFAT32_open_content(path=%s, mode=%p)", path, mode);
     ci_t ci;
     if ((ci = alloc_ci()) < 0) {
         print_error("Ctable is full!");
         return -1;
     }
-    
+
     cluster_addr_t rca;
     directory_entry_t meta;
-    cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode);
+    cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode, rci);
     if (is_cluster_bad(ca)) {
         print_error("Entry path=%s not found!", path);
         destroy_content(ci);
@@ -200,14 +203,14 @@ ci_t NIFAT32_open_content(const char* path, unsigned char mode) {
         print_debug("NIFAT32_open_content: Content cluster is: %u", ca);
     }
     
-    setup_content(ci, (meta.attributes & FILE_DIRECTORY) != FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
+    setup_content(ci, (meta.attributes & FILE_DIRECTORY) == FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
     return ci;
 }
 
 int NIFAT32_index_content(const ci_t ci) {
     print_log("NIFAT32_index_content(ci=%u)", ci);
     if (get_content_type(ci) != CONTENT_TYPE_DIRECTORY) {
-        print_error("Can't index content ci=%i. This content is not a directory!", ci);
+        print_error("Can't index content ci=%i. This content is not a directory! Type: [%i]", ci, get_content_type(ci));
         return 0;
     }
 

@@ -86,7 +86,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
 
     _fat[ca] = table_value;
     if (wrong > 0) {
-        print_warn("FAT wrong value at ca=%u. Fix starting to val=%u...", ca, table_value);
+        print_warn("FAT wrong value at ca=%u. Fixing to val=%u...", ca, table_value);
         write_fat(ca, table_value, fi);
     }
 

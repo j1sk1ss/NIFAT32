@@ -113,9 +113,12 @@ int NIFAT32_content_exists(const char* path);
 #define IS_WRITE_MODE(byte)   (GET_MODE(byte) & W_MODE)
 #define IS_CREATE_MODE(byte)  (GET_MODE(byte) & CR_MODE)
 
+#define NO_RCI -1
 /*
 Open content to content table.
 Params:
+- rci - Root content index. If we don't want to search in entire file system.
+        Note: By default use NO_RCI
 - path - Path to content (dir or file).
 - mode - Content open mode.
          Note: If mode is CR_MODE, function will create all directories in path.
@@ -123,7 +126,7 @@ Params:
 
 Return content index or negative error code.
 */
-ci_t NIFAT32_open_content(const char* path, unsigned char mode);
+ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode);
 
 /*
 Get summary info about content.
