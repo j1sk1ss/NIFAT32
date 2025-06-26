@@ -92,7 +92,7 @@ This recovery strategy can be significantly improved by introducing a **voting s
 The final algorithm is simple: </br>
 We allocate a buffer for the table and fill it by reading from disk using majority voting. On write, we update all FAT copies to maintain consistency:
 
-```
+```c
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
     if (ca < fi->root_cluster || ca > fi->total_clusters) return 0;
     if (_fat) _fat[ca] = value;
@@ -141,7 +141,7 @@ FAT32 has many data structures that are used during work. For example in source 
 - directory_entry_t - Entry structure that represent any file or directory in file system.
 - fat_bootstruct - Basic data of file system and hardware specification. This structure include data about sector size, cluster size, fat offsets. Full list of fields is below:
 
-```
+```c
 typedef struct fat_BS {
     unsigned char  bootjmp[3];
     unsigned char  oem_name[8];
@@ -168,7 +168,7 @@ For checksum generation, the `crc32` function was used, implemented as described
 To further enhance protection, **Hamming code** was chosen as the noise-immune encoding method. The reasons for this choice and specific implementation details will be discussed in the following sections. </br>
 In the original FAT32 design, the boot structure is stored in the first sector, with a backup typically located in the sixth sector. However, this fixed-location approach can be fragile. To improve fault tolerance, a strategy of **“decompression” storage** is proposed. This involves placing backup copies at sector addresses derived using a formula based on [hash constants](https://en.wikipedia.org/wiki/Golden_ratio), such as the golden ratio. This spreads backups across the storage space, reducing the chance that a localized SEU or memory wear-out event will affect both the original and its backup.
 
-```
+```c
 #define HASH_CONST 2654435761U
 #define BS_PRIME1 73856093U
 #define BS_PRIME2 19349663U
@@ -218,7 +218,7 @@ This breaks compatibility with traditional BIOS or UEFI bootloaders expecting a 
 ## Directory entry
 The next step involves modifying the original data structures to optimize them for this embedded solution. For example, the `directory_entry_t` structure. Below is the original definition:
 
-```
+```c
 typedef struct directory_entry {
     uint8_t file_name[11];
     uint8_t attributes;
@@ -236,7 +236,7 @@ typedef struct directory_entry {
 ```
 
 And updated version:
-```
+```c
 typedef struct directory_entry {
     unsigned char file_name[11];
     unsigned int  name_hash;
@@ -278,12 +278,166 @@ But if we start implementation of error-correction methods such as `Hamming Code
 
 The main detail here is that error-correction in `directory_entry_t` happens every time we iterate through a cluster.
 
+## Selective Directory Indexing with Red-Black Tree Caching in a Custom File System
+This work introduces a novel directory indexing mechanism implemented in a custom file system. The method is based on explicit, selective indexing of directories using an internal Red-Black Tree as a caching structure. Unlike traditional file systems that perform global or on-demand lazy indexing of all directories, our approach allows the user to manually trigger indexing for specific directories when required. This design provides both performance benefits and fine-grained control over memory usage. </br>
+The implementation of this method is below:
+```c
+static int _fix_insert(ecache_t** root, ecache_t* z) {
+    while (z->p && z->p->color == RED) {
+        ecache_t* gp = z->p->p;
+        if (z->p == gp->l) {
+            ecache_t* y = gp->r;
+            if (y && y->color == RED) {
+                z->p->color = BLACK;
+                y->color = BLACK;
+                gp->color = RED;
+                z = gp;
+            } else {
+                if (z == z->p->r) {
+                    z = z->p;
+                    _rotate_left(root, z);
+                }
+
+                z->p->color = BLACK;
+                gp->color = RED;
+                _rotate_right(root, gp);
+            }
+        } else {
+            ecache_t* y = gp->l;
+            if (y && y->color == RED) {
+                z->p->color = BLACK;
+                y->color = BLACK;
+                gp->color = RED;
+                z = gp;
+            } else {
+                if (z == z->p->l) {
+                    z = z->p;
+                    _rotate_right(root, z);
+                }
+
+                z->p->color = BLACK;
+                gp->color = RED;
+                _rotate_left(root, gp);
+            }
+        }
+    }
+
+    (*root)->color = BLACK;
+    return 1;
+}
+
+ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, cluster_addr_t ca) {
+    ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
+    if (!z) return root;
+
+    str_memcpy(z->hash, hash, sizeof(ripemd160_t));
+    z->ca = ca;
+    z->l = z->r = z->p = NULL;
+    z->color = RED;
+
+    ecache_t* y = NULL;
+    ecache_t* x = root;
+
+    while (x) {
+        y = x;
+        int cmp = str_memcmp(hash, x->hash, sizeof(ripemd160_t));
+        if (cmp < 0) x = x->l;
+        else if (cmp > 0) x = x->r;
+        else {
+            free_s(z);
+            return root;
+        }
+    }
+
+    z->p = y;
+    if (!y) root = z;
+    else if (str_memcmp(hash, y->hash, sizeof(ripemd160_t)) < 0) y->l = z;
+    else y->r = z;
+
+    _fix_insert(&root, z);
+    return root;
+}
+
+int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __restrict fi) {
+    // ...
+    unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
+    while (!is_cluster_end(ca)) {
+        if (!__read_encoded_cluster__(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
+            break;
+        }
+        
+        directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
+        for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
+            if (entry->file_name[0] == ENTRY_END) break;
+            if (
+                _validate_entry(entry) && 
+                entry->file_name[0] != ENTRY_FREE
+            ) {
+                ripemd160_t entry_hash;
+                ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), entry_hash);
+                *cache = ecache_insert(*cache, entry_hash, entry->cluster);
+            }
+        }
+
+        ca = read_fat(ca, fi);
+    }
+    // ...
+    return -4;
+}
+```
+
+### Concept Overview
+Directories can be explicitly indexed after being opened, at which point a self-balancing binary tree (Red-Black Tree) is constructed in memory and used to accelerate subsequent lookups within that directory. Once indexed, the directory effectively becomes a searchable container with logarithmic access time for any subpath it contains. The cache remains active until the directory is closed, and it dynamically integrates newly created files and subdirectories in real time. </br>
+
+How it works:
+```c
+ci_t rci = NIFAT32_open_content(NO_RCI, path_to_dir, DF_MODE);
+if (NIFAT32_index_content(rci)) { // Create self-balanced index tree of directory
+    ci_t ci = NIFAT32_open_content(rci, relative_path_to_file, DF_MODE);
+
+    // ...
+    NIFAT32_close_content(ci);
+}
+
+NIFAT32_close_content(rci); // Unload index tree
+```
+
+### Performance Evaluation
+The selective indexing strategy dramatically reduces file lookup times compared to linear search in non-indexed directories. The table below presents the average time required to locate and open a file within a directory under both indexed and non-indexed conditions:
+
+| Number of Files | Without Indexing | With Indexing |
+|-----------------|------------------|----------------|
+| 100             | 211 ms           | 1.6 ms         |
+| 800             | 1240 ms          | 1.95 ms        |
+| 1500            | 2342 ms          | 2.39 ms        |
+| 5000            | 8081 ms          | 1.88 ms        |
+| 10000           | 16818 ms         | 1.68 ms        |
+
+> *Note: results for datasets above 1500 files may be subject to revalidation.*
+
+### Benefits
+- **Performance:** Logarithmic access time for indexed directories significantly accelerates file operations in high-density directories.
+- **Memory Control:** The user determines which directories to index, enabling optimization of memory usage based on application needs.
+- **Dynamic Updates:** The index integrates new entries in real time while maintaining tree balance.
+
+### Limitations
+- **Memory Overhead:** Active indexes consume additional memory while the directory is open.
+- **Manual Management:** Indexing must be explicitly invoked; non-indexed directories default to slower linear access.
+- **Indexing Latency:** Initial indexing of a directory introduces some delay.
+
+### Use Case Suitability
+This indexing method is particularly advantageous in scenarios involving:
+
+- Embedded or resource-constrained environments.
+- Applications with predictable access patterns to specific directories.
+- Situations where only parts of the file system require optimized performance.
+
 ## Modern solutions against SEU
 The most common solution against **Single Event Upsets** (SEUs) is [Hamming encoding](https://en.wikipedia.org/wiki/Hamming_code).  
 Another approach for implementing noise-immune encoding is the use of [Reed–Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). A comparison between these two error correction methods can be found in [this study](https://www.researchgate.net/publication/389098626_A_Comparative_Study_between_Hamming_Code_and_Reed-Solomon_Code_in_Byte_Error_Detection_and_Correction). </br>
 Below is a basic implementation of Hamming encoding and decoding.
 
-```
+```c
 #define GET_BIT(b, i) ((b >> i) & 1)
 #define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
 #define TOGGLE_BIT(b, i) (b ^ (1 << i))
@@ -341,7 +495,7 @@ decoded_t decode_hamming_15_11(encoded_t encoded) {
 The main limitation of this algorithm is its restricted error correction capability: it can correct single-bit errors and detect (but not correct) double-bit errors. This makes it insufficient in environments where frequent or multiple simultaneous bit-flips occur. Additionally, this method requires extra space for control bits. While this overhead is usually manageable, it becomes critical when dealing with sectors. </br>
 **Sectors** represent the lowest-level abstraction that divides the disk into the smallest addressable units. Every disk I/O syscall reads or writes an entire sector from or to the disk. A basic implementation of such a syscall, taken from my hobby OS project, looks like this:
 
-```
+```c
 int ATA_read_sector(uint32_t lba, uint8_t* buffer) {
     _ata_wait();
     _prepare_for_reading(lba);
