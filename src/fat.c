@@ -103,7 +103,7 @@ int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_end(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_END ? 1 : 0;
+    return cluster == FAT_CLUSTER_END;
 }
 
 int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
@@ -111,7 +111,7 @@ int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_bad(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_BAD ? 1 : 0;
+    return cluster == FAT_CLUSTER_BAD;
 }
 
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
@@ -119,5 +119,5 @@ int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_reserved(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_RESERVED ? 1 : 0;
+    return cluster == FAT_CLUSTER_RESERVED;
 }

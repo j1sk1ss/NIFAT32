@@ -407,11 +407,10 @@ The selective indexing strategy dramatically reduces file lookup times compared 
 
 | Number of Files | Without Indexing | With Indexing |
 |-----------------|------------------|----------------|
-| 100             | 211 ms           | 1.6 ms         |
-| 800             | 1240 ms          | 1.95 ms        |
-| 1500            | 2342 ms          | 2.39 ms        |
-| 5000            | 8081 ms          | 1.88 ms        |
-| 10000           | 16818 ms         | 1.68 ms        |
+| 100             | 290 ms           | 1.94 ms        |
+| 800             | 939 ms           | 3.57 ms        |
+| 1500            | 1563 ms          | 3.64 ms        |
+| 5000            | 4695 ms          | 3.82 ms        |
 
 > *Note: results for datasets above 1500 files may be subject to revalidation.*
 

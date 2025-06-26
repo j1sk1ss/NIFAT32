@@ -195,7 +195,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     directory_entry_t meta;
     cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode, rci);
     if (is_cluster_bad(ca)) {
-        print_error("Entry path=%s not found!", path);
+        print_error("Entry path=%s, not found!", path);
         destroy_content(ci);
         return -2;
     }

@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    memset(fat_table, 0, total_clusters * sizeof(uint32_t));
+    memset(fat_table, FAT_ENTRY_FREE, total_clusters * sizeof(uint32_t));
     _initialize_fat(fat_table, total_sectors, total_clusters);
     if (!_write_root_directory(fd, data_start, fat_size)) {
         fprintf(stderr, "Error initializing root directory\n");
@@ -280,14 +280,11 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
 /* Generate first clusters, reserve clusters for bootstructs */
 static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
     fat_table[0] = FAT_ENTRY_RESERVED | (0xF8 << 24);
-    fat_table[1] = FAT_ENTRY_END;
-    fat_table[2] = FAT_ENTRY_END;
-
-    uint32_t cluster_for_bs = 0;
+    fat_table[1] = FAT_ENTRY_END | (0xF8 << 24);
+    fat_table[2] = FAT_ENTRY_END | (0xF8 << 24);
     uint32_t cluster_for_backup = 0;
 
     /* Bootsector */
-    fat_table[cluster_for_bs] = FAT_ENTRY_RESERVED | (0xF8 << 24);
     for (int i = 0; i < opt.bsbc; i++) {
         uint32_t sector = GET_BOOTSECTOR(i, ts);
         cluster_for_backup = sector / opt.spc;

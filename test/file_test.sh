@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BUILD_FLAGS=""
+LAUNCHER=""
 
 if [ "$1" == "--new-image" ]; then
     cd ../formatter || exit 1
@@ -14,12 +15,13 @@ if [ "$1" == "--new-image" ]; then
 fi
 
 if [ "$1" == "--debug" ]; then
-    BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -DDEBUG_LOGS -g"
+    BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -DLOGGING_LOGS -DSPECIAL_LOGS -DDEBUG_LOGS -g"
     shift
 fi
 
 if [ "$1" == "--log" ]; then
     BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -g"
+    LAUNCHER="lldb"
     shift
 fi
 

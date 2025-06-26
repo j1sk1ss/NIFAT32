@@ -12,7 +12,7 @@ static int _read_encoded_cluster(
     cluster_addr_t ca, buffer_t __restrict enc, int enc_size, buffer_t __restrict dec, int dec_size, fat_data_t* __restrict fi
 ) {
     print_debug("_read_encoded_cluster(ca=%u)", ca);
-    if (!enc || !dec) return 0;
+    if (!enc || !dec || is_cluster_bad(ca)) return 0;
     if (!read_cluster(ca, enc, enc_size, fi)) {
         print_error("read_cluster() encountered an error. Aborting...");
         return 0;
@@ -43,7 +43,7 @@ int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __re
     buffer_t cluster_data, decoded_cluster;
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-    while (!is_cluster_end(ca)) {
+    do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
         }
@@ -60,9 +60,7 @@ int entry_index(cluster_addr_t ca, ecache_t** __restrict cache, fat_data_t* __re
                 *cache = ecache_insert(*cache, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
             }
         }
-
-        ca = read_fat(ca, fi);
-    }
+    } while (!is_cluster_end((ca = read_fat(ca, fi))));
 
     free_s(decoded_cluster);
     free_s(cluster_data);
@@ -78,8 +76,8 @@ int entry_search(
         ripemd160_t entry_hash;
         ripemd160((const_buffer_t)name, 11, entry_hash);
         ecache_t* cached_entry = ecache_find(cache, entry_hash);
-        if (!cached_entry) {
-            create_entry(name, IS_ECACHE_DIR(cached_entry), ca, 0, meta, fi);
+        if (cached_entry) {
+            if (meta) create_entry(name, IS_ECACHE_DIR(cached_entry), cached_entry->ca, 0, meta, fi);
             return 1;
         }
     }
@@ -89,7 +87,7 @@ int entry_search(
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-    while (!is_cluster_end(ca)) {
+    do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
         }
@@ -103,7 +101,7 @@ int entry_search(
             ) {
                 if (entry->name_hash != name_hash) continue;
                 if (!str_strncmp((char*)entry->file_name, name, 11)) {
-                    str_memcpy(meta, entry, sizeof(directory_entry_t));
+                    if (meta) str_memcpy(meta, entry, sizeof(directory_entry_t));
                     pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
                     if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {
                         print_error("Error correction of directory entry failed. Aborting...");
@@ -116,9 +114,7 @@ int entry_search(
                 }
             }
         }
-
-        ca = read_fat(ca, fi);
-    }
+    } while (!is_cluster_end((ca = read_fat(ca, fi))));
 
     free_s(decoded_cluster);
     free_s(cluster_data);
@@ -132,7 +128,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     cluster_addr_t root_ca = ca;
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-    while (!is_cluster_end(ca)) {
+    do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
         }
@@ -190,7 +186,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
         }
 
         ca = nca;
-    }
+    } while (!is_cluster_end(ca));
 
     free_s(decoded_cluster);
     free_s(cluster_data);
@@ -206,7 +202,7 @@ int entry_edit(
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-    while (!is_cluster_end(ca)) {
+    do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
         }
@@ -233,9 +229,7 @@ int entry_edit(
                 }
             }
         }
-
-        ca = read_fat(ca, fi);
-    }
+    } while (!is_cluster_end((ca = read_fat(ca, fi))));
 
     free_s(decoded_cluster);
     free_s(cluster_data);
@@ -251,7 +245,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
         if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
         cluster_addr_t nca = ca;
         unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-        while (!is_cluster_end(ca)) {
+        do {
             if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
                 break;
             }
@@ -272,7 +266,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
             }
 
             ca = nca;
-        }
+        } while (!is_cluster_end(ca));
 
         free_s(decoded_cluster);
         free_s(cluster_data);
@@ -289,7 +283,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __r
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     checksum_t name_hash = crc32(0, (const_buffer_t)name, 11);
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
-    while (!is_cluster_end(ca)) {
+    do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
         }
@@ -321,9 +315,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __r
                 }
             }
         }
-
-        ca = read_fat(ca, fi);
-    }
+    } while (!is_cluster_end((ca = read_fat(ca, fi))));
 
     free_s(decoded_cluster);
     free_s(cluster_data);
@@ -346,6 +338,6 @@ int create_entry(
     str_memcpy(entry->file_name, fullname, 11);
     entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, 11);
     entry->checksum  = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
-    print_debug("_create_entry=%.11s, is_dir=%i", entry->file_name, is_dir);
+    print_debug("_create_entry=%.11s, is_dir=%i, fca=%u", entry->file_name, is_dir, first_cluster);
     return 1; 
 }

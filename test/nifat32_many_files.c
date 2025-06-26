@@ -42,7 +42,7 @@
 
     static int _id = 1;
     static const char* _get_raw_name(char* buffer, int id) {
-        snprintf(buffer, 12, "%06d.pg", id < 0 ? _id++ : id);
+        snprintf(buffer, 36, "%06d.pg", id < 0 ? _id++ : id);
         return buffer;
     }
 
@@ -105,13 +105,13 @@ int main(int argc, char* argv[]) {
 
     int count = atoi(argv[1]);
     fprintf(stdout, "Creating %i files in root directory...\n", count);
+    const char* data = "Default data from default file. Nothing interesting here.";
     while (count-- > 0) {
         char target_fatname[128] = { 0 };
         char name_buffer[36] = { 0 };
         _get_name(name_buffer, -1);
         path_to_fatnames(name_buffer, target_fatname);
 
-        const char* data = "Default data from default file. Nothing interesting here.";
         ci_t ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | CR_MODE, FILE_TARGET));
         if (ci >= 0) {
             NIFAT32_write_buffer2content(ci, 0, (const_buffer_t)data, 58);
@@ -130,11 +130,10 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < _id; i++) {
         char target_fatname[128] = { 0 };
-        char name_buffer[12] = { 0 };
-        _get_raw_name(name_buffer, rand() % (_id + 1));
-        name_to_fatname(name_buffer, target_fatname);
+        char name_buffer[36] = { 0 };
+        _get_raw_name(name_buffer, ((1 + rand()) % _id));
+        path_to_fatnames(name_buffer, target_fatname);
 
-        char buffer[512] = { 0 };
         long start = _current_time_us();
         ci_t ci = NIFAT32_open_content(rci, target_fatname, DF_MODE);
         long end = _current_time_us();
@@ -142,7 +141,9 @@ int main(int argc, char* argv[]) {
         open_ops++;
 
         if (ci >= 0) {
-            NIFAT32_read_content2buffer(ci, 0, (buffer_t)buffer, 58);
+            char buffer[512] = { 0 };
+            NIFAT32_read_content2buffer(ci, 0, (buffer_t)buffer, 512);
+            if (memcmp(data, buffer, 58)) fprintf(stderr, "%.58s != %.58s!\n", data, buffer);
             NIFAT32_close_content(ci);
         }
     }

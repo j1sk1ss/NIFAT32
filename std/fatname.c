@@ -70,9 +70,9 @@ int path_to_fatnames(const char* path, char* fatnames) {
     str_strcpy(fatnames, path);
 
     int i;
-    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i > 0; i--);
+    for (i = str_strlen(path); path[i] != PATH_SPLITTER && i >= 0; i--);
+    i++;
     name_to_fatname(path + i, fatnames + i);
-    
     str_uppercase(fatnames);
     return 1;
 }

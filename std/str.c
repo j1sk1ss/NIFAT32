@@ -27,10 +27,12 @@ void* str_memset(void* pointer, unsigned char value, unsigned int num) {
 int str_memcmp(const void* firstPointer, const void* secondPointer, unsigned int num) {
     const unsigned char* u8Ptr1 = (const unsigned char *)firstPointer;
     const unsigned char* u8Ptr2 = (const unsigned char *)secondPointer;
-    for (unsigned short i = 0; i < num; i++) {
-        if (u8Ptr1[i] != u8Ptr2[i]) return 1;
+    for (unsigned int i = 0; i < num; i++) {
+        if (u8Ptr1[i] != u8Ptr2[i]) {
+            return (int)u8Ptr1[i] - (int)u8Ptr2[i];
+        }
     }
-
+    
     return 0;
 }
 
