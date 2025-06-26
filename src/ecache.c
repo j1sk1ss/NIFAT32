@@ -31,57 +31,61 @@ static int _rotate_right(ecache_t** root, ecache_t* x) {
 }
 
 static int _fix_insert(ecache_t** root, ecache_t* z) {
-    while (z->p && z->p->color == RED) {
+    while (z->p && IS_ECACHE_RED(z->p)) {
         ecache_t* gp = z->p->p;
         if (z->p == gp->l) {
             ecache_t* y = gp->r;
-            if (y && y->color == RED) {
-                z->p->color = BLACK;
-                y->color = BLACK;
-                gp->color = RED;
+            if (y && IS_ECACHE_RED(y)) {
+                SET_ECACHE_BLACK(z->p);
+                SET_ECACHE_BLACK(y);
+                SET_ECACHE_RED(gp);
                 z = gp;
-            } else {
+            } 
+            else {
                 if (z == z->p->r) {
                     z = z->p;
                     _rotate_left(root, z);
                 }
 
-                z->p->color = BLACK;
-                gp->color = RED;
+                SET_ECACHE_BLACK(z->p);
+                SET_ECACHE_RED(gp);
                 _rotate_right(root, gp);
             }
         } else {
             ecache_t* y = gp->l;
-            if (y && y->color == RED) {
-                z->p->color = BLACK;
-                y->color = BLACK;
-                gp->color = RED;
+            if (y && IS_ECACHE_RED(y)) {
+                SET_ECACHE_BLACK(z->p);
+                SET_ECACHE_BLACK(y);
+                SET_ECACHE_RED(gp);
                 z = gp;
-            } else {
+            } 
+            else {
                 if (z == z->p->l) {
                     z = z->p;
                     _rotate_right(root, z);
                 }
 
-                z->p->color = BLACK;
-                gp->color = RED;
+                SET_ECACHE_BLACK(z->p);
+                SET_ECACHE_RED(gp);
                 _rotate_left(root, gp);
             }
         }
     }
 
-    (*root)->color = BLACK;
+    SET_ECACHE_BLACK((*root));
     return 1;
 }
 
-ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, cluster_addr_t ca) {
+ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, unsigned char is_dir, cluster_addr_t ca) {
     ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
     if (!z) return root;
 
     str_memcpy(z->hash, hash, sizeof(ripemd160_t));
     z->ca = ca;
     z->l = z->r = z->p = NULL;
-    z->color = RED;
+    SET_ECACHE_RED(z);
+    if (is_dir) SET_ECACHE_DIR(z);
+    else SET_ECACHE_FILE(z); 
 
     ecache_t* y = NULL;
     ecache_t* x = root;

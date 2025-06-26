@@ -122,7 +122,12 @@ int main(int argc, char* argv[]) {
     srand(time(NULL));
     fprintf(stdout, "Performing tests...\n");
     ci_t rci = NIFAT32_open_content(NO_RCI, "root", DF_MODE);
+
+    long index_time_st = _current_time_us();
     NIFAT32_index_content(rci);
+    fprintf(stdout, "\n==== Performance Summary ====\n");
+    fprintf(stdout, "Index time:  %.2f µs\n", (_current_time_us() - index_time_st));
+
     for (int i = 0; i < _id; i++) {
         char target_fatname[128] = { 0 };
         char name_buffer[12] = { 0 };
@@ -143,7 +148,6 @@ int main(int argc, char* argv[]) {
     }
 
     NIFAT32_close_content(rci);
-    fprintf(stdout, "\n==== Performance Summary ====\n");
     if (open_ops) fprintf(stdout, "Avg open time:  %.2f µs\n", total_open_time_us / (double)open_ops);
     fprintf(stdout, "=============================\n\n\n");
 
