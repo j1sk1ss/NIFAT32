@@ -23,68 +23,60 @@ int NIFAT32_init(nifat32_params* params) {
         return 0;
     }
 
-    buffer_t decoded_bs = (buffer_t)malloc_s(sector_size);
-    if (!decoded_bs) {
-        print_error("malloc_s() error!");
-        return 0;
-    }
+    nifat32_bootsector_t bootstruct;
+    unpack_memory((encoded_t*)encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
 
-    unpack_memory((encoded_t*)encoded_bs, decoded_bs, sector_size);
+    checksum_t bcheck = bootstruct.checksum;
+    bootstruct.checksum = 0;
+    checksum_t exbcheck = bootstruct.extended_section.checksum;
+    bootstruct.extended_section.checksum = 0;
 
-    fat_BS_t* bootstruct = (fat_BS_t*)decoded_bs;
-    fat_extBS_32_t* ext_bootstruct = &bootstruct->extended_section;
-
-    checksum_t bcheck = bootstruct->checksum;
-    bootstruct->checksum = 0;
-    checksum_t exbcheck = ext_bootstruct->checksum;
-    ext_bootstruct->checksum = 0;
-
-    ext_bootstruct->checksum = crc32(0, (buffer_t)ext_bootstruct, sizeof(fat_extBS_32_t));
-    bootstruct->checksum     = crc32(0, (buffer_t)bootstruct, sizeof(fat_BS_t));
-    if (bootstruct->checksum != bcheck || ext_bootstruct->checksum != exbcheck) {
+    bootstruct.extended_section.checksum = crc32(0, (buffer_t)&bootstruct.extended_section, sizeof(nifat32_ext32_bootsector_t));
+    bootstruct.checksum = crc32(0, (buffer_t)&bootstruct, sizeof(nifat32_bootsector_t));
+    if (bootstruct.checksum != bcheck || bootstruct.extended_section.checksum != exbcheck) {
         print_error(
             "Checksum check error! [bootstruct=%u != %u] or [ext_bootstruct=%u != %u]. Moving to reserved sector!", 
-            bootstruct->checksum, bcheck, ext_bootstruct->checksum, exbcheck
+            bootstruct.checksum, bcheck, bootstruct.extended_section.checksum, exbcheck
         );
 
         params->bs_num++;
         return NIFAT32_init(params);
     }
     else {
-        bootstruct->checksum     = bcheck;
-        ext_bootstruct->checksum = exbcheck;
+        bootstruct.checksum = bcheck;
+        bootstruct.extended_section.checksum = exbcheck;
     }
 
-    _fs_data.fat_count = bootstruct->table_count;
-    _fs_data.total_sectors = bootstruct->total_sectors_32;
-    _fs_data.fat_size = ext_bootstruct->table_size_32;
+    _fs_data.fat_count     = bootstruct.table_count;
+    _fs_data.total_sectors = bootstruct.total_sectors_32;
+    _fs_data.fat_size      = bootstruct.extended_section.table_size_32;
 
-    int root_dir_sectors = ((bootstruct->root_entry_count * 32) + (bootstruct->bytes_per_sector - 1)) / bootstruct->bytes_per_sector;
-    int data_sectors = _fs_data.total_sectors - (bootstruct->reserved_sector_count + (bootstruct->table_count * _fs_data.fat_size) + root_dir_sectors);
-    if (!data_sectors || !bootstruct->sectors_per_cluster) {
-        _fs_data.total_clusters = bootstruct->total_sectors_32 / bootstruct->sectors_per_cluster;
+    int root_dir_sectors = ((bootstruct.root_entry_count * 32) + (bootstruct.bytes_per_sector - 1)) / bootstruct.bytes_per_sector;
+    int data_sectors = _fs_data.total_sectors - (bootstruct.reserved_sector_count + (bootstruct.table_count * _fs_data.fat_size) + root_dir_sectors);
+    if (!data_sectors || !bootstruct.sectors_per_cluster) {
+        _fs_data.total_clusters = bootstruct.total_sectors_32 / bootstruct.sectors_per_cluster;
     }
     else {
-        _fs_data.total_clusters = data_sectors / bootstruct->sectors_per_cluster;
+        _fs_data.total_clusters = data_sectors / bootstruct.sectors_per_cluster;
     }
 
-    _fs_data.fat_type = 32;
-    _fs_data.first_data_sector = bootstruct->reserved_sector_count + bootstruct->table_count * ext_bootstruct->table_size_32;
-    _fs_data.sectors_per_cluster = bootstruct->sectors_per_cluster;
-    _fs_data.bytes_per_sector = bootstruct->bytes_per_sector;
-    _fs_data.sectors_padd = bootstruct->reserved_sector_count;
-    _fs_data.ext_root_cluster = ext_bootstruct->root_cluster;
-    _fs_data.cluster_size = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
+    _fs_data.fat_type            = 32;
+    _fs_data.first_data_sector   = bootstruct.reserved_sector_count + bootstruct.table_count * bootstruct.extended_section.table_size_32;
+    _fs_data.sectors_per_cluster = bootstruct.sectors_per_cluster;
+    _fs_data.bytes_per_sector    = bootstruct.bytes_per_sector;
+    _fs_data.sectors_padd        = bootstruct.reserved_sector_count;
+    _fs_data.ext_root_cluster    = bootstruct.extended_section.root_cluster;
+    _fs_data.cluster_size        = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
 
     print_info("| NIFAT32 init success! Stats from boot sector:");
     print_info("| FAT type:                  %i", _fs_data.fat_type);
     print_info("| Bytes per sector:          %u", _fs_data.bytes_per_sector);
     print_info("| Sectors per cluster:       %u", _fs_data.sectors_per_cluster);
-    print_info("| Reserved sectors:          %u", bootstruct->reserved_sector_count);
-    print_info("| Number of FATs:            %u", bootstruct->table_count);
+    print_info("| Reserved sectors:          %u", bootstruct.reserved_sector_count);
+    print_info("| Number of FATs:            %u", bootstruct.table_count);
     print_info("| FAT size (in sectors):     %u", _fs_data.fat_size);
     print_info("| Total sectors:             %u", _fs_data.total_sectors);
-    print_info("| Root entry count:          %u", bootstruct->root_entry_count);
+    print_info("| Root entry count:          %u", bootstruct.root_entry_count);
     print_info("| Root dir sectors:          %d", root_dir_sectors);
     print_info("| Data sectors:              %d", data_sectors);
     print_info("| Total clusters:            %u", _fs_data.total_clusters);
@@ -114,7 +106,6 @@ int NIFAT32_init(nifat32_params* params) {
     }
 
     free_s(encoded_bs);
-    free_s(decoded_bs);
     return 1;
 }
 
@@ -128,6 +119,7 @@ static cluster_addr_t _get_cluster_by_path(
 ) {
     print_debug("_get_cluster_by_path(path=%s, mode=%p, rci=%i)", path, mode, rci);
 
+    ci_t curr_ci = rci;
     cluster_addr_t parent_cluster = _fs_data.ext_root_cluster;
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
     if (rci != NO_RCI) parent_cluster = active_cluster = get_content_data_ca(rci);
@@ -142,7 +134,7 @@ static cluster_addr_t _get_cluster_by_path(
             str_memcpy(name_buffer, path + start, iterator - start);
             name_to_fatname(name_buffer, fatname_buffer);
 
-            ecache_t* entry_index = get_content_ecache(rci);
+            ecache_t* entry_index = get_content_ecache(curr_ci);
             if (entry_search(fatname_buffer, active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
                 if (IS_CREATE_MODE(mode)) {
                     cluster_addr_t nca = alloc_cluster(&_fs_data);
@@ -167,6 +159,7 @@ static cluster_addr_t _get_cluster_by_path(
                 }
             }
 
+            curr_ci = NO_RCI;
             start = iterator + 1;
             parent_cluster = active_cluster;
             active_cluster = current_entry.cluster;
@@ -440,7 +433,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 
     if (reserve > NO_RESERVE) {
         cluster_addr_t lca = entry.cluster;
-        for (; reserve > NO_RESERVE; reserve--) {
+        for (; reserve-- > NO_RESERVE; ) {
             lca = _add_cluster_to_chain(lca);
         }
     }

@@ -145,9 +145,9 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "Total files: %i, with size=%iMB\n", _id, (offset * _id) / (1024 * 1024));
 
             fprintf(stdout, "\n==== Performance Summary ====\n");
-            if (open_ops) fprintf(stdout, "Avg open time:  %.2f µs\n", total_open_time_us / (double)open_ops);
+            if (open_ops)  fprintf(stdout, "Avg open time:  %.2f µs\n", total_open_time_us / (double)open_ops);
             if (write_ops) fprintf(stdout, "Avg write time: %.2f µs\n", total_write_time_us / (double)write_ops);
-            if (read_ops) fprintf(stdout, "Avg read time:  %.2f µs\n", total_read_time_us / (double)read_ops);
+            if (read_ops)  fprintf(stdout, "Avg read time:  %.2f µs\n", total_read_time_us / (double)read_ops);
             fprintf(stdout, "=============================\n\n\n");
 
             open_ops = write_ops = read_ops = 0;

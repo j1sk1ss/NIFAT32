@@ -157,8 +157,8 @@ typedef struct fat_BS {
     unsigned short head_side_count;
     unsigned int   hidden_sector_count;
     unsigned int   total_sectors_32;
-    unsigned char  extended_section[sizeof(fat_extBS_32_t)];
-} __attribute__((packed)) fat_BS_t;
+    unsigned char  extended_section[sizeof(nifat32_ext32_bootsector_t)];
+} __attribute__((packed)) nifat32_bootsector_t;
 ```
 
 - The fat32_bootstruct itself actually refers to the `fat_bootstruct`, which historically contains information only for FAT12 and FAT16 filesystems. That’s why, to support FAT32, the bootstruct includes a special field called the extended_section.
@@ -260,7 +260,7 @@ For example, assuming a default cluster size of: </br>
 `sector_size * 2^3 = 512 * 8 = 4096 bytes` </br>
 
 - The original structure required approximately 26 bytes per `directory_entry_t`, allowing for around 157 entries per cluster.
-- The modified structure uses only 18 bytes, increasing the number of entries per cluster to approximately 227.
+- The modified structure uses 28 bytes, decreasing the number of entries per cluster to approximately 146.
 
 This optimization leads to better performance and fewer disk accesses. The improvement can be visualized with a graph where:
 - **Y-axis** represents the number of I/O operations,
@@ -270,7 +270,7 @@ This optimization leads to better performance and fewer disk accesses. The impro
     <img src="graphs/io.png" alt="IO count depends on entry count"/>
 </p>
 
-But if we start implementation of error-correction methods such as `Hamming Code` (Hamming code is better for single-bit errors. For large data blocks like stored data or entire FAT, we will use `Reed-Solomon code`. About implementation of this approach we will speak below), we multiply size of modified `directory_entry_t` by 2, and receive something similar to old results: 30 bytes, that in the end will lead to incrementing of syscalls count:
+But if we start implementation of error-correction methods such as `Hamming Code` (Hamming code is better for single-bit errors. For large data blocks like stored data or entire FAT, we will use `Reed-Solomon code`. About implementation of this approach we will speak below), we multiply size of modified `directory_entry_t` by 2, and receive something similar to old results: 56 bytes, that in the end will lead to incrementing of syscalls count:
 
 <p align="center">
     <img src="graphs/io_hamming.png" alt="IO count depends on entry count"/>

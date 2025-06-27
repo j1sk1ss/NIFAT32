@@ -52,17 +52,13 @@ typedef struct {
     unsigned short extended_flags;
     unsigned short fat_version;
     unsigned int   root_cluster;
-    unsigned short fat_info;
-    unsigned short backup_BS_sector;
-    unsigned char  reserved_0[12];
     unsigned char  drive_number;
-    unsigned char  reserved_1;
     unsigned char  boot_signature;
     unsigned int   volume_id;
     unsigned char  volume_label[11];
     unsigned char  fat_type_label[8];
     unsigned int   checksum;
-} __attribute__((packed)) fat_extBS_32_t;
+} __attribute__((packed)) nifat32_ext32_bootsector_t;
 
 typedef struct {
     unsigned char  bootjmp[3];
@@ -79,9 +75,9 @@ typedef struct {
     unsigned short head_side_count;
     unsigned int   hidden_sector_count;
     unsigned int   total_sectors_32;
-    fat_extBS_32_t extended_section;
-    unsigned int   checksum;
-} __attribute__((packed)) fat_BS_t;
+    nifat32_ext32_bootsector_t extended_section;
+    unsigned int checksum;
+} __attribute__((packed)) nifat32_bootsector_t;
 
 /* from http://wiki.osdev.org/FAT */
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */

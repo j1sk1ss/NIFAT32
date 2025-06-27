@@ -97,7 +97,29 @@ Return 1 if entry has been written.
 Return < 0 if something goes wrong.
 */
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+
+/*
+Edit entry in cluster.
+Params:
+- ca - Clyster where entry is placed.
+- name - Name entry for edit.
+- meta - New meta for entry.
+- fi - FS data.
+
+Return 1 if edit success.
+Return 0 if something goes wrong.
+*/
 int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+
+/*
+Entry remove just mark entry as free without erasing data.
+- ca - Clyster where entry is placed.
+- name - Name entry for edit.
+- fi - FS data.
+
+Return 1 if delete success.
+Return 0 if something goes wrong.
+*/
 int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);
 
 #endif

@@ -23,17 +23,13 @@ typedef struct fat_extBS_32 {
     unsigned short extended_flags;
     unsigned short fat_version;
     unsigned int   root_cluster;
-    unsigned short fat_info;
-    unsigned short backup_BS_sector;
-    unsigned char  reserved_0[12];
     unsigned char  drive_number;
-    unsigned char  reserved_1;
     unsigned char  boot_signature;
     unsigned int   volume_id;
     unsigned char  volume_label[11];
     unsigned char  fat_type_label[8];
     checksum_t     checksum;
-} __attribute__((packed)) fat_extBS_32_t;
+} __attribute__((packed)) nifat32_ext32_bootsector_t;
 
 typedef struct fat_BS {
     unsigned char  bootjmp[3];
@@ -50,9 +46,9 @@ typedef struct fat_BS {
     unsigned short head_side_count;
     unsigned int   hidden_sector_count;
     unsigned int   total_sectors_32;
-    fat_extBS_32_t extended_section;
+    nifat32_ext32_bootsector_t extended_section;
     checksum_t     checksum;
-} __attribute__((packed)) fat_BS_t;
+} __attribute__((packed)) nifat32_bootsector_t;
 
 #define CACHE    1
 #define NO_CACHE 0

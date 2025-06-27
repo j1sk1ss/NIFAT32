@@ -6,6 +6,7 @@ if [ "$1" == "--new-image" ]; then
     cd ../formatter || exit 1
     make || exit 1
     ./formatter -o nifat32.img -s nifat32 --v_size 64 || exit 1
+    rm formatter || exit 1
     cd .. || exit 1
     mv formatter/nifat32.img test/ || exit 1
     cd test || exit 1
@@ -29,6 +30,6 @@ gcc-14 $BUILD_FLAGS test/nifat32_benchmark.c nifat32.c src/* std/* -o test/nifat
 cd test || exit 1
 ./nifat32_benchmark $1
 
-if [ DEL_BIN == 1 ]; then
+if [ "$DEL_BIN" == 1 ]; then
     rm nifat32_benchmark
 fi

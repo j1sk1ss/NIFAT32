@@ -1,13 +1,13 @@
 #include "nifat32formatter.h"
 
-static int _write_bs(int, uint32_t, uint32_t);
-static int _write_fats(int, fat_table_t, uint32_t, uint32_t);
-static int _initialize_fat(fat_table_t, uint32_t, uint32_t);
-static int _write_root_directory(int, uint32_t, uint32_t);
-static int _create_directory(int, fat_table_t, uint32_t*, uint32_t, uint32_t, int*);
-static int _copy_files_to_fs(int, const char*, fat_table_t, uint32_t, uint32_t, uint32_t);
-static int _copy_file(int, FILE*, fat_table_t, uint32_t*, size_t*, uint32_t, uint32_t, int*);
-static void _to_83_name(const char*, char*);
+static int      _write_bs(int, uint32_t, uint32_t);
+static int      _write_fats(int, fat_table_t, uint32_t, uint32_t);
+static int      _initialize_fat(fat_table_t, uint32_t, uint32_t);
+static int      _write_root_directory(int, uint32_t, uint32_t);
+static int      _create_directory(int, fat_table_t, uint32_t*, uint32_t, uint32_t, int*);
+static int      _copy_files_to_fs(int, const char*, fat_table_t, uint32_t, uint32_t, uint32_t);
+static int      _copy_file(int, FILE*, fat_table_t, uint32_t*, size_t*, uint32_t, uint32_t, int*);
+static void     _to_83_name(const char*, char*);
 static uint32_t _calculate_fat_size(uint32_t);
 
 static opt_t opt = { 
@@ -224,7 +224,7 @@ static uint32_t _calculate_fat_size(uint32_t total_sectors) {
 #pragma endregion
 
 static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
-    fat_BS_t bs = { 0 };
+    nifat32_bootsector_t bs = { 0 };
     bs.bootjmp[0] = 0xEB;
     bs.bootjmp[1] = 0x58;
     bs.bootjmp[2] = 0x90;
@@ -241,12 +241,10 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     bs.hidden_sector_count   = 0;
     bs.total_sectors_32      = total_sectors;
 
-    fat_extBS_32_t ext = { 0 };
+    nifat32_ext32_bootsector_t ext = { 0 };
     ext.boot_signature   = 0x5A;
     ext.table_size_32    = fat_size;
     ext.root_cluster     = ROOT_DIR_CLUSTER;
-    ext.fat_info         = 1;
-    ext.backup_BS_sector = 6;
     ext.drive_number     = 0x80;
     ext.boot_signature   = 0x29;
     ext.volume_id        = 0x12345678;
@@ -260,14 +258,14 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     bs.checksum = _crc32(0, (uint8_t*)&bs, sizeof(bs));
     fprintf(stdout, "Bootstruct checksum: %u, ext. section: %u\n", bs.checksum, ext.checksum);
 
-    int encoded_size = sizeof(encoded_t) * sizeof(fat_BS_t);
+    int encoded_size = sizeof(encoded_t) * sizeof(nifat32_bootsector_t);
     encoded_t* encoded_bs = (encoded_t*)malloc(encoded_size);
     if (!encoded_bs) return 0;
 
     uint8_t padding[BYTES_PER_SECTOR] = { 0 };
     for (int i = 0; i < opt.bsbc; i++) {
         unsigned int ca = GET_BOOTSECTOR(i, total_sectors);
-        _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(fat_BS_t));
+        _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(nifat32_bootsector_t));
         if (pwrite(fd, padding, sizeof(padding), ca * BYTES_PER_SECTOR) != sizeof(padding)) return 0;
         if (pwrite(fd, encoded_bs, encoded_size, ca * BYTES_PER_SECTOR) != encoded_size) return 0;
         fprintf(stdout, "[i=%i] encoded bootsector has been written at ca=%u/%u!\n", i, ca, total_sectors);

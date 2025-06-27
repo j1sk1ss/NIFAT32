@@ -43,15 +43,13 @@ int setup_content(
 ) {
     if (ci > CONTENT_TABLE_SIZE || ci < 0) return 0;
     _content_table[ci].content_type = is_dir ? CONTENT_TYPE_DIRECTORY : CONTENT_TYPE_FILE;
-    if (!is_dir) {
+    if (is_dir) str_strncpy(_content_table[ci].directory.name, name83, 11);
+    else {
         char name[12] = { 0 };
         char ext[6] = { 0 };
         unpack_83_name(name83, name, ext);
         str_strncpy(_content_table[ci].file.name, name, 8);
         str_strncpy(_content_table[ci].file.extension, ext, 3);
-    }
-    else {
-        str_strncpy(_content_table[ci].directory.name, name83, 11);
     }
 
     str_memcpy(&_content_table[ci].meta, meta, sizeof(directory_entry_t));
@@ -103,19 +101,21 @@ ecache_t* get_content_ecache(const ci_t ci) {
 }
 
 int stat_content(const ci_t ci, cinfo_t* info) {
-    if (_content_table[ci].content_type == CONTENT_TYPE_DIRECTORY) {
-        info->size = 0;
-        str_memcpy(info->full_name, _content_table[ci].directory.name, 11);
-        info->type = STAT_DIR;
-    }
-    else if (_content_table[ci].content_type == CONTENT_TYPE_FILE) {
-        str_memcpy(info->full_name, _content_table[ci].meta.file_name, 11);
-        str_strncpy(info->file_name, _content_table[ci].file.name, 8);
-        str_strncpy(info->file_extension, _content_table[ci].file.extension, 3);
-        info->type = STAT_FILE;
-    }
-    else {
-        return 0;
+    switch (_content_table[ci].content_type) {
+        case CONTENT_TYPE_DIRECTORY: {
+            info->size = 0;
+            str_memcpy(info->full_name, _content_table[ci].directory.name, 11);
+            info->type = STAT_DIR;
+            break;
+        }
+        case CONTENT_TYPE_FILE: {
+            str_memcpy(info->full_name, _content_table[ci].meta.file_name, 11);
+            str_strncpy(info->file_name, _content_table[ci].file.name, 8);
+            str_strncpy(info->file_extension, _content_table[ci].file.extension, 3);
+            info->type = STAT_FILE;
+            break;
+        }
+        default: return 0;
     }
 
     return 1;
