@@ -546,6 +546,7 @@ This is an example of a disk segment affected by a Single Event Upset (SEU), res
 00 00 40 00 08 00 00 00 20 00 00 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 01
 ```
 
+**Note:** The original segment was completely filled with zeros. </br>
 For example, the image below demonstrates corruption of a `.bmp` file with a size of 3,932,160 bits (480KB) after applying the same percentage of bit-flips (76,923 flips):
 
 <p align="center"> 
@@ -553,7 +554,6 @@ For example, the image below demonstrates corruption of a `.bmp` file with a siz
     <img src="graphs/bmp_corrupted.bmp" alt="Corrupted BMP image after bit-flips" width="45%"/> 
 </p>
 
-**Note:** The original segment was completely filled with zeros. </br>
 In result, with bootsector decompression and Hamming noise-immune encoding, FAT decompression, noise-immune encoding and majority voting mechanism, we got next:
 
 ```
