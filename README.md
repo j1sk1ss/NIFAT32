@@ -259,7 +259,7 @@ With this simplification, the size of each `directory_entry_t` structure is sign
 For example, assuming a default cluster size of: </br>
 `sector_size * 2^3 = 512 * 8 = 4096 bytes` </br>
 
-- The original structure required approximately 26 bytes per `directory_entry_t`, allowing for around 157 entries per cluster.
+- The original structure required approximately 32 bytes per `directory_entry_t`, allowing for around 128 entries per cluster.
 - The modified structure uses 28 bytes, decreasing the number of entries per cluster to approximately 146.
 
 This optimization leads to better performance and fewer disk accesses. The improvement can be visualized with a graph where:
