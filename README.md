@@ -169,11 +169,8 @@ To further enhance protection, **Hamming code** was chosen as the noise-immune e
 In the original FAT32 design, the boot structure is stored in the first sector, with a backup typically located in the sixth sector. However, this fixed-location approach can be fragile. To improve fault tolerance, a strategy of **“decompression” storage** is proposed. This involves placing backup copies at sector addresses derived using a formula based on [hash constants](https://en.wikipedia.org/wiki/Golden_ratio), such as the golden ratio. This spreads backups across the storage space, reducing the chance that a localized SEU or memory wear-out event will affect both the original and its backup.
 
 ```c
-#define HASH_CONST 2654435761U
-#define BS_PRIME1 73856093U
-#define BS_PRIME2 19349663U
-#define BS_PRIME3 83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * BS_PRIME1 + BS_PRIME2) * BS_PRIME3) % (total_sectors))
+#define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
 ```
 
 ```
@@ -194,12 +191,9 @@ This method physically decompress data on disk/flash drive:
 
 Same method of physical decompression was applied to file allocation table:
 
-```
-#define HASH_CONST 2654435761U
-#define FAT_PRIME1 79156913U
-#define FAT_PRIME2 91383663U
-#define FAT_PRIME3 38812191U
-#define GET_FATSECTOR(number, total_sectors) ((((number) + FAT_PRIME1 * FAT_PRIME2) * FAT_PRIME3) % (total_sectors))
+```c
+#define FAT_MULTIPLIER 340573321U
+#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % ts)
 ```
 
 ```
