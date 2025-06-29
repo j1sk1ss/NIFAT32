@@ -20,7 +20,6 @@ int main() {
         printf("%2d | %6d | %6d | %6d\n", x, h1[x], h2[x], abs(h1[x] - h2[x]));
     }
 
-    // Проверка уникальности
     for (int i = 0; i <= 10; i++) {
         for (int j = i+1; j <= 10; j++) {
             if (h1[i] == h1[j]) printf("Collision in HASH1 at x=%d and x=%d\n", i, j);
