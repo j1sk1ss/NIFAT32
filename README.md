@@ -94,14 +94,16 @@ We allocate a buffer for the table and fill it by reading from disk using majori
 
 ```c
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
-    if (ca < fi->root_cluster || ca > fi->total_clusters) return 0;
+    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
     if (_fat) _fat[ca] = value;
+    if (value == FAT_CLUSTER_FREE) fatmap_set(ca);
+    else fatmap_unset(ca);
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
     return 1;
 }
 
 cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
-    if (ca < fi->root_cluster || ca > fi->total_clusters) return 0;
+    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return FAT_CLUSTER_BAD;
     if (_fat && _fat[ca] != FAT_CLUSTER_BAD) return _fat[ca];
 
     int wrong = -1;
@@ -122,10 +124,10 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     }
 
     _fat[ca] = table_value;
-    if (wrong > 0) {
-        write_fat(ca, table_value, fi);
-    }
+    if (table_value == FAT_CLUSTER_FREE) fatmap_set(ca);
+    else fatmap_unset(ca);
 
+    if (wrong > 0) write_fat(ca, table_value, fi);
     return table_value;
 }
 ```
