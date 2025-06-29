@@ -50,8 +50,9 @@ typedef struct fat_BS {
     checksum_t     checksum;
 } __attribute__((packed)) nifat32_bootsector_t;
 
-#define CACHE    1
-#define NO_CACHE 0
+#define NO_CACHE   0b00000000
+#define CACHE      0b00000001
+#define HARD_CACHE 0b00000010
 typedef struct {
     char fat_cache;
     int bs_num;

@@ -13,7 +13,16 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
     }
 
     int reserved = 0;
-    cluster_addr_t cluster = last_allocated_cluster;
+    cluster_addr_t cluster = fatmap_find_free(last_allocated_cluster, 1, fi);
+    if (cluster) {
+        last_allocated_cluster = cluster + 1;
+        THR_release_write(&_allocater_lock, get_thread_num());
+        return cluster;
+    }
+    else {
+        cluster = last_allocated_cluster;
+    }
+
     cluster_status_t cluster_status = FAT_CLUSTER_FREE;
     while (cluster < fi->total_clusters) {
         cluster_status = read_fat(cluster, fi);

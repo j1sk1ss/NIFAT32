@@ -95,9 +95,15 @@ int NIFAT32_init(nifat32_params* params) {
         }
     }
 
-    if (params->fat_cache) {
+    if (params->fat_cache & CACHE) {
         if (!fat_cache_init(&_fs_data)) {
             print_warn("FAT cache init error!");
+        }
+
+        if (params->fat_cache & HARD_CACHE) {
+            if (!fat_cache_hload(&_fs_data)) {
+                print_warn("FAT hard cache init error!");
+            }
         }
     }
 

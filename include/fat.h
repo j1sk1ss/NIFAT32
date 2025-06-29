@@ -40,6 +40,7 @@ Dependencies:
 #include "mm.h"
 #include "disk.h"
 #include "null.h"
+#include "fatmap.h"
 #include "hamming.h"
 #include "fatinfo.h"
 #include "logging.h"
@@ -68,6 +69,17 @@ Return 1 if init success.
 Return 0 if something goes wrong.
 */
 int fat_cache_init(fat_data_t* fi);
+
+/*
+FAT cache hard load. Will load entier FAT table to RAM via fat_read.
+WARN: This operation really slow. Invoke it before start and only ones.
+Params:
+- fi - FS info.
+
+Return 1 if hard load success.
+Return 0 if something goes wrong.
+*/
+int fat_cache_hload(fat_data_t* fi);
 
 /*
 Unload allocated fat cache table.

@@ -12,6 +12,18 @@ int fat_cache_init(fat_data_t* fi) {
     return 1;
 }
 
+int fat_cache_hload(fat_data_t* fi) {
+    if (!_fat) return 0;
+    for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) {
+        cluster_val_t cls = read_fat(ca, fi);
+        if (cls == FAT_CLUSTER_FREE) fatmap_set(ca);
+        else fatmap_unset(ca);
+        _fat[ca] = cls;
+    }
+
+    return 1;
+}
+
 int fat_cache_unload() {
     if (_fat) free_s(_fat);
     else return 0;
@@ -37,7 +49,11 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
     print_debug("write_fat(ca=%u, value=%u)", ca, value);
     if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
+    
     if (_fat) _fat[ca] = value;
+    if (value == FAT_CLUSTER_FREE) fatmap_set(ca);
+    else fatmap_unset(ca);
+
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
     return 1;
 }
@@ -85,6 +101,9 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     }
 
     _fat[ca] = table_value;
+    if (table_value == FAT_CLUSTER_FREE) fatmap_set(ca);
+    else fatmap_unset(ca);
+
     if (wrong > 0) {
         print_warn("FAT wrong value at ca=%u. Fixing to val=%u...", ca, table_value);
         write_fat(ca, table_value, fi);
