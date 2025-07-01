@@ -14,10 +14,23 @@ extern "C" {
 #define I(x, y, z) (((x) & (z)) | ((y) & ~(z)))
 #define J(x, y, z) ((x) ^ ((y) | ~(z)))
 
-#define R(a, b, c, d, e, func, k, m, s)        \
-    a += func(b, c, d) + (m) + (k);            \
-    a = ROTL(a, s) + e;                        \
-    c = ROTL(c, 10);
+#define R_LEFT(a, b, c, d, e, func, k, m, s) do { \
+    unsigned int temp = ROTL((a) + func((b), (c), (d)) + (m) + (k), (s)) + (e); \
+    (a) = (e); \
+    (e) = (d); \
+    (d) = ROTL((c), 10); \
+    (c) = (b); \
+    (b) = temp; \
+} while(0)
+
+#define R_RIGHT(ap, bp, cp, dp, ep, func, k, m, s) do { \
+    unsigned int temp = ROTL((ap) + func((bp), (cp), (dp)) + (m) + (k), (s)) + (ep); \
+    (ap) = (ep); \
+    (ep) = (dp); \
+    (dp) = ROTL((cp), 10); \
+    (cp) = (bp); \
+    (bp) = temp; \
+} while(0)
 
 typedef unsigned int ripemd160_t[5];
 

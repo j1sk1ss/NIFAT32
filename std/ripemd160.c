@@ -41,7 +41,7 @@ int ripemd160(const unsigned char* msg, unsigned int length, ripemd160_t hash) {
     unsigned int new_length = ((length + 8) / 64 + 1) * 64;
     unsigned char padded[new_length];
     str_memcpy(padded, msg, length);
-    
+
     padded[length] = 0x80;
     str_memset(padded + length + 1, 0, new_length - length - 9);
     unsigned long long bit_length = (unsigned long long)length * 8;
@@ -49,37 +49,41 @@ int ripemd160(const unsigned char* msg, unsigned int length, ripemd160_t hash) {
 
     for (unsigned int i = 0; i < new_length; i += 64) {
         unsigned int w[16];
-        str_memcpy(w, padded + i, 64);
+        for (int k = 0; k < 16; k++) {
+            w[k] = (unsigned int)padded[i + k*4] |
+                   ((unsigned int)padded[i + k*4+1] << 8) |
+                   ((unsigned int)padded[i + k*4+2] << 16) |
+                   ((unsigned int)padded[i + k*4+3] << 24);
+        }
 
         unsigned int a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
         unsigned int ap = a, bp = b, cp = c, dp = d, ep = e;
 
         for (int j = 0; j < 80; j++) {
             unsigned int f_index = j / 16;
-
             switch (f_index) {
-                case 0: R(a, b, c, d, e, F,  K[0],  w[R1[j]], S1[j]); break;
-                case 1: R(a, b, c, d, e, G,  K[1],  w[R1[j]], S1[j]); break;
-                case 2: R(a, b, c, d, e, H,  K[2],  w[R1[j]], S1[j]); break;
-                case 3: R(a, b, c, d, e, I,  K[3],  w[R1[j]], S1[j]); break;
-                case 4: R(a, b, c, d, e, J,  K[4],  w[R1[j]], S1[j]); break;
+                case 0: R_LEFT(a, b, c, d, e, F,  K[0], w[R1[j]], S1[j]); break;
+                case 1: R_LEFT(a, b, c, d, e, G,  K[1], w[R1[j]], S1[j]); break;
+                case 2: R_LEFT(a, b, c, d, e, H,  K[2], w[R1[j]], S1[j]); break;
+                case 3: R_LEFT(a, b, c, d, e, I,  K[3], w[R1[j]], S1[j]); break;
+                case 4: R_LEFT(a, b, c, d, e, J,  K[4], w[R1[j]], S1[j]); break;
             }
 
             switch (f_index) {
-                case 0: R(ap, bp, cp, dp, ep, J,  Kp[0], w[R2[j]], S2[j]); break;
-                case 1: R(ap, bp, cp, dp, ep, I,  Kp[1], w[R2[j]], S2[j]); break;
-                case 2: R(ap, bp, cp, dp, ep, H,  Kp[2], w[R2[j]], S2[j]); break;
-                case 3: R(ap, bp, cp, dp, ep, G,  Kp[3], w[R2[j]], S2[j]); break;
-                case 4: R(ap, bp, cp, dp, ep, F,  Kp[4], w[R2[j]], S2[j]); break;
+                case 0: R_RIGHT(ap, bp, cp, dp, ep, J,  Kp[0], w[R2[j]], S2[j]); break;
+                case 1: R_RIGHT(ap, bp, cp, dp, ep, I,  Kp[1], w[R2[j]], S2[j]); break;
+                case 2: R_RIGHT(ap, bp, cp, dp, ep, H,  Kp[2], w[R2[j]], S2[j]); break;
+                case 3: R_RIGHT(ap, bp, cp, dp, ep, G,  Kp[3], w[R2[j]], S2[j]); break;
+                case 4: R_RIGHT(ap, bp, cp, dp, ep, F,  Kp[4], w[R2[j]], S2[j]); break;
             }
         }
 
-        unsigned int tmp = h[1] + c + dp;
+        unsigned int tmp = h[0];
+        h[0] = h[1] + c + dp;
         h[1] = h[2] + d + ep;
         h[2] = h[3] + e + ap;
         h[3] = h[4] + a + bp;
-        h[4] = h[0] + b + cp;
-        h[0] = tmp;
+        h[4] = tmp + b + cp;
     }
 
     str_memcpy(hash, h, sizeof(ripemd160_t));
