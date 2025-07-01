@@ -1,5 +1,8 @@
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "include/null.h"
 #include "include/hamming.h"
@@ -259,4 +262,7 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_delete_content(ci_t ci);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
