@@ -33,6 +33,9 @@ Dependencies:
 
 #ifndef MM_H_
 #define MM_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "str.h"
 #include "null.h"
@@ -111,4 +114,7 @@ Return 1 if free success.
 */
 int free_s(void* ptr);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

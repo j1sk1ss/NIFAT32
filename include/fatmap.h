@@ -1,5 +1,8 @@
 #ifndef FATMAP_H_
 #define FATMAP_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mm.h"
 #include "str.h"
@@ -20,4 +23,7 @@ int fatmap_unset(unsigned int ca);
 unsigned int fatmap_find_free(unsigned int offset, int size, fat_data_t* fi);
 int fatmap_unload();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

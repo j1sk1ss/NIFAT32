@@ -1,5 +1,8 @@
 #ifndef RIPEMD160_H_
 #define RIPEMD160_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "str.h"
 
@@ -21,4 +24,7 @@ typedef unsigned int ripemd160_t[5];
 int ripemd160_cmp(ripemd160_t f, ripemd160_t s);
 int ripemd160(const unsigned char* msg, unsigned int length, ripemd160_t hash);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

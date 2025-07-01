@@ -1,5 +1,8 @@
 #ifndef ECACHE_H_
 #define ECACHE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mm.h"
 #include "fat.h"
@@ -40,4 +43,7 @@ ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, unsigned char is_dir, 
 ecache_t* ecache_find(ecache_t* root, ripemd160_t hash);
 int ecache_free(ecache_t* root);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

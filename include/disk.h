@@ -32,6 +32,9 @@ Dependencies:
 
 #ifndef DISK_H_
 #define DISK_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "null.h"
 #include "logging.h"
@@ -166,4 +169,7 @@ Return sector size.
 */
 int DSK_get_sector_size();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

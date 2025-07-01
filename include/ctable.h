@@ -34,6 +34,9 @@ Dependencies:
 
 #ifndef CTABLE_H_
 #define CTABLE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mm.h"
 #include "fat.h"
@@ -114,4 +117,7 @@ int stat_content(const ci_t ci, cinfo_t* info);
 int index_content(const ci_t ci, fat_data_t* fi);
 int destroy_content(ci_t ci);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

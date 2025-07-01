@@ -1,5 +1,8 @@
 #ifndef STR_H_
 #define STR_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "null.h"
 
@@ -26,4 +29,7 @@ ctype special functions.
 int str_toupper(int c);
 int str_uppercase(char* str);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

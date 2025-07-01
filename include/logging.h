@@ -16,6 +16,9 @@
 
 #ifndef LOGGING_H_
 #define LOGGING_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "null.h"
 #include <stdarg.h>
@@ -97,4 +100,7 @@ Create log message.
 */
 int log_message(const char* level, const char* file, int line, const char* message, ...);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

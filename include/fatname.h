@@ -31,6 +31,9 @@ Dependencies:
 
 #ifndef FATNAME_H_
 #define FATNAME_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "str.h"
 
@@ -103,4 +106,7 @@ Return 1.
 */
 int unpack_83_name(const char* name83, char* name, char* ext);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -1,5 +1,8 @@
 #ifndef FATINFO_H_
 #define FATINFO_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     unsigned int  fat_size;
@@ -15,4 +18,7 @@ typedef struct {
     unsigned int  sectors_padd;
 } fat_data_t;
 
+#ifdef __cplusplus
+}
+#endif
 #endif

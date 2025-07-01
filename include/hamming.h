@@ -1,5 +1,8 @@
 #ifndef HAMMING_H_
 #define HAMMING_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define GET_BIT(byte, pos)      ((byte >> pos) & 1)
 #define SET_BIT(byte, pos, bit) (bit ? (byte | (1 << pos)) : (byte & ~(1 << pos)))
@@ -35,4 +38,7 @@ Return pointer to dst.
 */
 void* pack_memory(const byte_t* src, decoded_t* dst, int l);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

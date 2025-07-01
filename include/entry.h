@@ -1,5 +1,8 @@
 #ifndef ENTRY_H_
 #define ENTRY_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mm.h"
 #include "ecache.h"
@@ -122,4 +125,7 @@ Return 0 if something goes wrong.
 */
 int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

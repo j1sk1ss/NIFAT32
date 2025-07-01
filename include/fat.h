@@ -36,6 +36,9 @@ Dependencies:
 
 #ifndef FAT_H_
 #define FAT_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mm.h"
 #include "disk.h"
@@ -162,4 +165,7 @@ Return 0 if it is not.
 */
 int is_cluster_reserved(cluster_val_t cluster);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

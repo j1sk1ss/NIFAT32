@@ -16,6 +16,9 @@
 
 #ifndef THREADING_H_
 #define THREADING_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define LOCKED       0xAB
 #define UNLOCKED     0x00
@@ -56,4 +59,7 @@ int THR_release_read(lock_t* lock);
 int THR_require_write(lock_t* lock, owner_t owner);
 int THR_release_write(lock_t* lock, owner_t owner);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

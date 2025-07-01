@@ -35,6 +35,9 @@ Dependencies:
 
 #ifndef CLUSTER_H_
 #define CLUSTER_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "fat.h"
 #include "null.h"
@@ -160,4 +163,7 @@ Return count of readden and written bytes.
 */
 int copy_cluster(cluster_addr_t src, cluster_addr_t dst, buffer_t __restrict buffer, int buff_size, fat_data_t* __restrict fi);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
