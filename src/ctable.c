@@ -46,16 +46,19 @@ int setup_content(
     if (is_dir) str_strncpy(_content_table[ci].directory.name, name83, 11);
     else {
         char name[12] = { 0 };
-        char ext[6] = { 0 };
+        char ext[6]   = { 0 };
         unpack_83_name(name83, name, ext);
         str_strncpy(_content_table[ci].file.name, name, 8);
         str_strncpy(_content_table[ci].file.extension, ext, 3);
     }
 
-    str_memcpy(&_content_table[ci].meta, meta, sizeof(directory_entry_t));
+    if (meta) {
+        str_memcpy(&_content_table[ci].meta, meta, sizeof(directory_entry_t));
+    }
+
     _content_table[ci].parent_cluster = root;
-    _content_table[ci].data_cluster = data;
-    _content_table[ci].mode = mode;
+    _content_table[ci].data_cluster   = data;
+    _content_table[ci].mode           = mode;
     return 1;
 }
 

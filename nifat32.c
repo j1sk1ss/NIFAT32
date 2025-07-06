@@ -141,7 +141,7 @@ static cluster_addr_t _get_cluster_by_path(
             name_to_fatname(name_buffer, fatname_buffer);
 
             ecache_t* entry_index = get_content_ecache(curr_ci);
-            if (entry_search(fatname_buffer, active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
+            if (!entry_search(fatname_buffer, active_cluster, entry_index, &current_entry, &_fs_data)) {
                 if (IS_CREATE_MODE(mode)) {
                     cluster_addr_t nca = alloc_cluster(&_fs_data);
                     if (set_cluster_end(nca, &_fs_data)) {
@@ -188,6 +188,11 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     if ((ci = alloc_ci()) < 0) {
         print_error("Ctable is full!");
         return -1;
+    }
+
+    if (!path) {
+        setup_content(ci, 1, "ROOT       ", _fs_data.ext_root_cluster, _fs_data.ext_root_cluster, NULL, mode);
+        return ci;
     }
 
     cluster_addr_t rca;
@@ -365,7 +370,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
         info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta, &_fs_data
     );
 
-    if (!entry_edit(get_content_root_ca(ci), get_content_name(ci), &meta, &_fs_data)) {
+    if (!entry_edit(get_content_root_ca(ci), get_content_ecache(ci), get_content_name(ci), &meta, &_fs_data)) {
         print_error("entry_edit() encountered an error. Aborting...");
         return 0;
     }
@@ -404,18 +409,16 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
 
     directory_entry_t entry;
     create_entry(get_content_name(ci), 0, start_ca, end_size, &entry, &_fs_data);
-    entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
+    entry_edit(get_content_root_ca(ci), NO_ECACHE, get_content_name(ci), &entry, &_fs_data);
     return 1;
 }
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     print_log("NIFAT32_put_content(ci=%i, info=%s, reserve=%i)", ci, info->full_name, reserve);
-    cluster_addr_t target = _fs_data.ext_root_cluster;
-    if (ci != PUT_TO_ROOT) target = get_content_data_ca(ci);
+    cluster_addr_t target = get_content_data_ca(ci);
     ecache_t* entry_cache = get_content_ecache(target);
-    int is_found = entry_search((char*)info->full_name, target, entry_cache, NULL, &_fs_data);
-    if (is_found < 0 && is_found != -4) {
-        print_error("entry_search() encountered an error [%i]. Aborting...", is_found);
+    if (entry_search((char*)info->full_name, target, entry_cache, NULL, &_fs_data)) {
+        print_error("entry_search() encountered an error. Aborting...");
         return 0;
     }
 
@@ -507,6 +510,18 @@ int NIFAT32_delete_content(ci_t ci) {
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     print_log("NIFAT32_stat_content(ci=%i)", ci);
     return stat_content(ci, info);
+}
+
+static int _repair_handler(directory_entry_t* entry, void* ctx) {
+    if ((entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY) entry_iterate(entry->cluster, _repair_handler, ctx, &_fs_data);
+    return 0;
+}
+
+int NIFAT32_repair_content(const ci_t ci, int rec) {
+    print_log("NIFAT32_repair_content(ci=%i)", ci);
+    cluster_addr_t target = get_content_data_ca(ci);
+    entry_iterate(target, rec ? _repair_handler : NULL, NULL, &_fs_data);
+    return 1;
 }
 
 int NIFAT32_unload() {

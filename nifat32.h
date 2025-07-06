@@ -120,6 +120,7 @@ Params:
 - rci - Root content index. If we don't want to search in entire file system.
         Note: By default use NO_RCI
 - path - Path to content (dir or file).
+         Note: Can be NULL. In this case will open ROOT directory.
 - mode - Content open mode.
          Note: If mode is CR_MODE, function will create all directories in path.
          For last entry in path will use DIR_ or FILE_ MODE. 
@@ -215,14 +216,14 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_close_content(ci_t ci);
 
-#define PUT_TO_ROOT -1
+#define ROOT       -1
 #define NO_RESERVE  1
 /*
 Add content to target content index. 
-Note: PUT_TO_ROOT will put content into the root directory.
+Note: ROOT will put content into the root directory.
 Params:
 - ci - Root content index. Should be directory.
-       Note: Can be PUT_TO_ROOT.
+       Note: Can be ROOT.
 - info - Pointer to info about new content.
 - reserve - Reserved cluster count for content. 
             Note: This option can be NO_RESERVE.
@@ -261,6 +262,19 @@ Return 1 if delete success.
 Return 0 if something goes wrong.
 */
 int NIFAT32_delete_content(ci_t ci);
+
+/*
+Repair content by reading, unpacking (error correcting) and writing to disk.
+Note: Will read< correct and write all directry entries in content.
+Note 2: This function will ignore files content.
+Params:
+- ci - Content index.
+- rec - Recursive.
+
+Return 1 if repair success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_repair_content(const ci_t ci, int rec);
 
 #ifdef __cplusplus
 }

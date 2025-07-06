@@ -136,7 +136,7 @@ upper:
                 sprintf(fullname, "%s.%s", file_name, file_ext);
                 name_to_fatname(fullname, file_info.full_name);
 
-                ci_t root_ci = PUT_TO_ROOT;
+                ci_t root_ci = ROOT;
                 if (strlen(current_path) > 1) {
                     root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
                     if (root_ci < 0) {
@@ -156,7 +156,7 @@ upper:
                 str_memcpy(dir_info.file_name, name, strlen(name) + 1);
                 name_to_fatname(name, dir_info.full_name);
 
-                ci_t root_ci = PUT_TO_ROOT;
+                ci_t root_ci = ROOT;
                 if (strlen(current_path) > 1) {
                     root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
                     if (root_ci < 0) {
@@ -257,7 +257,7 @@ upper:
             case LS: {
                 ci_t ci = -1;
                 if (strlen(current_path) > 1) ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
-                else ci = NIFAT32_open_content(NO_RCI, ".", DF_MODE);
+                else ci = NIFAT32_open_content(NO_RCI, NULL, DF_MODE);
                 if (ci >= 0) {
                     unsigned char cluster_data[8192] = { 0 };
                     NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 8192);

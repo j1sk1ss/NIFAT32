@@ -121,6 +121,143 @@ ecache_t* ecache_find(ecache_t* root, ripemd160_t hash) {
     return NULL;
 }
 
+static ecache_t* _minimum(ecache_t* node) {
+    while (node->l) node = node->l;
+    return node;
+}
+
+static int _transplant(ecache_t** root, ecache_t* u, ecache_t* v) {
+    if (!u->p) *root = v;
+    else if (u == u->p->l) u->p->l = v;
+    else u->p->r = v;
+    if (v) v->p = u->p;
+    return 1;
+}
+
+static int _fix_delete(ecache_t** root, ecache_t* x, ecache_t* x_parent) {
+    while (x != *root && (!x || IS_ECACHE_BLACK(x))) {
+        if (x == x_parent->l) {
+            ecache_t* w = x_parent->r;
+            if (IS_ECACHE_RED(w)) {
+                SET_ECACHE_BLACK(w);
+                SET_ECACHE_RED(x_parent);
+                _rotate_left(root, x_parent);
+                w = x_parent->r;
+            }
+
+            if ((!w->l || IS_ECACHE_BLACK(w->l)) &&
+                (!w->r || IS_ECACHE_BLACK(w->r))) {
+                SET_ECACHE_RED(w);
+                x = x_parent;
+                x_parent = x->p;
+            } 
+            else {
+                if (!w->r || IS_ECACHE_BLACK(w->r)) {
+                    if (w->l) SET_ECACHE_BLACK(w->l);
+                    SET_ECACHE_RED(w);
+                    _rotate_right(root, w);
+                    w = x_parent->r;
+                }
+
+                if (w) {
+                    if (IS_ECACHE_RED(x_parent)) SET_ECACHE_RED(w);
+                    else SET_ECACHE_BLACK(w);
+                }
+
+                SET_ECACHE_BLACK(x_parent);
+                if (w && w->r) SET_ECACHE_BLACK(w->r);
+                _rotate_left(root, x_parent);
+                x = *root;
+                break;
+            }
+        } 
+        else {
+            ecache_t* w = x_parent->l;
+            if (IS_ECACHE_RED(w)) {
+                SET_ECACHE_BLACK(w);
+                SET_ECACHE_RED(x_parent);
+                _rotate_right(root, x_parent);
+                w = x_parent->l;
+            }
+
+            if ((!w->r || IS_ECACHE_BLACK(w->r)) &&
+                (!w->l || IS_ECACHE_BLACK(w->l))) {
+                SET_ECACHE_RED(w);
+                x = x_parent;
+                x_parent = x->p;
+            } 
+            else {
+                if (!w->l || IS_ECACHE_BLACK(w->l)) {
+                    if (w->r) SET_ECACHE_BLACK(w->r);
+                    SET_ECACHE_RED(w);
+                    _rotate_left(root, w);
+                    w = x_parent->l;
+                }
+
+                if (w) {
+                    if (IS_ECACHE_RED(x_parent)) SET_ECACHE_RED(w);
+                    else SET_ECACHE_BLACK(w);
+                }
+
+                SET_ECACHE_BLACK(x_parent);
+                if (w && w->l) SET_ECACHE_BLACK(w->l);
+                _rotate_right(root, x_parent);
+                x = *root;
+                break;
+            }
+        }
+    }
+
+    if (x) SET_ECACHE_BLACK(x);
+    return 1;
+}
+
+ecache_t* ecache_delete(ecache_t* root, ripemd160_t hash) {
+    ecache_t* z = ecache_find(root, hash);
+    if (!z) return root;
+
+    ecache_t* y = z;
+    ecache_t* x = NULL;
+    ecache_t* x_parent = NULL;
+
+    if (!z->l) {
+        x = z->r;
+        x_parent = z->p;
+        _transplant(&root, z, z->r);
+    } 
+    else if (!z->r) {
+        x = z->l;
+        x_parent = z->p;
+        _transplant(&root, z, z->l);
+    } 
+    else {
+        y = _minimum(z->r);
+        x = y->r;
+
+        if (y->p == z) {
+            if (x) x->p = y;
+            x_parent = y;
+        } else {
+            _transplant(&root, y, y->r);
+            y->r = z->r;
+            if (y->r) y->r->p = y;
+            x_parent = y->p;
+        }
+
+        _transplant(&root, z, y);
+        y->l = z->l;
+        if (y->l) y->l->p = y;
+        SET_ECACHE_COLOR_VAL(y, GET_ECACHE_COLOR(z));
+    }
+
+    free_s(z);
+    if (IS_ECACHE_BLACK(y)) {
+        _fix_delete(&root, x, x_parent);
+    }
+
+    return root;
+}
+
 int ecache_free(ecache_t* root) {
     if (!root) return 0;
     ecache_free(root->l);

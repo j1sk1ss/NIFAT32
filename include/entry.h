@@ -57,6 +57,19 @@ int create_entry(
 );
 
 /*
+Base iterate function in cluster.
+Params:
+- ca - Cluster address.
+- handler - Directory entry handler with context.
+- ctx - Context for function.
+- fi - FS data.
+
+Return 1 if iterate success.
+Return 0 if something goes wrong.
+*/
+int entry_iterate(cluster_addr_t ca, int (*handler)(directory_entry_t*, void*), void* ctx, fat_data_t* __restrict fi);
+
+/*
 Index entry by provided cluster. This function will index all data to balanced binary tree.
 Note: Balancing based on Red&Black mechanism and will took a while. Will give more benefits on big directories.
 Params:
@@ -112,7 +125,10 @@ Params:
 Return 1 if edit success.
 Return 0 if something goes wrong.
 */
-int entry_edit(cluster_addr_t ca, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
+int entry_edit(
+    cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, 
+    const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+);
 
 /*
 Entry remove just mark entry as free without erasing data.
