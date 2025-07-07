@@ -7,11 +7,12 @@
 #include "nifat32.h"
 
 typedef enum {
-    CD, READ, WRITE, LS, RM, MKDIR, MKFILE, TRUNC, UNKNOWN
+    CD, CP, READ, WRITE, LS, RM, MKDIR, MKFILE, TRUNC, UNKNOWN
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
     if (!strcmp(input, "cd"))          return CD;
+    else if (!strcmp(input, "cp"))     return CP;
     else if (!strcmp(input, "read"))   return READ;
     else if (!strcmp(input, "write"))  return WRITE;
     else if (!strcmp(input, "ls"))     return LS;
@@ -122,6 +123,39 @@ upper:
             }
             break;
             
+            case CP: {
+                const char* src = cmds[1];
+                const char* dst = cmds[2];
+
+                char src_path[128] = { 0 };
+                char dst_path[128] = { 0 };
+
+                strcpy(src_path, current_path);
+                strcpy(dst_path, current_path);
+                if (strlen(current_path) > 1 && strcmp(current_path, "/")) {
+                    strcat(src_path, "/");
+                    strcat(dst_path, "/");
+                }
+                
+                strcat(src_path, src);
+                strcat(dst_path, dst);
+
+                char src_83[128] = { 0 };
+                char dst_83[128] = { 0 };
+                path_to_fatnames(src_path, src_83);
+                path_to_fatnames(dst_path, dst_83);
+
+                ci_t src_ci = NIFAT32_open_content(NO_RCI, src_83, DF_MODE);
+                ci_t dst_ci = NIFAT32_open_content(NO_RCI, dst_83, DF_MODE);
+                if (src_ci >= 0 && dst_ci >= 0) {
+                    NIFAT32_copy_content(src_ci, dst_ci, DEEP_COPY);
+                    NIFAT32_close_content(src_ci);
+                    NIFAT32_close_content(dst_ci);
+                }
+
+                break;
+            }
+
             case MKFILE: {
                 const char* file_name = cmds[1];
                 const char* file_ext  = cmds[2];

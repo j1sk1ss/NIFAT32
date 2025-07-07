@@ -450,20 +450,36 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     return 1;
 }
 
-int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
-    print_log("NIFAT32_copy_content(src=%i, dst=%i, deep=%i)", src, dst, deep);
-    dealloc_chain(get_content_data_ca(dst), &_fs_data);
-    switch (deep) {
-        case DEEP_COPY: {
-            cluster_addr_t dst_ca = alloc_cluster(&_fs_data);
-            if (!set_cluster_end(dst_ca, &_fs_data)) {
-                print_error("set_cluster_end() error!");
+static int _deepcopy_handler(directory_entry_t* entry, void* ctx) {
+    cluster_addr_t old_ca = entry->cluster;
+    cluster_addr_t nca = alloc_cluster(&_fs_data);
+    cluster_addr_t hca = nca;
+    if (set_cluster_end(nca, &_fs_data)) {
+        do {
+            if (!copy_cluster(old_ca, nca, ctx, _fs_data.bytes_per_sector, &_fs_data)) {
+                print_error("copy_cluster() error. Aborting...");
                 return 0;
             }
 
-            set_content_data_ca(dst, dst_ca);
+            old_ca = read_fat(old_ca, &_fs_data);
+            nca = _add_cluster_to_chain(nca);
+        } while (!is_cluster_end(old_ca) && !is_cluster_bad(old_ca) && !is_cluster_bad(nca));
+    }
+
+    entry->cluster  = hca;
+    entry->checksum = 0;
+    entry->checksum = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
+    if ((entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
+    return 0;
+}
+
+int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
+    print_log("NIFAT32_copy_content(src=%i, dst=%i, deep=%i)", src, dst, deep);
+    switch (deep) {
+        case DEEP_COPY: {
+            cluster_addr_t dst_ca = get_content_data_ca(dst);
             cluster_addr_t src_ca = get_content_data_ca(src);
-            buffer_t copy_buffer  = (buffer_t)malloc_s(_fs_data.bytes_per_sector);
+            buffer_t copy_buffer = (buffer_t)malloc_s(_fs_data.bytes_per_sector);
             if (!copy_buffer) {
                 print_error("malloc_s() error!");
                 return 0;
@@ -477,13 +493,18 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
                 }
 
                 src_ca = read_fat(src_ca, &_fs_data);
-                dst_ca = _add_cluster_to_chain(dst_ca);
+                if (!is_cluster_end(src_ca)) dst_ca = _add_cluster_to_chain(dst_ca);
             } while (!is_cluster_end(src_ca) && !is_cluster_bad(src_ca) && !is_cluster_bad(dst_ca));
+
+            if (get_content_type(src) == CONTENT_TYPE_DIRECTORY) {
+                entry_iterate(get_content_data_ca(dst), _deepcopy_handler, (void*)copy_buffer, &_fs_data);
+            }
 
             free_s(copy_buffer);
             break;
         }
         case SHALLOW_COPY: {
+            print_warn("Shallow copy not implemented yet!");
             set_content_data_ca(dst, get_content_data_ca(src));
             break;
         }

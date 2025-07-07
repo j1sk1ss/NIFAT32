@@ -95,11 +95,9 @@ typedef struct {
 
 static int _search_handler(directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
-    if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) {
-        return 0;
-    }
-
+    if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
+    if (str_strncmp(context->name, (char*)entry->file_name, 11)) return 0;
     if (context->meta) str_memcpy(context->meta, entry, sizeof(directory_entry_t));
     return 1;
 }
@@ -125,6 +123,7 @@ int entry_search(
 static int _edit_handler(directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
+    if (context->name_hash != entry->name_hash) return 0;
     if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
     if (context->index != NO_ECACHE) {
@@ -143,7 +142,7 @@ int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
     print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
-    entry_ctx_t context = { .meta = meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache };
+    entry_ctx_t context = { .meta = (directory_entry_t*)meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache };
     return entry_iterate(ca, _edit_handler, (void*)&context, fi);
 }
 
@@ -283,11 +282,14 @@ int create_entry(
     unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
 ) {
     entry->checksum = 0;
-    entry->cluster = first_cluster;
+    entry->cluster  = first_cluster;
 
-    if (is_dir) entry->attributes |= FILE_DIRECTORY;
+    if (is_dir) {
+        entry->file_size = 1;
+        entry->attributes |= FILE_DIRECTORY;
+    }
     else {
-        entry->file_size  = file_size;
+        entry->file_size = file_size;
         entry->attributes |= FILE_ARCHIVE;
     }
 

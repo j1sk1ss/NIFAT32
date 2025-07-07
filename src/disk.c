@@ -174,7 +174,8 @@ int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char
     if (_lock_area(dst, sc, WRITE_LOCK)) {
         int copy_result = 0;
         for (int i = 0; i < sc; i++) {
-            copy_result += _disk_io.read_sector(src, i, buffer, buff_size) + _disk_io.write_sector(dst, i, buffer, buff_size);
+            copy_result += _disk_io.read_sector(src, i, buffer, buff_size);
+            copy_result += _disk_io.write_sector(dst, i, buffer, buff_size);
         }
 
         _unlock_area(dst, sc);

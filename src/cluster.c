@@ -52,21 +52,13 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
 int dealloc_cluster(const cluster_addr_t ca, fat_data_t* fi) {
     cluster_status_t cluster_status = read_fat(ca, fi);
     if (is_cluster_free(cluster_status)) return 1;
-    else if (is_cluster_bad(cluster_status)) {
-        print_error("Error occurred with read_fat(), aborting operations...");
-        return 0;
-    }
-
     if (set_cluster_free(ca, fi)) return 1;
-    else {
-        print_error("Error occurred with write_fat(), aborting operations...");
-        return 0;
-    }
+    print_error("Error occurred with write_fat(), aborting operations...");
+    return 0;
 }
 
 int dealloc_chain(cluster_addr_t ca, fat_data_t* fi) {
-    cluster_addr_t prev_cluster = 0;
-    while (!is_cluster_end(ca) && !is_cluster_bad(ca) && !is_cluster_free(ca)) {
+    do {
         cluster_addr_t next_cluster = read_fat(ca, fi);
         if (!dealloc_cluster(ca, fi)) {
             print_error("dealloc_cluster() encountered an error. Aborting...");
@@ -74,9 +66,8 @@ int dealloc_chain(cluster_addr_t ca, fat_data_t* fi) {
         }
 
         ca = next_cluster;
-    }
-
-    return is_cluster_end(ca) ? dealloc_cluster(ca, fi) : 0;
+    } while (!is_cluster_end(ca) && !is_cluster_bad(ca) && !is_cluster_free(ca));
+    return 1;
 }
 
 int readoff_cluster(
@@ -104,7 +95,8 @@ int write_cluster(cluster_addr_t ca, const_buffer_t __restrict data, int data_si
 }
 
 int copy_cluster(cluster_addr_t src, cluster_addr_t dst, buffer_t __restrict buffer, int buff_size, fat_data_t* __restrict fi) {
+    print_debug("copy_cluster(src=%u, dst=%u)", src, dst);
     sector_addr_t start_src = (src - fi->ext_root_cluster) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
     sector_addr_t start_dst = (dst - fi->ext_root_cluster) * (unsigned short)fi->sectors_per_cluster + fi->first_data_sector;
-    return DSK_copy_sectors(src, dst, fi->sectors_per_cluster, buffer, buff_size);
+    return DSK_copy_sectors(start_src, start_dst, fi->sectors_per_cluster, buffer, buff_size);
 }
