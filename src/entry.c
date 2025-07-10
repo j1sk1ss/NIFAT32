@@ -285,12 +285,12 @@ int create_entry(
     entry->cluster  = first_cluster;
 
     if (is_dir) {
-        entry->file_size = 1;
-        entry->attributes |= FILE_DIRECTORY;
+        entry->file_size  = 1;
+        entry->attributes = FILE_DIRECTORY;
     }
     else {
-        entry->file_size = file_size;
-        entry->attributes |= FILE_ARCHIVE;
+        entry->file_size  = file_size;
+        entry->attributes = FILE_ARCHIVE;
     }
 
     str_memcpy(entry->file_name, fullname, 11);

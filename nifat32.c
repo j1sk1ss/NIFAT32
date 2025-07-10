@@ -462,14 +462,14 @@ static int _deepcopy_handler(directory_entry_t* entry, void* ctx) {
             }
 
             old_ca = read_fat(old_ca, &_fs_data);
-            nca = _add_cluster_to_chain(nca);
+            if (!is_cluster_end(old_ca)) nca = _add_cluster_to_chain(nca);
         } while (!is_cluster_end(old_ca) && !is_cluster_bad(old_ca) && !is_cluster_bad(nca));
     }
-
+    
     entry->cluster  = hca;
     entry->checksum = 0;
     entry->checksum = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
-    if ((entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
+    if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
     return 0;
 }
 
@@ -534,7 +534,7 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
 }
 
 static int _repair_handler(directory_entry_t* entry, void* ctx) {
-    if ((entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY) entry_iterate(entry->cluster, _repair_handler, ctx, &_fs_data);
+    if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->cluster, _repair_handler, ctx, &_fs_data);
     return 0;
 }
 
