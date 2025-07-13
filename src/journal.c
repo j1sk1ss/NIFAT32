@@ -99,8 +99,11 @@ int restore_from_journal(fat_data_t* fi) {
         journal_entry_t entry;
         _read_journal(_journal_index, &entry, fi);
         if (entry.op == NO_OP) continue;
+
         unsqueezed_entry_t restored;
         _unsqueeze_entry(&entry.entry, &restored);
+        print_warn("Found unsolved journal entry! op=%i, ca=%u, offset=%i", entry.op, entry.ca, entry.offset);
+        
         switch (entry.op) {
             case DEL_OP: {
                 decoded_t entry_buffer[sizeof(unsqueezed_entry_t)] = { 0 };

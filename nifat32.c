@@ -112,6 +112,10 @@ int NIFAT32_init(nifat32_params* params) {
         print_warn("Ctable init error!");
     }
 
+    if (!restore_from_journal(&_fs_data)) {
+        print_warn("Journal restore error!");
+    }
+
     free_s(encoded_bs);
     return 1;
 }
@@ -192,7 +196,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     }
 
     if (!path) {
-        setup_content(ci, 1, "ROOT       ", _fs_data.ext_root_cluster, _fs_data.ext_root_cluster, NULL, mode);
+        setup_content(ci, 1, "NIFAT32_DIR", _fs_data.ext_root_cluster, _fs_data.ext_root_cluster, NULL, mode);
         return ci;
     }
 
