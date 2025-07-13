@@ -112,31 +112,3 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     print_debug("read_fat(ca=%u) -> %u", ca, table_value);
     return table_value;
 }
-
-int is_cluster_free(cluster_val_t cluster) {
-    return !cluster;
-}
-
-int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
-    return write_fat(cluster, 0, fi);
-}
-
-int is_cluster_end(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_END;
-}
-
-int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
-    return write_fat(cluster, FAT_CLUSTER_END, fi);
-}
-
-int is_cluster_bad(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_BAD;
-}
-
-int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
-    return write_fat(cluster, FAT_CLUSTER_BAD, fi);
-}
-
-int is_cluster_reserved(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_RESERVED;
-}

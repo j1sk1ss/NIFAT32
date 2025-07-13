@@ -121,49 +121,63 @@ Check if cluster is free.
 Return 1 if it is free.
 Return 0 if it is not.
 */
-int is_cluster_free(cluster_val_t cluster);
+static inline int is_cluster_free(cluster_val_t cluster) {
+    return !cluster;
+}
 
 /*
 Set cluster free.
 Return 1 if write to FAT success.
 Return 0 if something goes wrong.
 */
-int set_cluster_free(cluster_val_t cluster, fat_data_t* fi);
+static inline int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
+    return write_fat(cluster, 0, fi);
+}
 
 /*
 Check if cluster is end.
 Return 1 if it is end.
 Return 0 if it is not.
 */
-int is_cluster_end(cluster_val_t cluster);
+static inline int is_cluster_end(cluster_val_t cluster) {
+    return cluster == FAT_CLUSTER_END;
+}
 
 /*
 Set cluster end.
 Return 1 if write to FAT success.
 Return 0 if something goes wrong.
 */
-int set_cluster_end(cluster_val_t cluster, fat_data_t* fi);
+static inline int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
+    return write_fat(cluster, FAT_CLUSTER_END, fi);
+}
 
 /*
 Check if cluster is bad.
 Return 1 if it is bad.
 Return 0 if it is not.
 */
-int is_cluster_bad(cluster_val_t cluster);
+static inline int is_cluster_bad(cluster_val_t cluster) {
+    return cluster == FAT_CLUSTER_BAD;
+}
 
 /*
 Set cluster bad.
 Return 1 if write to FAT success.
 Return 0 if something goes wrong.
 */
-int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi);
+static inline int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
+    return write_fat(cluster, FAT_CLUSTER_BAD, fi);
+}
 
 /*
 Check if cluster is reserved.
 Return 1 if it is bad.
 Return 0 if it is not.
 */
-int is_cluster_reserved(cluster_val_t cluster);
+static inline int is_cluster_reserved(cluster_val_t cluster) {
+    return cluster == FAT_CLUSTER_RESERVED;
+}
 
 #ifdef __cplusplus
 }

@@ -14,7 +14,8 @@ static opt_t opt = {
     .spc    = SECTORS_PER_CLUSTER,
     .v_size = DEFAULT_VOLUME_SIZE,
     .fc     = FAT_COUNT,
-    .bsbc   = BS_BACKUPS
+    .bsbc   = BS_BACKUPS,
+    .jc     = JOURNALS_BACKUPS
 };
 
 int main(int argc, char* argv[]) {
@@ -55,6 +56,12 @@ int main(int argc, char* argv[]) {
 
     if (!_write_bs(fd, total_sectors, fat_size)) {
         fprintf(stderr, "Error writing boot sector\n");
+        close(fd);
+        return EXIT_FAILURE;
+    }
+
+    if (!_write_journals(fd, total_sectors)) {
+        fprintf(stderr, "Error writing journal sector\n");
         close(fd);
         return EXIT_FAILURE;
     }
@@ -275,6 +282,17 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     return 1;
 }
 
+static int _write_journals(int fd, uint32_t ts) {
+    for (int i = 0; i < opt.jc; i++) {
+        uint8_t buffer[BYTES_PER_SECTOR * opt.spc];
+        memset(buffer, 0, BYTES_PER_SECTOR * opt.spc);
+        uint32_t sector = GET_JOURNALSECTOR(i, ts);
+        if (pwrite(fd, buffer, sizeof(buffer), 0) != sizeof(buffer)) return 0;
+    }
+
+    return 1;
+}
+
 /* Generate first clusters, reserve clusters for bootstructs */
 static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
     fat_table[0] = FAT_ENTRY_RESERVED | (0xF8 << 24);
@@ -304,6 +322,15 @@ static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
         }
 
         printf("Reserved %u for FAT %i\n", c, i);
+    }
+
+    /* Journals */
+    for (int i = 0; i < opt.jc; i++) {
+        uint32_t sector = GET_JOURNALSECTOR(i, ts);
+        cluster_for_backup = sector / opt.spc;
+        if (cluster_for_backup < tc) {
+            fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+        }
     }
 
     return 1;

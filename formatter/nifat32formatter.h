@@ -21,6 +21,7 @@ https://en.wikipedia.org/wiki/Golden_ratio
 2^32 / φ, where φ = +-1.618
 */
 #define BS_BACKUPS 5
+#define JOURNALS_BACKUPS 2
 
 #define FILE_LAST_LONG_ENTRY 0x40
 #define ENTRY_FREE           0xE5
@@ -28,10 +29,12 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define ENTRY_JAPAN          0x05
 #define LAST_LONG_ENTRY      0x40
 
-#define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
-#define FAT_MULTIPLIER 340573321U     // Another prime, far from above
-#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
-#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % ts)
+#define BOOT_MULTIPLIER    2654435761U // Knuth's multiplier (2^32 / φ)
+#define FAT_MULTIPLIER     340573321U
+#define JOURNAL_MULTIPLIER 12345625789U
+#define GET_BOOTSECTOR(n, ts)    (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
+#define GET_FATSECTOR(n, ts)     (((((n) + 7) * FAT_MULTIPLIER) >> 13) % (ts - 64))
+#define GET_JOURNALSECTOR(n, ts) (((((n) + 63) * JOURNAL_MULTIPLIER) >> 15) % (ts - 128))
 
 #define BYTES_PER_SECTOR     512
 #define SECTORS_PER_CLUSTER  8

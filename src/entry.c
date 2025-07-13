@@ -37,7 +37,9 @@ static int _allocate_buffers(
     return 1;
 }
 
-int entry_iterate(cluster_addr_t ca, int (*handler)(directory_entry_t*, void*), void* ctx, fat_data_t* __restrict fi) {
+int entry_iterate(
+    cluster_addr_t ca, int (*handler)(entry_info_t*, directory_entry_t*, void*), void* ctx, fat_data_t* __restrict fi
+) {
     print_debug("entry_iterate(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
@@ -53,7 +55,8 @@ int entry_iterate(cluster_addr_t ca, int (*handler)(directory_entry_t*, void*), 
         directory_entry_t* entry = (directory_entry_t*)decoded_cluster;
         for (unsigned int i = 0; i < entries_per_cluster && !exit; i++, entry++) {
             if (entry->file_name[0] == ENTRY_END) break;
-            exit = handler(entry, ctx);
+            entry_info_t info = { .ca = ca, .offset = i };
+            exit = handler(&info, entry, ctx);
         }
 
         pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
@@ -68,7 +71,7 @@ int entry_iterate(cluster_addr_t ca, int (*handler)(directory_entry_t*, void*), 
     return exit;
 }
 
-static int _index_handler(directory_entry_t* entry, void* ctx) {
+static int _index_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     ecache_t** context = (ecache_t**)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) {
         return 0;
@@ -90,10 +93,11 @@ typedef struct {
     checksum_t         name_hash;
     directory_entry_t* meta;
     ecache_t*          index;
-    fat_data_t*        fi;
+    fat_data_t*        fi; // filesystem info
+    int                ji; // journal index
 } entry_ctx_t;
 
-static int _search_handler(directory_entry_t* entry, void* ctx) {
+static int _search_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
@@ -120,12 +124,13 @@ int entry_search(
     return entry_iterate(ca, _search_handler, (void*)&ctx, fi);
 }
 
-static int _edit_handler(directory_entry_t* entry, void* ctx) {
+static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
     if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
+    context->ji = journal_add_operation(EDIT_OP, info->ca, info->offset, (unsqueezed_entry_t*)context->meta, context->fi);
     if (context->index != NO_ECACHE) {
         ripemd160_t src, dst;
         ripemd160((const_buffer_t)context->name, 11, src);
@@ -143,7 +148,9 @@ int entry_edit(
 ) {
     print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t context = { .meta = (directory_entry_t*)meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache };
-    return entry_iterate(ca, _edit_handler, (void*)&context, fi);
+    int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
+    journal_solve_operation(context.ji, fi);
+    return result;
 }
 
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
@@ -151,6 +158,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
+    
     cluster_addr_t root_ca = ca;
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     do {
@@ -165,6 +173,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 entry->file_name[0] == ENTRY_FREE || 
                 entry->file_name[0] == ENTRY_END
             ) {
+                int ji = journal_add_operation(ADD_OP, ca, i, (unsqueezed_entry_t*)meta, fi);
                 str_memcpy(entry, meta, sizeof(directory_entry_t));
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
                 if (cache != NO_ECACHE) {
@@ -181,6 +190,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                     return -6;
                 }
 
+                journal_solve_operation(ji, fi);
                 free_s(decoded_cluster);
                 free_s(cluster_data);
                 return 1;
@@ -258,10 +268,20 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     return -2;
 }
 
-static int _remove_handler(directory_entry_t* entry, void* ctx) {
+static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
+
+    if (context->index != NO_ECACHE) {
+        ripemd160_t src, dst;
+        ripemd160((const_buffer_t)context->name, 11, src);
+        ecache_delete(context->index, src);
+        ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), dst);
+        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
+    }
+
+    context->ji = journal_add_operation(DEL_OP, info->ca, info->offset, (unsqueezed_entry_t*)entry, context->fi);
     if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, context->fi) < 0) {
         print_error("Cluster chain delete failed. Aborting...");
         return 1;
@@ -271,10 +291,12 @@ static int _remove_handler(directory_entry_t* entry, void* ctx) {
     return 1;
 }
 
-int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi) {
-    print_debug("entry_remove(cluster=%u)", ca);
-    entry_ctx_t ctx = { .name = name, .fi = fi };
-    return entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
+int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi) {
+    print_debug("entry_remove(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
+    entry_ctx_t ctx = { .name = name, .fi = fi, .index = cache };
+    int result = entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
+    journal_solve_operation(ctx.ji, fi);
+    return result;
 }
 
 int create_entry(
