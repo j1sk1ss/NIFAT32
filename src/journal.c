@@ -6,8 +6,7 @@ static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, 
     pack_memory((const byte_t*)entry, entry_buffer, sizeof(journal_entry_t));
     if (
         !DSK_writeoff_sectors(
-            GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset % fi->bytes_per_sector, 
-            (const unsigned char*)entry_buffer, sizeof(entry_buffer), 1
+            GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset, (const_buffer_t)entry_buffer, sizeof(entry_buffer), 1
         )
     ) {
         print_error("Could not write journal to journal sector!");
@@ -18,6 +17,7 @@ static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, 
 } 
 
 static int _write_journal(int index, journal_entry_t* entry, fat_data_t* fi) {
+    print_debug("_write_journal(index=%i)", index);
     for (int i = 0; i < fi->journals_count; i++) __write_journal__(index, entry, fi, i);
     return 1;
 }
@@ -27,8 +27,7 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
     decoded_t entry_buffer[sizeof(journal_entry_t)] = { 0 };
     if (
         !DSK_readoff_sectors(
-            GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset % fi->bytes_per_sector, 
-            (unsigned char*)entry_buffer, sizeof(entry_buffer), 1
+            GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset, (buffer_t)entry_buffer, sizeof(entry_buffer), 1
         )
     ) {
         print_error("Could not read journal from journal sector!");
@@ -40,6 +39,7 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
 } 
 
 static int _read_journal(int index, journal_entry_t* entry, fat_data_t* fi) {
+    print_debug("_read_journal(index=%i)", index);
     int wrong    = -1;
     int val_freq = 0;
     int copy_pos = -1;
@@ -117,6 +117,7 @@ int restore_from_journal(fat_data_t* fi) {
                 writeoff_cluster(entry.ca, entry.offset * sizeof(entry_buffer), (const_buffer_t)entry_buffer, sizeof(entry_buffer), fi);
                 break;
             }
+            default: break;
         }
 
         entry.op = NO_OP;

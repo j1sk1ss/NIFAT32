@@ -60,6 +60,12 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    if (!_write_journals(fd, total_sectors)) {
+        fprintf(stderr, "Error writing journal sector\n");
+        close(fd);
+        return EXIT_FAILURE;
+    }
+
     memset(fat_table, FAT_ENTRY_FREE, total_clusters * sizeof(uint32_t));
     _initialize_fat(fat_table, total_sectors, total_clusters);
     if (!_write_root_directory(fd, data_start, fat_size)) {
@@ -273,6 +279,17 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     }
 
     free(encoded_bs);
+    return 1;
+}
+
+static int _write_journals(int fd, uint32_t ts) {
+    for (int i = 0; i < opt.jc; i++) {
+        uint8_t buffer[BYTES_PER_SECTOR * opt.spc];
+        memset(buffer, 0, BYTES_PER_SECTOR * opt.spc);
+        uint32_t sector = GET_JOURNALSECTOR(i, ts);
+        if (pwrite(fd, buffer, sizeof(buffer), 0) != sizeof(buffer)) return 0;
+    }
+
     return 1;
 }
 
