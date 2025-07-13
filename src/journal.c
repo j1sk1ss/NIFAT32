@@ -28,23 +28,49 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
     if (
         !DSK_readoff_sectors(
             GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset % fi->bytes_per_sector, 
-            (const unsigned char*)entry_buffer, sizeof(entry_buffer), 1
+            (unsigned char*)entry_buffer, sizeof(entry_buffer), 1
         )
     ) {
         print_error("Could not read journal from journal sector!");
         return 0;
     }
 
-    unpack_memory(entry_buffer, (const byte_t*)entry, sizeof(journal_entry_t));
+    unpack_memory((const decoded_t*)entry_buffer, (byte_t*)entry, sizeof(journal_entry_t));
     return 1;    
 } 
 
 static int _read_journal(int index, journal_entry_t* entry, fat_data_t* fi) {
-    // read and choose correct (by checksum) entry in journal
+    int wrong    = -1;
+    int val_freq = 0;
+    int copy_pos = -1;
+    checksum_t journal_checksum = 0;
+    for (int i = 0; i < fi->journals_count; i++) {
+        journal_entry_t curr;
+        __read_journal__(index, &curr, fi, i);
+        if (curr.checksum == journal_checksum) val_freq++;
+        else {
+            val_freq--;
+            wrong++;
+        }
+
+        if (val_freq < 0) {
+            journal_checksum = curr.checksum;
+            copy_pos = i;
+            val_freq = 0;
+        }
+    }
+
+    if (copy_pos < 0) return 0;
+    __read_journal__(copy_pos, entry, fi, index);
+    if (wrong > 0) {
+        print_warn("Journal wrong value at index=%u. Fixing to val=%u...", index, journal_checksum);
+        _write_journal(index, entry, fi);
+    }
+
     return 1;
 }
 
-static int _squeeze_entry(directory_entry_t* src, squeezed_entry_t* dst) {
+static int _squeeze_entry(unsqueezed_entry_t* src, squeezed_entry_t* dst) {
     dst->attributes = src->attributes;
     dst->cluster    = src->cluster;
     dst->file_size  = src->file_size;
@@ -52,32 +78,69 @@ static int _squeeze_entry(directory_entry_t* src, squeezed_entry_t* dst) {
     return 1;
 }
 
-static int _unsqueeze_entry(squeezed_entry_t* src, directory_entry_t* dst) {
+static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
     dst->attributes = src->attributes;
     dst->cluster    = src->cluster;
     dst->file_size  = src->file_size;
     str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
     dst->name_hash = crc32(0, (const_buffer_t)dst->file_name, 11);
-    dst->checksum  = crc32(0, (const_buffer_t)dst, sizeof(directory_entry_t));
+    dst->checksum  = crc32(0, (const_buffer_t)dst, sizeof(unsqueezed_entry_t));
     return 1;
 }
 
 static unsigned char _journal_index = 0;
 
-int restore_from_journal() {
-    // iterate from entire journal and solve all unsolved operations
+int restore_from_journal(fat_data_t* fi) {
+    for (
+        _journal_index = 0; 
+        _journal_index < (fi->cluster_size / (sizeof(journal_entry_t) * sizeof(encoded_t))); 
+        _journal_index++
+    ) {
+        journal_entry_t entry;
+        _read_journal(_journal_index, &entry, fi);
+        if (entry.op == NO_OP) continue;
+        unsqueezed_entry_t restored;
+        _unsqueeze_entry(&entry.entry, &restored);
+        switch (entry.op) {
+            case DEL_OP: {
+                decoded_t entry_buffer[sizeof(unsqueezed_entry_t)] = { 0 };
+                writeoff_cluster(entry.ca, entry.offset * sizeof(entry_buffer), (const_buffer_t)entry_buffer, sizeof(entry_buffer), fi);
+                break;
+            }
+            case ADD_OP:
+            case EDIT_OP: {
+                decoded_t entry_buffer[sizeof(unsqueezed_entry_t)] = { 0 };
+                pack_memory((const byte_t*)&restored, entry_buffer, sizeof(unsqueezed_entry_t));
+                writeoff_cluster(entry.ca, entry.offset * sizeof(entry_buffer), (const_buffer_t)entry_buffer, sizeof(entry_buffer), fi);
+                break;
+            }
+        }
+
+        entry.op = NO_OP;
+        _write_journal(_journal_index, &entry, fi);
+    }
+
+    _journal_index = 0;
     return 1;
 }
 
-int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, directory_entry_t* entry, fat_data_t* fi) {
+int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqueezed_entry_t* entry, fat_data_t* fi) {
     journal_entry_t j_entry = { .ca = ca, .offset = offset, .op = op };
     _squeeze_entry(entry, &j_entry.entry);
-    int entry_index = _journal_index++ % (fi->cluster_size / (sizeof(journal_entry_t) * sizeof(encoded_t)));
+    
+    int entry_index = 0;
+    while (1) {
+        entry_index = _journal_index++ % (fi->cluster_size / (sizeof(journal_entry_t) * sizeof(encoded_t)));
+        journal_entry_t curr;
+        _read_journal(entry_index, &curr, fi);
+        if (curr.op == NO_OP) break;
+    }
+    
     _write_journal(entry_index, &j_entry, fi);
     return entry_index;    
 }
 
 int journal_solve_operation(int index, fat_data_t* fi) {
-    journal_entry_t solved = { .op = 0x00 };
+    journal_entry_t solved = { .op = NO_OP };
     return _write_journal(index, &solved, fi);
 }

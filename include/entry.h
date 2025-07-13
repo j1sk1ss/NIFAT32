@@ -11,6 +11,7 @@ extern "C" {
 #include "fatinfo.h"
 #include "cluster.h"
 #include "fatname.h"
+#include "journal.h"
 #include "checksum.h"
 
 #define FILE_LAST_LONG_ENTRY 0x40
@@ -25,6 +26,11 @@ extern "C" {
 #define FILE_VOLUME_ID 0x08
 #define FILE_DIRECTORY 0x10
 #define FILE_ARCHIVE   0x20
+
+typedef struct {
+    cluster_addr_t ca;
+    int            offset;
+} entry_info_t;
 
 /* from http://wiki.osdev.org/FAT */
 /* From file_system.h (CordellOS brunch FS_based_on_FAL) */
@@ -67,7 +73,9 @@ Params:
 Return 1 if iterate success.
 Return 0 if something goes wrong.
 */
-int entry_iterate(cluster_addr_t ca, int (*handler)(directory_entry_t*, void*), void* ctx, fat_data_t* __restrict fi);
+int entry_iterate(
+    cluster_addr_t ca, int (*handler)(entry_info_t*, directory_entry_t*, void*), void* ctx, fat_data_t* __restrict fi
+);
 
 /*
 Index entry by provided cluster. This function will index all data to balanced binary tree.
@@ -134,12 +142,13 @@ int entry_edit(
 Entry remove just mark entry as free without erasing data.
 - ca - Clyster where entry is placed.
 - name - Name entry for edit.
+- cache - Ecache for directory.
 - fi - FS data.
 
 Return 1 if delete success.
 Return 0 if something goes wrong.
 */
-int entry_remove(cluster_addr_t ca, const char* __restrict name, fat_data_t* __restrict fi);
+int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi);
 
 #ifdef __cplusplus
 }

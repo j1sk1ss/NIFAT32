@@ -451,7 +451,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     return 1;
 }
 
-static int _deepcopy_handler(directory_entry_t* entry, void* ctx) {
+static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     cluster_addr_t old_ca = entry->cluster;
     cluster_addr_t nca = alloc_cluster(&_fs_data);
     cluster_addr_t hca = nca;
@@ -523,7 +523,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
 
 int NIFAT32_delete_content(ci_t ci) {
     print_log("NIFAT32_delete_content(ci=%i)", ci);
-    if (!entry_remove(get_content_root_ca(ci), get_content_name(ci), &_fs_data)) {
+    if (!entry_remove(get_content_root_ca(ci), get_content_name(ci), get_content_ecache(ci), &_fs_data)) {
         print_error("entry_remove() encountered an error. Aborting...");
         return 0;
     }
@@ -537,7 +537,7 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     return stat_content(ci, info);
 }
 
-static int _repair_handler(directory_entry_t* entry, void* ctx) {
+static int _repair_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->cluster, _repair_handler, ctx, &_fs_data);
     return 0;
 }
