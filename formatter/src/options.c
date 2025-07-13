@@ -44,6 +44,13 @@ int process_input(int argc, char* argv[], opt_t* opt) {
                 return 0;
             }
         }
+        else if (!strcmp(argv[i], JOURNALS_BACKUPS_OPT)) {
+            if (i + 1 < argc) opt->jc = atoi(argv[++i]);
+            else {
+                fprintf(stderr, "Error: journals count required after %s\n", JOURNALS_BACKUPS_OPT);
+                return 0;
+            }
+        }
     }
 
     return 1;

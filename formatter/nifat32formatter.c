@@ -14,7 +14,8 @@ static opt_t opt = {
     .spc    = SECTORS_PER_CLUSTER,
     .v_size = DEFAULT_VOLUME_SIZE,
     .fc     = FAT_COUNT,
-    .bsbc   = BS_BACKUPS
+    .bsbc   = BS_BACKUPS,
+    .jc     = JOURNALS_BACKUPS
 };
 
 int main(int argc, char* argv[]) {
@@ -304,6 +305,15 @@ static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
         }
 
         printf("Reserved %u for FAT %i\n", c, i);
+    }
+
+    /* Journals */
+    for (int i = 0; i < opt.jc; i++) {
+        uint32_t sector = GET_JOURNALSECTOR(i, ts);
+        cluster_for_backup = sector / opt.spc;
+        if (cluster_for_backup < tc) {
+            fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+        }
     }
 
     return 1;

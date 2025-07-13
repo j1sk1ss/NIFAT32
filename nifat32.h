@@ -57,9 +57,10 @@ typedef struct fat_BS {
 #define CACHE      0b00000001
 #define HARD_CACHE 0b00000010
 typedef struct {
-    char fat_cache;
-    int bs_num;
-    unsigned int ts;
+    char          fat_cache;
+    int           bs_num; // bootsectors count
+    unsigned int  ts;     // total clusters
+    unsigned char jc;     // journals count
 } nifat32_params;
 
 #define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
