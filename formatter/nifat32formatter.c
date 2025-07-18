@@ -1,6 +1,7 @@
 #include "nifat32formatter.h"
 
 static int      _write_bs(int, uint32_t, uint32_t);
+static int      _write_journals(int fd, uint32_t ts);
 static int      _write_fats(int, fat_table_t, uint32_t, uint32_t);
 static int      _initialize_fat(fat_table_t, uint32_t, uint32_t);
 static int      _write_root_directory(int, uint32_t, uint32_t);
@@ -235,7 +236,7 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     bs.bootjmp[0] = 0xEB;
     bs.bootjmp[1] = 0x58;
     bs.bootjmp[2] = 0x90;
-    memcpy(bs.oem_name, "MSWIN4.1", 8);
+    memcpy(bs.oem_name, "NIFAT 32", 8);
     bs.bytes_per_sector      = BYTES_PER_SECTOR;
     bs.sectors_per_cluster   = opt.spc;
     bs.reserved_sector_count = RESERVED_SECTORS;
@@ -287,7 +288,8 @@ static int _write_journals(int fd, uint32_t ts) {
         uint8_t buffer[BYTES_PER_SECTOR * opt.spc];
         memset(buffer, 0, BYTES_PER_SECTOR * opt.spc);
         uint32_t sector = GET_JOURNALSECTOR(i, ts);
-        if (pwrite(fd, buffer, sizeof(buffer), 0) != sizeof(buffer)) return 0;
+        if (pwrite(fd, buffer, sizeof(buffer), sector * BYTES_PER_SECTOR) != sizeof(buffer)) return 0;
+        fprintf(stdout, "[i=%i] viped area for journals has been written at sa=%u -> %u!\n", i, sector, sector + opt.spc);
     }
 
     return 1;

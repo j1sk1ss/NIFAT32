@@ -55,7 +55,7 @@ extern "C" {
 #define FAT_CLUSTER_END      0x0FFFFFFF
 
 #define FAT_MULTIPLIER 340573321U // Another prime, far from above
-#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % ts)
+#define GET_FATSECTOR(n, ts)  (((((n) + 7) * FAT_MULTIPLIER) >> 13) % (ts - 64))
 
 typedef unsigned int cluster_offset_t;
 typedef unsigned int cluster_addr_t;

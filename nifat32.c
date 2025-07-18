@@ -4,7 +4,7 @@ static fat_data_t _fs_data;
 
 int NIFAT32_init(nifat32_params* params) {
     print_log("NIFAT32 init. Reading %i bootsector at sa=%i", params->bs_num, GET_BOOTSECTOR(params->bs_num, params->ts));
-    if (params->bs_num >= 5) {
+    if (params->bs_num >= params->bs_count) {
         print_error("Init error! No reserved sectors!");
         return 0;
     }
@@ -17,6 +17,7 @@ int NIFAT32_init(nifat32_params* params) {
         return 0;
     }
 
+    _fs_data.bs_count = params->bs_count;
     if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
         free_s(encoded_bs);
@@ -47,10 +48,16 @@ int NIFAT32_init(nifat32_params* params) {
         bootstruct.extended_section.checksum = exbcheck;
     }
 
+     _fs_data.fat_type      = 32;
     _fs_data.journals_count = params->jc;
     _fs_data.fat_count      = bootstruct.table_count;
     _fs_data.total_sectors  = bootstruct.total_sectors_32;
     _fs_data.fat_size       = bootstruct.extended_section.table_size_32;
+
+    print_info("| NIFAT32 image load! Base information:");
+    print_info("| Sectors per cluster:    %i", bootstruct.sectors_per_cluster);
+    print_info("| Bytes per sector:       %u", bootstruct.bytes_per_sector);
+    print_info("| Reserved sectors:       %u", bootstruct.reserved_sector_count);
 
     int root_dir_sectors = ((bootstruct.root_entry_count * 32) + (bootstruct.bytes_per_sector - 1)) / bootstruct.bytes_per_sector;
     int data_sectors = _fs_data.total_sectors - (bootstruct.reserved_sector_count + (bootstruct.table_count * _fs_data.fat_size) + root_dir_sectors);
@@ -61,7 +68,6 @@ int NIFAT32_init(nifat32_params* params) {
         _fs_data.total_clusters = data_sectors / bootstruct.sectors_per_cluster;
     }
 
-    _fs_data.fat_type            = 32;
     _fs_data.first_data_sector   = bootstruct.reserved_sector_count + bootstruct.table_count * bootstruct.extended_section.table_size_32;
     _fs_data.sectors_per_cluster = bootstruct.sectors_per_cluster;
     _fs_data.bytes_per_sector    = bootstruct.bytes_per_sector;
@@ -70,9 +76,6 @@ int NIFAT32_init(nifat32_params* params) {
     _fs_data.cluster_size        = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
 
     print_info("| NIFAT32 init success! Stats from boot sector:");
-    print_info("| FAT type:                  %i", _fs_data.fat_type);
-    print_info("| Bytes per sector:          %u", _fs_data.bytes_per_sector);
-    print_info("| Sectors per cluster:       %u", _fs_data.sectors_per_cluster);
     print_info("| Reserved sectors:          %u", bootstruct.reserved_sector_count);
     print_info("| Number of FATs:            %u", bootstruct.table_count);
     print_info("| FAT size (in sectors):     %u", _fs_data.fat_size);
@@ -88,7 +91,7 @@ int NIFAT32_init(nifat32_params* params) {
 
     if (params->bs_num > 0) {
         print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < params->bs_count; i++) {
             if (i == params->bs_num) continue;
             if (!DSK_write_sector(GET_BOOTSECTOR(i, params->ts), (const_buffer_t)encoded_bs, sector_size)) {
                 print_warn("Attempt for bootsector restore failed!");
@@ -117,6 +120,29 @@ int NIFAT32_init(nifat32_params* params) {
     }
 
     free_s(encoded_bs);
+    return 1;
+}
+
+int NIFAT32_repait_bootsectors() {
+    nifat32_bootsector_t bootsector = {
+        .bytes_per_sector = _fs_data.bytes_per_sector,
+        .extended_section = {
+            .root_cluster  = _fs_data.ext_root_cluster,
+            .table_size_32 = _fs_data.fat_size
+        },
+        .sectors_per_cluster = _fs_data.sectors_per_cluster,
+        .table_count         = _fs_data.fat_count
+    };
+
+    const_buffer_t encoded_bs[sizeof(nifat32_bootsector_t)];
+    pack_memory((const byte_t*)&bootsector, (decoded_t*)encoded_bs, sizeof(bootsector));
+
+    for (int i = 0; i < _fs_data.bs_count; i++) {
+        if (!DSK_write_sector(GET_BOOTSECTOR(i, _fs_data.total_sectors), (const_buffer_t)encoded_bs, sizeof(encoded_bs))) {
+            print_warn("Attempt for bootsector restore failed!");
+        }
+    }
+    
     return 1;
 }
 

@@ -91,6 +91,7 @@ static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
 static unsigned char _journal_index = 0;
 
 int restore_from_journal(fat_data_t* fi) {
+    if (!fi->journals_count) return 0;
     for (
         _journal_index = 0; 
         _journal_index < (fi->cluster_size / (sizeof(journal_entry_t) * sizeof(encoded_t))); 
@@ -129,6 +130,7 @@ int restore_from_journal(fat_data_t* fi) {
 }
 
 int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqueezed_entry_t* entry, fat_data_t* fi) {
+    if (!fi->journals_count) return 0;
     journal_entry_t j_entry = { .ca = ca, .offset = offset, .op = op };
     _squeeze_entry(entry, &j_entry.entry);
     
@@ -145,6 +147,7 @@ int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqu
 }
 
 int journal_solve_operation(int index, fat_data_t* fi) {
+    if (!fi->journals_count) return 0;
     journal_entry_t solved = { .op = NO_OP };
     return _write_journal(index, &solved, fi);
 }

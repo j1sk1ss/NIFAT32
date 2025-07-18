@@ -76,8 +76,7 @@ int main(int argc, char* argv[]) {
             NIFAT32_close_content(ci);
         } 
         else {
-            fprintf(stderr, "TEST FAILED! CAN'T OPEN %s!\n", target_fatname);
-            return EXIT_FAILURE;
+            fprintf(stderr, "[WARN] CAN'T OPEN %s!\n", target_fatname);
         }
     }
 

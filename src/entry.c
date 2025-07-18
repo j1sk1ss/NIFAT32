@@ -77,8 +77,7 @@ static int _index_handler(entry_info_t* info, directory_entry_t* entry, void* ct
         return 0;
     }
 
-    ripemd160_t entry_hash;
-    ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), entry_hash);
+    checksum_t entry_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
     *context = ecache_insert(*context, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
     return 0;
 }
@@ -111,8 +110,7 @@ int entry_search(
 ) {
     print_debug("entry_search(name=%s, ca=%u, cache=%s)", name, ca, cache != NO_ECACHE ? "YES" : "NO");
     if (cache != NO_ECACHE) {
-        ripemd160_t entry_hash;
-        ripemd160((const_buffer_t)name, 11, entry_hash);
+        checksum_t entry_hash = murmur3_x86_32((const_buffer_t)name, 11, 0);
         ecache_t* cached_entry = ecache_find(cache, entry_hash);
         if (cached_entry) {
             if (meta) create_entry(name, IS_ECACHE_DIR(cached_entry), cached_entry->ca, 0, meta, fi);
@@ -132,10 +130,10 @@ static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx
 
     context->ji = journal_add_operation(EDIT_OP, info->ca, info->offset, (unsqueezed_entry_t*)context->meta, context->fi);
     if (context->index != NO_ECACHE) {
-        ripemd160_t src, dst;
-        ripemd160((const_buffer_t)context->name, 11, src);
+        checksum_t src, dst;
+        src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
-        ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), dst);
+        dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
         ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
     }
 
@@ -177,8 +175,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 str_memcpy(entry, meta, sizeof(directory_entry_t));
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
                 if (cache != NO_ECACHE) {
-                    ripemd160_t entry_hash;
-                    ripemd160((const_buffer_t)meta->file_name, sizeof(meta->file_name), entry_hash);
+                    checksum_t entry_hash = murmur3_x86_32((const_buffer_t)meta->file_name, sizeof(meta->file_name), 0);
                     ecache_insert(cache, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, meta->cluster);
                 }
 
@@ -274,10 +271,10 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
     if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
     if (context->index != NO_ECACHE) {
-        ripemd160_t src, dst;
-        ripemd160((const_buffer_t)context->name, 11, src);
+        checksum_t src, dst;
+        src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
-        ripemd160((const_buffer_t)entry->file_name, sizeof(entry->file_name), dst);
+        dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
         ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
     }
 

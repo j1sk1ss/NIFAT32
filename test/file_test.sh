@@ -6,7 +6,7 @@ LAUNCHER=""
 if [ "$1" == "--new-image" ]; then
     cd ../formatter || exit 1
     make || exit 1
-    ./formatter -o nifat32.img -s nifat32 --v_size 64 || exit 1
+    ./formatter -o nifat32.img -s nifat32 --v_size 64 --jc 0 || exit 1
     rm formatter || exit 1
     cd .. || exit 1
     mv formatter/nifat32.img test/ || exit 1

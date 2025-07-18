@@ -58,13 +58,14 @@ typedef struct fat_BS {
 #define HARD_CACHE 0b00000010
 typedef struct {
     char          fat_cache;
-    int           bs_num; // bootsectors count
-    unsigned int  ts;     // total clusters
-    unsigned char jc;     // journals count
+    char          bs_num;   // bootsectors number
+    char          bs_count; // bootsector count
+    unsigned int  ts;       // total clusters
+    unsigned char jc;       // journals count
 } nifat32_params;
 
 #define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
-#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
 
 /*
 Init function. 
@@ -78,6 +79,12 @@ Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
 int NIFAT32_init(nifat32_params* params);
+
+/*
+Restore bootsectors on mount image.
+Return 1.
+*/
+int NIFAT32_repait_bootsectors();
 
 /*
 Unload sequence. Perform all cleanup tasks.

@@ -76,11 +76,11 @@ static int _fix_insert(ecache_t** root, ecache_t* z) {
     return 1;
 }
 
-ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, unsigned char is_dir, cluster_addr_t ca) {
+ecache_t* ecache_insert(ecache_t* root, checksum_t hash, unsigned char is_dir, cluster_addr_t ca) {
     ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
     if (!z) return root;
 
-    str_memcpy(z->hash, hash, sizeof(ripemd160_t));
+    z->hash = hash;
     z->ca = ca;
     z->l = z->r = z->p = NULL;
     SET_ECACHE_RED(z);
@@ -92,9 +92,8 @@ ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, unsigned char is_dir, 
 
     while (x) {
         y = x;
-        int cmp = str_memcmp(hash, x->hash, sizeof(ripemd160_t));
-        if (cmp < 0) x = x->l;
-        else if (cmp > 0) x = x->r;
+        if (hash < x->hash) x = x->l;
+        else if (hash > x->hash) x = x->r;
         else {
             free_s(z);
             return root;
@@ -103,18 +102,17 @@ ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, unsigned char is_dir, 
 
     z->p = y;
     if (!y) root = z;
-    else if (str_memcmp(hash, y->hash, sizeof(ripemd160_t)) < 0) y->l = z;
+    else if (hash < y->hash) y->l = z;
     else y->r = z;
 
     _fix_insert(&root, z);
     return root;
 }
 
-ecache_t* ecache_find(ecache_t* root, ripemd160_t hash) {
+ecache_t* ecache_find(ecache_t* root, checksum_t hash) {
     while (root) {
-        int cmp = str_memcmp(hash, root->hash, sizeof(ripemd160_t));
-        if (cmp < 0) root = root->l;
-        else if (cmp > 0) root = root->r;
+        if (hash < root->hash) root = root->l;
+        else if (hash > root->hash) root = root->r;
         else return root;
     }
 
@@ -212,7 +210,7 @@ static int _fix_delete(ecache_t** root, ecache_t* x, ecache_t* x_parent) {
     return 1;
 }
 
-ecache_t* ecache_delete(ecache_t* root, ripemd160_t hash) {
+ecache_t* ecache_delete(ecache_t* root, checksum_t hash) {
     ecache_t* z = ecache_find(root, hash);
     if (!z) return root;
 
