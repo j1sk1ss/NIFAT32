@@ -72,7 +72,7 @@ static int setup_nifat32(unsigned int volume_size) {
         return 0;
     }
 
-    nifat32_params params = { .bs_num = 0, .ts = volume_size / sector_size, .fat_cache = CACHE, .jc = 0 };
+    nifat32_params params = { .bs_num = 0, .ts = volume_size / sector_size, .fat_cache = CACHE, .jc = 0, .bs_count = 5 };
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);

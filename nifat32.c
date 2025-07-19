@@ -128,7 +128,7 @@ int NIFAT32_repair_bootsectors() {
         .bootjmp = { 0xEB, 0x5B, 0x9 }, .media_type = 0xF8, .sectors_per_track = 63, .head_side_count = 255, 0 
     };
 
-    memcpy(bs.oem_name, "recover ", 8);
+    str_memcpy(bs.oem_name, "recover ", 8);
     bs.bytes_per_sector      = _fs_data.bytes_per_sector;
     bs.sectors_per_cluster   = _fs_data.sectors_per_cluster;
     bs.reserved_sector_count = _fs_data.sectors_padd;
