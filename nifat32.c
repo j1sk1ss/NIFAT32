@@ -123,19 +123,32 @@ int NIFAT32_init(nifat32_params* params) {
     return 1;
 }
 
-int NIFAT32_repait_bootsectors() {
-    nifat32_bootsector_t bootsector = {
-        .bytes_per_sector = _fs_data.bytes_per_sector,
-        .extended_section = {
-            .root_cluster  = _fs_data.ext_root_cluster,
-            .table_size_32 = _fs_data.fat_size
-        },
-        .sectors_per_cluster = _fs_data.sectors_per_cluster,
-        .table_count         = _fs_data.fat_count
+int NIFAT32_repair_bootsectors() {
+    nifat32_bootsector_t bs = { 
+        .bootjmp = { 0xEB, 0x5B, 0x9 }, .media_type = 0xF8, .sectors_per_track = 63, .head_side_count = 255, 0 
     };
 
+    memcpy(bs.oem_name, "recover ", 8);
+    bs.bytes_per_sector      = _fs_data.bytes_per_sector;
+    bs.sectors_per_cluster   = _fs_data.sectors_per_cluster;
+    bs.reserved_sector_count = _fs_data.sectors_padd;
+    bs.table_count           = _fs_data.fat_count;
+    bs.total_sectors_32      = _fs_data.total_sectors;
+
+    nifat32_ext32_bootsector_t ext = { 
+        .boot_signature = 0x5A, .drive_number = 0x8, .volume_id = 0x1234, 0 
+    };
+
+    ext.table_size_32 = _fs_data.fat_size;
+    ext.root_cluster  = _fs_data.ext_root_cluster;
+    str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
+    str_memcpy(ext.fat_type_label, "NIFAT32 ", 8);
+    ext.checksum = crc32(0, (unsigned char*)&ext, sizeof(ext));
+    str_memcpy(&bs.extended_section, &ext, sizeof(ext));
+    bs.checksum = crc32(0, (unsigned char*)&bs, sizeof(bs));
+
     const_buffer_t encoded_bs[sizeof(nifat32_bootsector_t)];
-    pack_memory((const byte_t*)&bootsector, (decoded_t*)encoded_bs, sizeof(bootsector));
+    pack_memory((const byte_t*)&bs, (decoded_t*)encoded_bs, sizeof(bs));
 
     for (int i = 0; i < _fs_data.bs_count; i++) {
         if (!DSK_write_sector(GET_BOOTSECTOR(i, _fs_data.total_sectors), (const_buffer_t)encoded_bs, sizeof(encoded_bs))) {

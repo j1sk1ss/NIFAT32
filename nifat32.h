@@ -82,9 +82,11 @@ int NIFAT32_init(nifat32_params* params);
 
 /*
 Restore bootsectors on mount image.
+Note: Will create a new bootsector from current info from RAM. 
+Note 2: This function will rewrite all existed copies on image.
 Return 1.
 */
-int NIFAT32_repait_bootsectors();
+int NIFAT32_repair_bootsectors();
 
 /*
 Unload sequence. Perform all cleanup tasks.
@@ -273,8 +275,8 @@ int NIFAT32_delete_content(ci_t ci);
 
 /*
 Repair content by reading, unpacking (error correcting) and writing to disk.
-Note: Will read< correct and write all directry entries in content.
-Note 2: This function will ignore files content.
+Note: Will read, correct and write all directry entries in content.
+Note 2: This function will ignore file entries.
 Params:
 - ci - Content index.
 - rec - Recursive.
