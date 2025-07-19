@@ -145,7 +145,7 @@ int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
     print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
-    entry_ctx_t context = { .meta = (directory_entry_t*)meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache };
+    entry_ctx_t context = { .meta = (directory_entry_t*)meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache, .fi = fi };
     int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
     journal_solve_operation(context.ji, fi);
     return result;
