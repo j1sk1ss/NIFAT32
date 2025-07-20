@@ -13,21 +13,21 @@
 typedef struct {
     long total;
     int ops;
-} timer_t;
+} nifat32_timer_t;
 
-static inline int add_time2timer(long time, timer_t* t) {
+static inline int add_time2timer(long time, nifat32_timer_t* t) {
     t->ops++;
     t->total += time;
     return 1;
 }
 
-static inline int reset_timer(timer_t* t) {
+static inline int reset_timer(nifat32_timer_t* t) {
     t->ops   = 0;
     t->total = 0;
     return 1;
 }
 
-static inline double get_avg_timer(timer_t* t) {
+static inline double get_avg_timer(nifat32_timer_t* t) {
     if (!t->ops) return 0;
     return t->total / (double)t->ops;
 }
