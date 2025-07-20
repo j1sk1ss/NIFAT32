@@ -226,14 +226,11 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_close_content(ci_t ci);
 
-#define ROOT       -1
 #define NO_RESERVE  1
 /*
 Add content to target content index. 
-Note: ROOT will put content into the root directory.
 Params:
 - ci - Root content index. Should be directory.
-       Note: Can be ROOT.
 - info - Pointer to info about new content.
 - reserve - Reserved cluster count for content. 
             Note: This option can be NO_RESERVE.

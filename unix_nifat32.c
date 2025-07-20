@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (!strcmp(path, "..")) {
-upper:
+upper: {}
                     char* last_slash = strrchr(current_path, '/');
                     if (last_slash && last_slash != current_path) *last_slash = '\0';
                     else strcpy(current_path, "");
@@ -170,16 +170,14 @@ upper:
                 sprintf(fullname, "%s.%s", file_name, file_ext);
                 name_to_fatname(fullname, file_info.full_name);
 
-                ci_t root_ci = ROOT;
-                if (strlen(current_path) > 1) {
-                    root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
-                    if (root_ci < 0) {
-                        close(disk_fd);
-                        return EXIT_FAILURE;
-                    }
+                ci_t root_ci;
+                if (strlen(current_path) > 1) root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
+                else root_ci = NIFAT32_open_content(NO_RCI, NULL, DF_MODE);
+                if (root_ci < 0) fprintf(stderr, "Can't open file!\n");
+                else {
+                    NIFAT32_put_content(root_ci, &file_info, reserve);
+                    NIFAT32_close_content(root_ci);
                 }
-
-                NIFAT32_put_content(root_ci, &file_info, reserve);
             }
             break;
 
@@ -190,16 +188,14 @@ upper:
                 str_memcpy(dir_info.file_name, name, strlen(name) + 1);
                 name_to_fatname(name, dir_info.full_name);
 
-                ci_t root_ci = ROOT;
-                if (strlen(current_path) > 1) {
-                    root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
-                    if (root_ci < 0) {
-                        close(disk_fd);
-                        return EXIT_FAILURE;
-                    }
+                ci_t root_ci;
+                if (strlen(current_path) > 1) root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
+                else root_ci = NIFAT32_open_content(NO_RCI, NULL, DF_MODE);
+                if (root_ci < 0) fprintf(stderr, "Can't open file!\n");
+                else {
+                    NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
+                    NIFAT32_close_content(root_ci);
                 }
-
-                NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
             }
             break;
 

@@ -115,7 +115,7 @@ int NIFAT32_init(nifat32_params* params) {
         print_warn("Ctable init error!");
     }
 
-    if (!restore_from_journal(&_fs_data)) {
+    if (!restore_from_journal(&_fs_data) && params->jc) {
         print_warn("Journal restore error!");
     }
 
