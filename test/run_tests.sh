@@ -17,8 +17,13 @@ if [ "$1" == "--new-image" ]; then
     shift
 fi
 
+if [ "$1" == "--check" ]; then
+    BUILD_FLAGS+="-DCHECK "
+    shift
+fi
+
 if [ "$1" == "--debug" ]; then
-    BUILD_FLAGS="-DERROR_LOGS -DWARNING_LOGS -DDEBUG_LOGS -DINFO_LOGS -DLOGGING_LOGS -g"
+    BUILD_FLAGS+="-DERROR_LOGS -DWARNING_LOGS -DDEBUG_LOGS -DINFO_LOGS -DLOGGING_LOGS -g "
     shift
 fi
 

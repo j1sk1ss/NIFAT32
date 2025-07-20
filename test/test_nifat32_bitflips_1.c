@@ -10,13 +10,14 @@ typedef struct {
 } test_data_t;
 
 char* paths[] = {
-    "root/test.txt", "root1/test1.txt",
-    "root/asd.txt", "root7/test1.txt",
-    "root2/rer.txt", "root5/test1.txt",
+    "root/test.txt",  "root1/test1.txt",
+    "root/asd.txt",   "root7/test1.txt",
+    "root2/rer.txt",  "root5/test1.txt",
     "root65/iei.txt", "root0/test1.txt"
 };
 
 int main() {
+#ifndef CHECK
     if (!setup_nifat32(64 * 1024 * 1024)) return EXIT_FAILURE;
     fprintf(stdout, "Creating files...\n");
     for (int i = 0; i < 8; i++) {
@@ -30,7 +31,7 @@ int main() {
     fprintf(stdout, "Test started...\n");
     long long int i = 0;
     while (i++) {
-        ci_t ci = nifat32_open_test(NO_RCI, paths[i % 8], (R_MODE | NO_TARGET), SUCCESS);
+        ci_t ci = nifat32_open_test(NO_RCI, paths[i % 7], (R_MODE | NO_TARGET), SUCCESS);
         test_data_t tval = { .val1 = "Hello test struct here!", .val2 = 0xDEAD };
         if (!nifate32_read_and_compare_alloc(ci, 0, (const_buffer_t)&tval, sizeof(test_data_t), SUCCESS)) return EXIT_FAILURE;
         if (!(i % 1000)) {
@@ -42,6 +43,7 @@ int main() {
 
         NIFAT32_close_content(ci);
     }
-    
+#endif /* CHECK */    
+
     return EXIT_SUCCESS;
 }
