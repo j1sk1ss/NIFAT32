@@ -1,14 +1,57 @@
+import os
 import sys
 import shutil
 import textwrap
 import pyfiglet
 import argparse
+import subprocess
 
 from loguru import logger
 
 
-def build_image(formatter: str) -> None:
-    pass
+def build_image(
+    formatter: str, spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, output: str = "nifat32.img"
+) -> None:
+    original_dir = os.getcwd()
+    formatter_dir = os.path.abspath(formatter)
+    formatter_bin = os.path.join(formatter_dir, "formatter")
+    output_image = os.path.join(original_dir, output)
+
+    try:
+        logger.info(f"Building formatter in {formatter_dir}")
+        os.chdir(formatter_dir)
+        subprocess.run(["make"], check=True)
+
+        logger.info("Running formatter to create nifat32.img")
+        subprocess.run([
+            formatter_bin, 
+            "-o", output, 
+            "-s", "nifat32", 
+            "--volume-size", v_size, 
+            "--spc", spc, 
+            "--fc", fc, 
+            "--bsbc", bs_count,
+            "--jc", jc
+        ], check=True)
+
+        logger.info("Removing formatter binary")
+        os.remove(formatter_bin)
+
+        os.chdir(original_dir)
+        logger.info("Moving nifat32.img to root directory")
+        shutil.move(os.path.join(formatter_dir, output), output_image)
+
+        logger.info("Switching to test directory")
+        os.chdir("test")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Command failed with exit code {e.returncode}: {e.cmd}")
+        exit(1)
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e.filename}")
+        exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        exit(1)
 
 
 def build_nifat32(root: str) -> None:
@@ -23,7 +66,7 @@ def run_benchmark() -> None:
     pass
 
 
-def run_default_tests() -> None:
+def run_default_tests(create_files: bool = True) -> None:
     pass
 
 
@@ -61,6 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("--tests-folder", type=str, help="Path to tests folder. (Test name example: test_*.c).")
     parser.add_argument("--root-folder", type=str, help="Path to NIFAT32 root folder (With nifat32.h).")
     parser.add_argument("--image-size", type=int, default=64, help="Image size on MB")
+    parser.add_argument("--spc", type=int, default=8, help="Sectors per cluster")
     parser.add_argument("--bs-count", type=int, default=5, help="Bootsector count")
     parser.add_argument("--j-count", type=int, default=0, help="Journals count")
     parser.add_argument("--fat-count", type=int, default=5, help="FAT count")
@@ -93,12 +137,20 @@ if __name__ == "__main__":
         logger.info(f"Bootsector count: {args.bs_count}")
         logger.info(f"Journal count: {args.j_count}")
         logger.info(f"FAT count: {args.fat_count}")
+        if args.formatter:
+            logger.info(f"Formatter tool path: {args.formatter}")
+            
+        build_image(
+            formatter=args.formatter, spc=args.spc, v_size=args.image_size, 
+            bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
+        )
+     
+    if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
+        logger.error(f"Unknown test type: {args.test_type}")
         
     if args.clean:
         logger.info("Temporary build files and binary files will be cleaned after the test.")
         
-    if args.formatter:
-        logger.info(f"Formatter tool path: {args.formatter}")
     if args.tests_folder:
         logger.info(f"Tests folder path: {args.tests_folder}")
     if args.root_folder:
@@ -115,6 +167,3 @@ if __name__ == "__main__":
             logger.info(f"Scratch length: {args.scratch_length}")
             logger.info(f"Scratch width: {args.scratch_width}")
             logger.info(f"Scratch intensity: {args.scratch_intensity}")
-
-    if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
-        logger.error(f"Unknown test type: {args.test_type}")
