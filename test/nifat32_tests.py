@@ -10,8 +10,16 @@ from loguru import logger
 
 
 def build_image(
-    formatter: str, spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, output: str = "nifat32.img"
+    formatter: str, 
+    clean: bool = True,
+    spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, 
+    output: str = "nifat32.img"
 ) -> None:
+    """
+    Create nifat32 image by building formatter and creating image.
+    Note: After building formatter and creating an image, will move it to root.
+    """
+    
     original_dir = os.getcwd()
     formatter_dir = os.path.abspath(formatter)
     formatter_bin = os.path.join(formatter_dir, "formatter")
@@ -22,20 +30,23 @@ def build_image(
         os.chdir(formatter_dir)
         subprocess.run(["make"], check=True)
 
-        logger.info("Running formatter to create nifat32.img")
-        subprocess.run([
+        build_seq: list = [
             formatter_bin, 
             "-o", output, 
             "-s", "nifat32", 
-            "--volume-size", v_size, 
-            "--spc", spc, 
-            "--fc", fc, 
-            "--bsbc", bs_count,
-            "--jc", jc
-        ], check=True)
+            "--volume-size", str(v_size), 
+            "--spc", str(spc), 
+            "--fc", str(fc), 
+            "--bsbc", str(bs_count),
+            "--jc", str(jc)
+        ]
 
-        logger.info("Removing formatter binary")
-        os.remove(formatter_bin)
+        logger.info(f"Running formatter to create nifat32.img args={build_seq}")
+        subprocess.run(build_seq, check=True)
+
+        if clean:
+            logger.info("Removing formatter binary")
+            os.remove(formatter_bin)
 
         os.chdir(original_dir)
         logger.info("Moving nifat32.img to root directory")
@@ -54,7 +65,7 @@ def build_image(
         exit(1)
 
 
-def build_nifat32(root: str) -> None:
+def build_nifat32(nifat32_root: str) -> None:
     pass
 
 
@@ -128,7 +139,7 @@ if __name__ == "__main__":
     logger.info(f"Test starting. Type={args.test_type}")
     logger.info(f"Test size: {args.test_size}")
     
-    if len(args.debug) > 0:
+    if args.debug:
         logger.info(f"Debug flags: {args.debug}")
         
     if args.new_image:
@@ -141,8 +152,9 @@ if __name__ == "__main__":
             logger.info(f"Formatter tool path: {args.formatter}")
             
         build_image(
-            formatter=args.formatter, spc=args.spc, v_size=args.image_size, 
-            bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
+            formatter=args.formatter, 
+            clean=args.clean,
+            spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
         )
      
     if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
