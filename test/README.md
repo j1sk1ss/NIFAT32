@@ -18,7 +18,7 @@ Benchamrking (Avg. time for creating, reading, writing, deleting, renaming and c
 # Index test
 Tests how indexing affects performance (average time to open and read files):
 ```
- ./file_test.sh --new-image 100
+ ./file_test.sh --new-image <count>
 ```
 - --new-image - Will create new nifat32 image with formatter tool.
 - --del-bin - Will clean directory after test.

@@ -75,7 +75,7 @@ static inline int _mock_vfprintf_(const char* fmt, va_list args) {
     return vfprintf(stdout, fmt, args);
 }
 
-static int setup_nifat32(unsigned int volume_size) {
+static int setup_nifat32() {
     if (!LOG_setup(_mock_fprintf_, _mock_vfprintf_)) {
         fprintf(stderr, "LOG_setup() error!\n");
         close(disk_fd);
@@ -94,7 +94,11 @@ static int setup_nifat32(unsigned int volume_size) {
         return 0;
     }
 
-    nifat32_params params = { .bs_num = 0, .ts = volume_size / sector_size, .fat_cache = CACHE, .jc = 0, .bs_count = 5 };
+#ifdef V_SIZE
+    nifat32_params params = { .bs_num = 0, .ts = V_SIZE / sector_size, .fat_cache = CACHE, .jc = J_COUNT, .bs_count = BS_COUNT };
+#else
+    nifat32_params params = { .bs_num = 0, .ts = (64 * 1024 * 1024) / sector_size, .fat_cache = CACHE, .jc = 0, .bs_count = 5 };
+#endif
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);

@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!setup_nifat32(64 * 1024 * 1024)) {
+    if (!setup_nifat32()) {
         fprintf(stderr, "setup_nifat32() error!\n");
         return EXIT_FAILURE;        
     }

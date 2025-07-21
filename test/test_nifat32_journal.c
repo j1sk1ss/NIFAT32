@@ -9,7 +9,7 @@ typedef struct {
 } test_data_t;
 
 int main() {
-    if (!setup_nifat32(64 * 1024 * 1024)) return EXIT_FAILURE;
+    if (!setup_nifat32()) return EXIT_FAILURE;
     ci_t rci = nifat32_open_test(NO_RCI, NULL, DF_MODE, 1);
     NIFAT32_close_content(rci);
     return EXIT_SUCCESS;
