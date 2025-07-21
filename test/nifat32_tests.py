@@ -15,7 +15,7 @@ def build_image(
     clean: bool = True,
     spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, 
     output: str = "nifat32.img"
-) -> None:
+) -> str:
     """
     Create nifat32 image by building formatter and creating image.
     Note: After building formatter and creating an image, will move it to root.
@@ -70,10 +70,12 @@ def build_image(
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         exit(1)
+        
+    return output
 
 
 def build_test(
-    nifat32_path: list[str], base_path: str, test_path: str, debug: list | None
+    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True
 ) -> Path:
     """
     Build separated test
@@ -95,6 +97,9 @@ def build_test(
     output_path: Path = Path(base_path) / bin_name
 
     build_flags: list[str] = []
+    if not creation:
+        build_flags.append("-DNO_CREATION")
+            
     if debug:
         for i in debug:
             build_flags.append({
@@ -123,15 +128,6 @@ def build_test(
     return output_path
 
 
-def run_tests(create_files: bool = True) -> None:
-    pass
-
-
-def run_birflips_test(scenarion: str) -> None:
-    from injector import random_bitflips, scratch_emulation
-    pass
-
-
 def print_welcome(parser: argparse.ArgumentParser) -> None:
     print("Welcome! Avaliable arguments:\n")
     help_text = parser.format_help()
@@ -141,6 +137,19 @@ def print_welcome(parser: argparse.ArgumentParser) -> None:
         print(textwrap.indent(options_text, "    "))
     else:
         print(textwrap.indent(help_text, "    "))
+
+
+def run_tests(test_bins: list[Path], test_size: int) -> None:
+    for bin_path in test_bins:
+        logger.info(f"Running test: {bin_path.name} with size={test_size}")
+        try:
+            result = subprocess.run([str(bin_path), str(test_size)], check=True)
+            if result.returncode == 1:
+                logger.error(f"Test {bin_path.name} unexpectedly exited with code 0 (expected failure).")
+            else:
+                logger.info(f"Test {bin_path.name} exited with code {result.returncode} (as expected).")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Test {bin_path.name} failed with error: {e}")
 
 
 if __name__ == "__main__":
@@ -168,7 +177,6 @@ if __name__ == "__main__":
     
     # === Bitflip setup ===
     parser.add_argument("--bitflips-strategy", type=str, default="random", help="Bitflip strategy: random or scratch.")
-    parser.add_argument("--scratch-length", type=int, default=1024)
     parser.add_argument("--scratch-width", type=int, default=1)
     parser.add_argument("--scratch-intensity", type=float, default=.7)
     parser.add_argument("--bitflips-count", type=int, default=10)
@@ -195,16 +203,17 @@ if __name__ == "__main__":
         logger.info(f"Debug flags: {args.debug}")
                 
     # === Build nifat32 image ===
+    image_path: str = "nifat32.img"
     if args.new_image:
         logger.info("A new NIFAT32 image will be created for the test.")
-        logger.info(f"Image size: {args.image_size} MB")
+        logger.info(f"Image size:       {args.image_size} MB")
         logger.info(f"Bootsector count: {args.bs_count}")
-        logger.info(f"Journal count: {args.j_count}")
-        logger.info(f"FAT count: {args.fat_count}")
+        logger.info(f"Journal count:    {args.j_count}")
+        logger.info(f"FAT count:        {args.fat_count}")
         if args.formatter:
             logger.info(f"Formatter tool path: {args.formatter}")
             
-        build_image(
+        image_path = build_image(
             formatter=args.formatter, 
             clean=args.clean,
             spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
@@ -212,7 +221,7 @@ if __name__ == "__main__":
     
     # === Build tests ===
     if args.tests_folder and args.root_folder:
-        logger.info(f"Tests folder path: {args.tests_folder}")
+        logger.info(f"Tests folder path:        {args.tests_folder}")
         logger.info(f"NIFAT32 root folder path: {args.root_folder}")
         
         tests_path: Path = Path(args.tests_folder)
@@ -234,22 +243,72 @@ if __name__ == "__main__":
     if args.test_type == "bitflip":
         logger.info("Bitflip testing mode selected.")
         logger.info(f"Bitflip strategy: {args.bitflips_strategy}")
-        logger.info(f"Bitflips count: {args.bitflips_count}")
+        logger.info(f"Bitflips count:   {args.bitflips_count}")
+        
+        scenario: list[tuple[str, int]] = []
+
         if args.injector_scenario:
             logger.info(f"Injector scenario path: {args.injector_scenario}")
-            
+            try:
+                with open(args.injector_scenario, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        
+                        parts = line.split()
+                        if len(parts) != 2 or parts[0] not in {"T", "I", "S"}:
+                            logger.warning(f"Ignoring invalid scenario line: {line}")
+                            continue
+                        
+                        scenario.append((parts[0], int(parts[1])))
+            except Exception as e:
+                logger.error(f"Failed to load scenario: {e}")
+                scenario = [("T", 1000), ("I", 100000), ("T", 1000), ("I", 100000), ("T", 1000), ("I", 100000), ("T", 1000)]
+                logger.warning(f"Using default fallback scenario={scenario}")
+        else:
+            scenario = [("T", 1000), ("I", 100000), ("T", 1000), ("I", 100000), ("T", 1000), ("I", 100000), ("T", 1000)]
+            logger.warning(f"Injector scenario not provided. Using default fallback scenario={scenario}.")
+
         if args.bitflips_strategy == "scratch":
-            logger.info(f"Scratch length: {args.scratch_length}")
             logger.info(f"Scratch width: {args.scratch_width}")
             logger.info(f"Scratch intensity: {args.scratch_intensity}")
+            
+        from injector import random_bitflips, scratch_emulation
+        
+        no_creation: bool = False
+        for act, size in scenario:
+            # Testing
+            if act == "T":
+                logger.info(f"Forward tesing, size={size}...")
+                run_tests(test_bins=test_bins, test_size=size)
+                
+                if not no_creation:
+                    logger.info(f"Recompiling tests for bitflip testing on existed entries...")
+                    no_creation = True
+                    test_bins.clear()
+                    for test in test_files:
+                        test_bins.append(build_test(
+                            nifat32_path=[
+                                str(tests_path / "nifat32_test.h"),
+                                str(Path(args.root_folder) / "nifat32.c"),
+                                str(Path(args.root_folder) / "src/*"),
+                                str(Path(args.root_folder) / "std/*")
+                            ], base_path=str(tests_path), test_path=test, debug=args.debug, creation=False
+                        ))
+            # Injection
+            elif act == "I":
+                logger.info(f"Bitflip injection, size={size}...")
+                random_bitflips(file_path=image_path, num_flips=size)
+            # Scratch
+            elif act == "S":
+                logger.info(f"Scratch injection, size={size}...")
+                scratch_emulation(file_path=image_path, scratch_length=size, width=args.scratch_width, intensity=args.scratch_intensity)
+            else:
+                logger.warning(f"Incorrect scenario action! act={act}")
     else:
         logger.info("Running compiled tests sequentially...")
-        for bin_path in test_bins:
-            logger.info(f"Running test: {bin_path.name} with size={args.test_size}")
-            try:
-                subprocess.run([str(bin_path), str(args.test_size)], check=True)
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Test {bin_path.name} failed with error: {e}")
+        run_tests(test_bins=test_bins, test_size=args.test_size)
 
     # === Cleaning ===
     if args.clean:

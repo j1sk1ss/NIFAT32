@@ -17,7 +17,7 @@ char* paths[] = {
 };
 
 int main() {
-#ifndef CHECK
+#ifndef NO_CREATION
     if (!setup_nifat32()) return EXIT_FAILURE;
     fprintf(stdout, "Creating files...\n");
     for (int i = 0; i < 8; i++) {
@@ -51,7 +51,7 @@ int main() {
 
         NIFAT32_close_content(ci);
     }
-#endif /* CHECK */    
+#endif /* NO_CREATION */    
 
     return EXIT_SUCCESS;
 }
