@@ -70,7 +70,7 @@ if __name__ == "__main__":
     print(ascii_banner)
     
     parser = argparse.ArgumentParser(description="Inject bitflips into disk image.")
-    parser.add_argument("--strategy", type=str, default="random")
+    parser.add_argument("--strategy", type=str, default="random", help="random or scratch")
     parser.add_argument("--scratch-length", type=int, default=1024)
     parser.add_argument("--width", type=int, default=1)
     parser.add_argument("--intensity", type=float, default=.7)
@@ -84,5 +84,5 @@ if __name__ == "__main__":
 
     if args.strategy == "random":
         random_bitflips(file_path=args.image, num_flips=args.size)
-    elif args.strategy == "stretch":
+    elif args.strategy == "scratch":
         scratch_emulation(file_path=args.image, scratch_length=args.scratch_length, width=args.width, intensity=args.intensity)

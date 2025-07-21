@@ -585,8 +585,13 @@ static int _repair_handler(entry_info_t* info, directory_entry_t* entry, void* c
 
 int NIFAT32_repair_content(const ci_t ci, int rec) {
     print_log("NIFAT32_repair_content(ci=%i)", ci);
-    cluster_addr_t target = get_content_data_ca(ci);
-    entry_iterate(target, rec ? _repair_handler : NULL, NULL, &_fs_data);
+    if (get_content_type(ci) != CONTENT_TYPE_DIRECTORY) {
+        print_error("Can't repair content ci=%i. This content is not a directory! Type: [%i]", ci, get_content_type(ci));
+        return 0;
+    }
+
+    cluster_addr_t ca = get_content_data_ca(ci);
+    entry_iterate(ca, rec ? _repair_handler : NULL, NULL, &_fs_data);
     return 1;
 }
 

@@ -122,9 +122,9 @@ static inline int nifate32_read_and_compare_alloc(ci_t ci, int off, const_buffer
     int readden = NIFAT32_read_content2buffer(ci, off, src, size);
     if (memcmp(src, dst, size) && exp) {
         fprintf(stderr, "ERROR! NIFAT32_read_content2buffer return unexpected result!\n");
-        fprintf(stdout, "\n Source data [%i]: ", size);
+        fprintf(stderr, "\n Source data [%i]: ", size);
         for (int i = 0; i < size; i++) printf("0x%x(%c) ", dst[i], dst[i]);
-        fprintf(stdout, "\n Read result [%i]: ", readden);
+        fprintf(stderr, "\n Read result [%i]: ", readden);
         for (int i = 0; i < readden; i++) printf("0x%x(%c) ", src[i], src[i]);
         free(src);
         return 0;

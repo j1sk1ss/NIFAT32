@@ -1,3 +1,6 @@
+# Forward testing (with marker file creation): ./run_tests.sh --new-image
+# Second testing (with marker file testing): ./run_tests.sh --check
+
 #!/bin/bash
 
 BUILD_FLAGS=""
