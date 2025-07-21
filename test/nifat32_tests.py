@@ -6,6 +6,7 @@ import pyfiglet
 import argparse
 import subprocess
 
+from pathlib import Path
 from loguru import logger
 
 
@@ -18,6 +19,15 @@ def build_image(
     """
     Create nifat32 image by building formatter and creating image.
     Note: After building formatter and creating an image, will move it to root.
+    Args:
+        formatter (str): Path to formatter directory
+        clean (bool, optional): Clean all binary files after building. Defaults to True.
+        spc (int, optional): Sectors per cluster. Defaults to 8.
+        v_size (int, optional): Volume size. Defaults to 64.
+        bs_count (int, optional): BootSector count. Defaults to 5.
+        fc (int, optional): FAT count. Defaults to 5.
+        jc (int, optional): Journals (copies) count. Defaults to 0.
+        output (str, optional): Output location for image. Defaults to "nifat32.img".
     """
     
     original_dir = os.getcwd()
@@ -51,9 +61,6 @@ def build_image(
         os.chdir(original_dir)
         logger.info("Moving nifat32.img to root directory")
         shutil.move(os.path.join(formatter_dir, output), output_image)
-
-        logger.info("Switching to test directory")
-        os.chdir("test")
     except subprocess.CalledProcessError as e:
         logger.error(f"Command failed with exit code {e.returncode}: {e.cmd}")
         exit(1)
@@ -65,19 +72,58 @@ def build_image(
         exit(1)
 
 
-def build_nifat32(nifat32_root: str) -> None:
-    pass
+def build_test(
+    nifat32_path: list[str], base_path: str, test_path: str, debug: list | None
+) -> Path:
+    """
+    Build separated test
+    Args:
+        nifat32_path (list[str]): nifat32 related info. Path to nifat32_test.h, nifat32.c, src/*, std/*
+        test_path (str): Path to test_*.c
+        debug (list | None): Debug flags
+
+    Raises:
+        FileNotFoundError: There is no test_*.c file
+        e: Something goes wrong during compilation
+    """
+    
+    test_path: Path = Path(test_path)
+    if not test_path.exists():
+        raise FileNotFoundError(f"Test file not found: {test_path}")
+
+    bin_name = test_path.stem
+    output_path: Path = Path(base_path) / bin_name
+
+    build_flags: list[str] = []
+    if debug:
+        for i in debug:
+            build_flags.append({
+               "error":  "-DERROR_LOGS", "warn": "-DWARNING_LOGS", "debug": "-DDEBUG_LOGS",
+               "info": "-DINFO_LOGS", "log": "-DLOGGING_LOGS"
+            }[i])
+            
+        build_flags.append("-g")
+        
+    compile_cmd: list[str] = [
+        "gcc-14", *build_flags,
+        str(test_path),
+        *nifat32_path, # nifat32_test.h nifat32.c src/* std/*
+        "-o", str(output_path)
+    ]
+
+    logger.info(f"Compiling {bin_name}...")
+
+    try:
+        subprocess.run(" ".join(compile_cmd), shell=True, check=True)
+        logger.info(f"Compilation succeeded: {output_path}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Compilation failed: {bin_name}, e={e}")
+        raise e
+    
+    return output_path
 
 
-def run_index_test() -> None:
-    pass
-
-
-def run_benchmark() -> None:
-    pass
-
-
-def run_default_tests(create_files: bool = True) -> None:
+def run_tests(create_files: bool = True) -> None:
     pass
 
 
@@ -105,7 +151,7 @@ if __name__ == "__main__":
     
     # === Main setup ===
     parser.add_argument("--debug", nargs="+", help="Debug flags (e.g. debug, log, info, error, special)")
-    parser.add_argument("--test-type", type=str, default="default", help="Test type: benchmark, index, default, bitflip.")
+    parser.add_argument("--test-type", type=str, default="default", help="Test type: default, bitflip.")
     parser.add_argument("--new-image", action="store_true", help="Build a new nifat32 image for test.")
     parser.add_argument("--clean", action="store_true", help="Clean directory from build files and binary files.")
     parser.add_argument("--test-size", type=int, default=1000, help="Test size.")
@@ -137,11 +183,18 @@ if __name__ == "__main__":
         
     # === Log setup options ===
     logger.info(f"Test starting. Type={args.test_type}")
+    if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
+        logger.error(f"Unknown test type: {args.test_type}")
+        exit(1)
+        
     logger.info(f"Test size: {args.test_size}")
-    
+    if args.clean:
+        logger.info("Temporary build files and binary files will be cleaned after the test.")
+        
     if args.debug:
         logger.info(f"Debug flags: {args.debug}")
-        
+                
+    # === Build nifat32 image ===
     if args.new_image:
         logger.info("A new NIFAT32 image will be created for the test.")
         logger.info(f"Image size: {args.image_size} MB")
@@ -156,18 +209,28 @@ if __name__ == "__main__":
             clean=args.clean,
             spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
         )
-     
-    if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
-        logger.error(f"Unknown test type: {args.test_type}")
-        
-    if args.clean:
-        logger.info("Temporary build files and binary files will be cleaned after the test.")
-        
-    if args.tests_folder:
+    
+    # === Build tests ===
+    if args.tests_folder and args.root_folder:
         logger.info(f"Tests folder path: {args.tests_folder}")
-    if args.root_folder:
         logger.info(f"NIFAT32 root folder path: {args.root_folder}")
         
+        tests_path: Path = Path(args.tests_folder)
+        test_files: list = sorted(tests_path.glob("test_*.c"))
+        logger.info(f"tests_path={tests_path}, test_files={test_files}")
+        
+        test_bins: list[Path] = []
+        for test in test_files:
+            test_bins.append(build_test(
+                nifat32_path=[
+                    str(tests_path / "nifat32_test.h"),
+                    str(Path(args.root_folder) / "nifat32.c"),
+                    str(Path(args.root_folder) / "src/*"),
+                    str(Path(args.root_folder) / "std/*")
+                ], base_path=str(tests_path), test_path=test, debug=args.debug
+            ))
+    
+    # === Test running ===
     if args.test_type == "bitflip":
         logger.info("Bitflip testing mode selected.")
         logger.info(f"Bitflip strategy: {args.bitflips_strategy}")
@@ -179,3 +242,21 @@ if __name__ == "__main__":
             logger.info(f"Scratch length: {args.scratch_length}")
             logger.info(f"Scratch width: {args.scratch_width}")
             logger.info(f"Scratch intensity: {args.scratch_intensity}")
+    else:
+        logger.info("Running compiled tests sequentially...")
+        for bin_path in test_bins:
+            logger.info(f"Running test: {bin_path.name} with size={args.test_size}")
+            try:
+                subprocess.run([str(bin_path), str(args.test_size)], check=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Test {bin_path.name} failed with error: {e}")
+
+    # === Cleaning ===
+    if args.clean:
+        logger.info("Cleaning up test binaries...")
+        for bin_path in test_bins:
+            try:
+                bin_path.unlink()
+                logger.info(f"Removed binary: {bin_path}")
+            except Exception as e:
+                logger.warning(f"Failed to remove {bin_path}: {e}")

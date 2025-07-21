@@ -1,26 +1,17 @@
 #include "nifat32_test.h"
 
-#pragma region [Data]
+static int _id = 1;
+static const char* _get_raw_name(char* buffer, int id) {
+    snprintf(buffer, 36, "%06d.pg", id < 0 ? _id++ : id);
+    return buffer;
+}
 
-    static int _id = 1;
-    static const char* _get_raw_name(char* buffer, int id) {
-        snprintf(buffer, 36, "%06d.pg", id < 0 ? _id++ : id);
-        return buffer;
-    }
+static const char* _get_name(char* buffer, int id) {
+    snprintf(buffer, 36, "root/%06d.pg", id < 0 ? _id++ : id);
+    return buffer;
+}
 
-    static const char* _get_name(char* buffer, int id) {
-        snprintf(buffer, 36, "root/%06d.pg", id < 0 ? _id++ : id);
-        return buffer;
-    }
-
-#pragma endregion
-
-#pragma region [Timings]
-
-    long total_open_time_us = 0;
-    int open_ops = 0;
-
-#pragma endregion
+nifat32_timer_t open_timer;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -63,11 +54,10 @@ int main(int argc, char* argv[]) {
         _get_raw_name(name_buffer, ((1 + rand()) % _id));
         path_to_fatnames(name_buffer, target_fatname);
 
-        open_ops++;
         ci_t ci = -1;
-        total_open_time_us += MEASURE_TIME_US({
+        add_time2timer(MEASURE_TIME_US({
             ci = NIFAT32_open_content(rci, target_fatname, DF_MODE);
-        });
+        }), &open_timer);
 
         if (ci >= 0) {
             char buffer[512] = { 0 };
@@ -81,7 +71,7 @@ int main(int argc, char* argv[]) {
     }
 
     NIFAT32_close_content(rci);
-    if (open_ops) fprintf(stdout, "Avg open time:  %.2f µs\n", total_open_time_us / (double)open_ops);
+    fprintf(stdout, "Avg open time:  %.2f µs\n", get_avg_timer(&open_timer));
     fprintf(stdout, "=============================\n\n\n");
 
     NIFAT32_unload();
