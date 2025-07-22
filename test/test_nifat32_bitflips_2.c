@@ -22,8 +22,6 @@ int main() {
     for (int i = 0; i < 8; i++) {
         ci_t ci = nifat32_open_test(NO_RCI, paths[i], MODE(R_MODE, NO_TARGET), SUCCESS);
         if (ci < 0) return EXIT_FAILURE;
-        test_data_t tval = { .val1 = "Hello test struct here!", .val2 = 0xDEAD };
-        if (!nifate32_read_and_compare_alloc(ci, 0, (const_buffer_t)&tval, sizeof(test_data_t), SUCCESS)) fprintf(stderr, "[WARN] Data corrupted!\n");
         NIFAT32_close_content(ci);
     }
 

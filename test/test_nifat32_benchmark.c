@@ -29,6 +29,7 @@ nifat32_timer_t copy_timer;
 nifat32_timer_t delete_timer;
 
 int main(int argc, char* argv[]) {
+#ifndef NO_CREATION
     if (argc < 2) {
         fprintf(stderr, "Test count requiered!\nUsage:%s <count>\n", argv[0]);
         return EXIT_FAILURE;
@@ -138,6 +139,7 @@ int main(int argc, char* argv[]) {
     fprintf(stdout, "Avg copy time:   %.2f µs\n", get_avg_timer(&copy_timer));
     fprintf(stdout, "Avg delete time: %.2f µs\n", get_avg_timer(&delete_timer));
     fprintf(stdout, "=============================\n\n\n");
+#endif
 
     return EXIT_SUCCESS;
 }

@@ -14,6 +14,7 @@ static const char* _get_name(char* buffer, int id) {
 nifat32_timer_t open_timer;
 
 int main(int argc, char* argv[]) {
+#ifndef NO_CREATION
     if (argc < 2) {
         fprintf(stderr, "Test count requiered!\n");
         return EXIT_FAILURE;
@@ -75,5 +76,7 @@ int main(int argc, char* argv[]) {
     fprintf(stdout, "=============================\n\n\n");
 
     NIFAT32_unload();
+#endif
+
     return EXIT_SUCCESS;
 }

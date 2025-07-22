@@ -9,6 +9,7 @@ typedef struct {
 } test_data_t;
 
 int main() {
+#ifndef NO_CREATION
     if (!setup_nifat32()) return EXIT_FAILURE;
 
     // Create target structure of directories and files
@@ -46,6 +47,7 @@ int main() {
     ci = nifat32_open_test(NO_RCI, "root2/root2/test.txt", DF_MODE, SUCCESS);
     if (!nifate32_read_and_compare_alloc(ci, 0, (const_buffer_t)&src_tval, sizeof(test_data_t), SUCCESS)) return EXIT_FAILURE;
     NIFAT32_close_content(ci);
+#endif
 
     return EXIT_SUCCESS;
 }

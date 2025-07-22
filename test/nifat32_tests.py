@@ -139,7 +139,7 @@ def print_welcome(parser: argparse.ArgumentParser) -> None:
         print(textwrap.indent(help_text, "    "))
 
 
-def run_tests(test_bins: list[Path], test_size: int) -> None:
+def run_tests(test_bins: list[Path], test_size: int) -> bool:
     for bin_path in test_bins:
         logger.info(f"Running test: {bin_path.name} with size={test_size}")
         try:
@@ -150,6 +150,9 @@ def run_tests(test_bins: list[Path], test_size: int) -> None:
                 logger.info(f"Test {bin_path.name} exited with code {result.returncode} (as expected).")
         except subprocess.CalledProcessError as e:
             logger.error(f"Test {bin_path.name} failed with error: {e}")
+            return False
+            
+    return True
 
 
 if __name__ == "__main__":
@@ -276,12 +279,17 @@ if __name__ == "__main__":
             
         from injector import random_bitflips, scratch_emulation
         
+        bitflips_count: int = 0
         no_creation: bool = False
         for act, size in scenario:
+            logger.info(f"Running scenario act={act}, total_bitlips={bitflips_count}")
+            
             # Testing
             if act == "T":
                 logger.info(f"Forward tesing, size={size}...")
-                run_tests(test_bins=test_bins, test_size=size)
+                if not run_tests(test_bins=test_bins, test_size=size):
+                    logger.error(f"Test error! bitflips={bitflips_count}")
+                    exit(1)
                 
                 if not no_creation:
                     logger.info(f"Recompiling tests for bitflip testing on existed entries...")
@@ -298,10 +306,12 @@ if __name__ == "__main__":
                         ))
             # Injection
             elif act == "I":
+                bitflips_count += size
                 logger.info(f"Bitflip injection, size={size}...")
                 random_bitflips(file_path=image_path, num_flips=size)
             # Scratch
             elif act == "S":
+                bitflips_count += size * args.scratch_width * args.scratch_intensity
                 logger.info(f"Scratch injection, size={size}...")
                 scratch_emulation(file_path=image_path, scratch_length=size, width=args.scratch_width, intensity=args.scratch_intensity)
             else:

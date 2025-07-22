@@ -51,7 +51,13 @@ int main() {
 
         NIFAT32_close_content(ci);
     }
-#endif /* NO_CREATION */    
 
+    NIFAT32_unload();
+#else /* NO_CREATION */
+    ci_t ci = NIFAT32_open_content(NO_RCI, NULL, DF_MODE);
+    NIFAT32_repair_content(ci, 1);
+    NIFAT32_repair_bootsectors();
+    NIFAT32_close_content(ci);
+#endif
     return EXIT_SUCCESS;
 }
