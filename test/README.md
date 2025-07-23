@@ -3,33 +3,31 @@ For testing purposes, here is a set of tests. </br>
 
 **How to run?** </br>
 ```
-chmod +x run_tests.sh index_test.sh benchmark.sh
+python3 test/nifat32_tests.py 
 ```
 
-# Benchmark
+# Launching
 Benchamrking (Avg. time for creating, reading, writing, deleting, renaming and copying):
 ```
-./benchmark.sh --new-image <count>
+python3 test/nifat32_tests.py --new-image --formatter <path> --tests-folder <path> --root-folder <path> --clean --test-type <type> --injector-scenario <path> --test-size <size>
 ```
 - --new-image - Will create new nifat32 image with formatter tool.
-- --del-bin - Will clean directory after test.
-- Files limit. Test will create this file amount.
+- --formatter - Path to formatter folder
+- --tests-folder - Path to folder with test_*.c files
+- --root-folder - Project root folder
+- --clean - Clean binaries after execution
+- --test-type - Test type 
+- --test-size - Test size argument for every test
 
-# Index test
-Tests how indexing affects performance (average time to open and read files):
-```
- ./file_test.sh --new-image <count>
-```
-- --new-image - Will create new nifat32 image with formatter tool.
-- --del-bin - Will clean directory after test.
-- Files limit. Test will create this file amount.
+# Examples
 
-# Main testing
-Runs general tests to ensure correct behavior of the file system:
+Bitflip testing
 ```
-./run_tests.sh --new-image
+python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type bitflip --injector-scenario test/injector_scenario.txt
 ```
-- --new-image - Will create new nifat32 image with formatter tool.
-- --ndel-bin - Will save build data after test.
-- --check - Special type of execution after bitflip injection.
-- Files limit. Test will create this file amount.
+
+Default testing
+```
+
+```
+python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type default
