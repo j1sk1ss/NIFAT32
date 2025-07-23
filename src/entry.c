@@ -3,7 +3,7 @@
 static int _validate_entry(directory_entry_t* entry) {
     checksum_t entry_checksum = entry->checksum;
     entry->checksum = 0;
-    if (crc32(0, (buffer_t)entry, sizeof(directory_entry_t)) != entry_checksum) return 0;
+    if (murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) != entry_checksum) return 0;
     else entry->checksum = entry_checksum;
     return 1;
 }
@@ -118,7 +118,7 @@ int entry_search(
         }
     }
 
-    entry_ctx_t ctx = { .meta = meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11) };
+    entry_ctx_t ctx = { .meta = meta, .name = name, .name_hash = murmur3_x86_32((const_buffer_t)name, 11, 0) };
     return entry_iterate(ca, _search_handler, (void*)&ctx, fi);
 }
 
@@ -145,7 +145,13 @@ int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
     print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
-    entry_ctx_t context = { .meta = (directory_entry_t*)meta, .name = name, .name_hash = crc32(0, (const_buffer_t)name, 11), .index = cache, .fi = fi };
+    entry_ctx_t context = { 
+        .meta = (directory_entry_t*)meta, 
+        .name = name, 
+        .name_hash = murmur3_x86_32((const_buffer_t)name, 11, 0), 
+        .index = cache, .fi = fi 
+    };
+
     int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
     journal_solve_operation(context.ji, fi);
     return result;
@@ -313,8 +319,8 @@ int create_entry(
     }
 
     str_memcpy(entry->file_name, fullname, 11);
-    entry->name_hash = crc32(0, (const_buffer_t)entry->file_name, 11);
-    entry->checksum  = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
+    entry->name_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
+    entry->checksum  = murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
     print_debug("_create_entry=%.11s, is_dir=%i, fca=%u", entry->file_name, is_dir, first_cluster);
     return 1; 
 }

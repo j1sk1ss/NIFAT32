@@ -32,8 +32,8 @@ int NIFAT32_init(nifat32_params* params) {
     checksum_t exbcheck = bootstruct.extended_section.checksum;
     bootstruct.extended_section.checksum = 0;
 
-    bootstruct.extended_section.checksum = crc32(0, (buffer_t)&bootstruct.extended_section, sizeof(nifat32_ext32_bootsector_t));
-    bootstruct.checksum = crc32(0, (buffer_t)&bootstruct, sizeof(nifat32_bootsector_t));
+    bootstruct.extended_section.checksum = murmur3_x86_32((buffer_t)&bootstruct.extended_section, sizeof(nifat32_ext32_bootsector_t), 0);
+    bootstruct.checksum = murmur3_x86_32((buffer_t)&bootstruct, sizeof(nifat32_bootsector_t), 0);
     if (bootstruct.checksum != bcheck || bootstruct.extended_section.checksum != exbcheck) {
         print_error(
             "Checksum check error! [bootstruct=%u != %u] or [ext_bootstruct=%u != %u]. Moving to reserved sector!", 
@@ -141,9 +141,9 @@ int NIFAT32_repair_bootsectors() {
     ext.root_cluster  = _fs_data.ext_root_cluster;
     str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
     str_memcpy(ext.fat_type_label, "NIFAT32 ", 8);
-    ext.checksum = crc32(0, (unsigned char*)&ext, sizeof(ext));
+    ext.checksum = murmur3_x86_32((unsigned char*)&ext, sizeof(ext), 0);
     str_memcpy(&bs.extended_section, &ext, sizeof(ext));
-    bs.checksum = crc32(0, (unsigned char*)&bs, sizeof(bs));
+    bs.checksum = murmur3_x86_32((unsigned char*)&bs, sizeof(bs), 0);
 
     const_buffer_t encoded_bs[sizeof(nifat32_bootsector_t)];
     pack_memory((const byte_t*)&bs, (decoded_t*)encoded_bs, sizeof(bs));
@@ -511,7 +511,7 @@ static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void*
     
     entry->cluster  = hca;
     entry->checksum = 0;
-    entry->checksum = crc32(0, (const_buffer_t)entry, sizeof(directory_entry_t));
+    entry->checksum = murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
     return 0;
 }

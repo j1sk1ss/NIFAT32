@@ -83,8 +83,8 @@ static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
     dst->cluster    = src->cluster;
     dst->file_size  = src->file_size;
     str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
-    dst->name_hash = crc32(0, (const_buffer_t)dst->file_name, 11);
-    dst->checksum  = crc32(0, (const_buffer_t)dst, sizeof(unsqueezed_entry_t));
+    dst->name_hash = murmur3_x86_32((const_buffer_t)dst->file_name, sizeof(dst->file_name), 0);
+    dst->checksum  = murmur3_x86_32((const_buffer_t)dst, sizeof(unsqueezed_entry_t), 0);
     return 1;
 }
 
