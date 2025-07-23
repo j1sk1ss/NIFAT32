@@ -1,4 +1,5 @@
 # Testing
+
 For testing purposes, here is a set of tests. </br>
 
 **How to run?** </br>
@@ -7,6 +8,7 @@ python3 test/nifat32_tests.py
 ```
 
 # Launching
+
 Benchamrking (Avg. time for creating, reading, writing, deleting, renaming and copying):
 ```
 python3 test/nifat32_tests.py --new-image --formatter <path> --tests-folder <path> --root-folder <path> --clean --test-type <type> --injector-scenario <path> --test-size <size>
@@ -28,6 +30,5 @@ python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder t
 
 Default testing
 ```
-
-```
 python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type default
+```
