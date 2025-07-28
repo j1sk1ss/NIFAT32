@@ -75,7 +75,7 @@ def build_image(
 
 
 def build_test(
-    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True
+    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14"
 ) -> Path:
     """
     Build separated test
@@ -110,7 +110,7 @@ def build_test(
         build_flags.append("-g")
         
     compile_cmd: list[str] = [
-        "gcc-14", *build_flags,
+        compiler, *build_flags,
         str(test_path),
         *nifat32_path, # nifat32_test.h nifat32.c src/* std/*
         "-o", str(output_path)
@@ -167,6 +167,7 @@ if __name__ == "__main__":
     parser.add_argument("--new-image", action="store_true", help="Build a new nifat32 image for test.")
     parser.add_argument("--clean", action="store_true", help="Clean directory from build files and binary files.")
     parser.add_argument("--test-size", type=int, default=1000, help="Test size.")
+    parser.add_argument("--compiler", type=str, default="gcc-14", help="Compiler for compilation.")
     
     # === Formatter setup ===
     parser.add_argument("--formatter", type=str, help="Path to formatter tool.")
@@ -239,7 +240,7 @@ if __name__ == "__main__":
                     str(Path(args.root_folder) / "nifat32.c"),
                     str(Path(args.root_folder) / "src/*"),
                     str(Path(args.root_folder) / "std/*")
-                ], base_path=str(tests_path), test_path=test, debug=args.debug
+                ], base_path=str(tests_path), test_path=test, debug=args.debug, compiler=args.compiler
             ))
     
     # === Test running ===

@@ -21,6 +21,7 @@ static const char* _get_name(char* buffer) {
     return buffer;
 }
 
+nifat32_timer_t open_timer;
 nifat32_timer_t create_timer;
 nifat32_timer_t write_timer;
 nifat32_timer_t read_timer;
@@ -67,6 +68,12 @@ int main(int argc, char* argv[]) {
             ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(R_MODE | W_MODE | CR_MODE, FILE_TARGET));
             if (ci < 0) return EXIT_FAILURE;
         }), &create_timer);
+        NIFAT32_close_content(ci);
+
+        /* Open targer file */
+        add_time2timer(MEASURE_TIME_US({
+            ci = NIFAT32_open_content(NO_RCI, target_fatname, DF_MODE);
+        }), &open_timer);
 
         /* Write test data to file */
         add_time2timer(MEASURE_TIME_US({
@@ -132,6 +139,7 @@ int main(int argc, char* argv[]) {
     fprintf(stdout, "Total files: %i, with size=%iMB\n", _id, (4096 * _id) / (1024 * 1024));
 
     fprintf(stdout, "\n==== Performance Summary ====\n");
+    fprintf(stdout, "Avg open time:   %.2f µs\n", get_avg_timer(&open_timer));
     fprintf(stdout, "Avg create time: %.2f µs\n", get_avg_timer(&create_timer));
     fprintf(stdout, "Avg write time:  %.2f µs\n", get_avg_timer(&write_timer));
     fprintf(stdout, "Avg read time:   %.2f µs\n", get_avg_timer(&read_timer));
