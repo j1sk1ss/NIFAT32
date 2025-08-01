@@ -1,7 +1,7 @@
 #ifndef NIFAT32_TEST_
 #define NIFAT32_TEST_
 
-#include "api.h"
+#include "../../nifat32.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>

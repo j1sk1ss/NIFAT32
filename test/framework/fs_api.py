@@ -58,11 +58,8 @@ class FSapi(ABC):
         super().__init__()
     
     @abstractmethod
-    def open(self, path: str, **kwargs) -> File:
+    def open(self, **kwargs) -> File:
         """open function
-
-        Args:
-            path (str): path to file
 
         Returns:
             File: file

@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
+CFLAGS = -fPIC -shared -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
 CC = gcc-14
 
 # Logger flags
@@ -45,8 +45,8 @@ ifeq ($(SPECIAL_LOGS), 1)
     CFLAGS += -DSPECIAL_LOGS
 endif
 
-OUTPUT = builds/nifat32_unix
-SOURCES = unix_nifat32.c nifat32.c src/* std/*
+OUTPUT = builds/nifat32.so
+SOURCES = nifat32.c src/* std/*
 
 all: force_build $(OUTPUT)
 

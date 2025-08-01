@@ -278,7 +278,7 @@ if __name__ == "__main__":
             logger.info(f"Scratch width: {args.scratch_width}")
             logger.info(f"Scratch intensity: {args.scratch_intensity}")
             
-        from injector import random_bitflips, scratch_emulation
+        from old.injector import random_bitflips, scratch_emulation
         
         bitflips_count: int = 0
         no_creation: bool = False
