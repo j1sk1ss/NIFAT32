@@ -3,6 +3,7 @@
 static fat_data_t _fs_data;
 
 int NIFAT32_init(nifat32_params* params) {
+    LOG_setup(params->logg_io.fd_fprintf, params->logg_io.fd_vfprintf);
     print_log("NIFAT32 init. Reading %i bootsector at sa=%i", params->bs_num, GET_BOOTSECTOR(params->bs_num, params->ts));
     if (params->bs_num >= params->bs_count) {
         print_error("Init error! No reserved sectors!");
@@ -10,6 +11,11 @@ int NIFAT32_init(nifat32_params* params) {
     }
 
     mm_init();
+    if (!DSK_setup(params->disk_io.read_sector, params->disk_io.write_sector, params->disk_io.sector_size)) {
+        print_error("DSK_setup() error!");
+        return 0;
+    }
+
     int sector_size = DSK_get_sector_size();
     buffer_t encoded_bs = (buffer_t)malloc_s(sector_size);
     if (!encoded_bs) {
@@ -48,7 +54,7 @@ int NIFAT32_init(nifat32_params* params) {
         bootstruct.extended_section.checksum = exbcheck;
     }
 
-     _fs_data.fat_type      = 32;
+    _fs_data.fat_type       = 32;
     _fs_data.journals_count = params->jc;
     _fs_data.fat_count      = bootstruct.table_count;
     _fs_data.total_sectors  = bootstruct.total_sectors_32;

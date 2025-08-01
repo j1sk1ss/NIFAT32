@@ -76,29 +76,35 @@ static inline int _mock_vfprintf_(const char* fmt, va_list args) {
 }
 
 static int setup_nifat32() {
-    if (!LOG_setup(_mock_fprintf_, _mock_vfprintf_)) {
-        fprintf(stderr, "LOG_setup() error!\n");
-        close(disk_fd);
-        return 0;        
-    }
-
     disk_fd = open(disk_path, O_RDWR);
     if (disk_fd < 0) {
         fprintf(stderr, "%s not found!\n", disk_path);
         return 0;
     }
 
-    if (!DSK_setup(_mock_sector_read_, _mock_sector_write_, sector_size)) {
-        fprintf(stderr, "DSK_setup() error!\n");
-        close(disk_fd);
-        return 0;
-    }
-
+    nifat32_params params = { 
+        .bs_num    = 0, 
 #ifdef V_SIZE
-    nifat32_params params = { .bs_num = 0, .ts = V_SIZE / sector_size, .fat_cache = CACHE, .jc = J_COUNT, .bs_count = BS_COUNT };
+        .ts        = V_SIZE / sector_size,
+        .jc        = J_COUNT,
+        .bs_count  = BS_COUNT,
 #else
-    nifat32_params params = { .bs_num = 0, .ts = (64 * 1024 * 1024) / sector_size, .fat_cache = CACHE, .jc = 0, .bs_count = 5 };
+        .ts        = (64 * 1024 * 1024) / sector_size, 
+        .jc        = 0, 
+        .bs_count  = 5,
 #endif
+        .fat_cache = CACHE, 
+        .disk_io   = {
+            .read_sector  = _mock_sector_read_,
+            .write_sector = _mock_sector_write_,
+            .sector_size  = sector_size
+        },
+        .logg_io   = {
+            .fd_fprintf  = _mock_fprintf_,
+            .fd_vfprintf = _mock_vfprintf_
+        }
+    };
+
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);

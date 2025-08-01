@@ -62,6 +62,8 @@ typedef struct {
     char          bs_count; // bootsector count
     unsigned int  ts;       // total clusters
     unsigned char jc;       // journals count
+    disk_io_t     disk_io;
+    log_io_t      logg_io;
 } nifat32_params;
 
 #define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)

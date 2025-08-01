@@ -35,7 +35,7 @@ static int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_b
     return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
 }
 
-static int _mock_fprintf(const char* fmt, ...) {
+static int _mock_fprintf_(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     int result = vfprintf(stdout, fmt, args);
@@ -43,7 +43,7 @@ static int _mock_fprintf(const char* fmt, ...) {
     return result;
 }
 
-static int _mock_vfprintf(const char* fmt, va_list args) {
+static int _mock_vfprintf_(const char* fmt, va_list args) {
     return vfprintf(stdout, fmt, args);
 }
 
@@ -54,20 +54,24 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!LOG_setup(_mock_fprintf, _mock_vfprintf)) {
-        fprintf(stderr, "LOG_setup() error!\n");
-        close(disk_fd);
-        return EXIT_FAILURE;        
-    }
-
-    if (!DSK_setup(_mock_sector_read_, _mock_sector_write_, SECTOR_SIZE)) {
-        fprintf(stderr, "DSK_setup() error!\n");
-        close(disk_fd);
-        return EXIT_FAILURE;
-    }
-
     #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
-    nifat32_params params = { .bs_num = 0, .ts = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, .fat_cache = CACHE | HARD_CACHE, .jc = 0, .bs_count = 5 };
+    nifat32_params params = { 
+        .bs_num    = 0, 
+        .ts        = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, 
+        .fat_cache = CACHE | HARD_CACHE, 
+        .jc        = 1, 
+        .bs_count  = 5,
+        .disk_io   = {
+            .read_sector  = _mock_sector_read_,
+            .write_sector = _mock_sector_write_,
+            .sector_size  = SECTOR_SIZE
+        },
+        .logg_io   = {
+            .fd_fprintf  = _mock_fprintf_,
+            .fd_vfprintf = _mock_vfprintf_
+        }
+    };
+
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");
         close(disk_fd);

@@ -54,8 +54,9 @@ class File(ABC):
         pass
 
 class FSapi(ABC):
-    def __init__(self) -> None:
+    def __init__(self) -> int:
         super().__init__()
+        return 0
     
     @abstractmethod
     def open(self, **kwargs) -> File:

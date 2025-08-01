@@ -25,10 +25,10 @@ python3 test/nifat32_tests.py --new-image --formatter <path> --tests-folder <pat
 
 Bitflip testing
 ```
-python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type bitflip --injector-scenario test/injector_scenario.txt
+python3 test/old/nifat32_tests.py --new-image --formatter formatter --tests-folder test/old --root-folder . --clean --test-type bitflip --injector-scenario test/injector_scenario.txt
 ```
 
 Default testing
 ```
-python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type default
+python3 test/old/nifat32_tests.py --new-image --formatter formatter --tests-folder test/old --root-folder . --clean --test-type default
 ```
