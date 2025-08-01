@@ -7,22 +7,50 @@ class File(ABC):
         
     @abstractmethod
     def read(self, **kwargs) -> int:
+        """Read data from file by offset
+
+        Returns:
+            int: Count of readden bytes
+        """
         pass
     
     @abstractmethod
     def write(self, **kwargs) -> int:
+        """Write data to file by offset
+
+        Returns:
+            int: Count of written bytes
+        """
         pass
     
     @abstractmethod
     def trunc(self, size: int) -> bool:
+        """Truncate file (Change file size)
+
+        Args:
+            size (int): New file size in bytes
+
+        Returns:
+            bool: True if truncate success
+        """
         pass
     
     @abstractmethod
     def rename(self, **kwargs) -> bool:
+        """Rename file and change meta information
+
+        Returns:
+            bool: True if rename success
+        """
         pass
     
     @abstractmethod
     def delete(self) -> bool:
+        """Delete file
+
+        Returns:
+            bool: True if delete success
+        """
         pass
 
 class FSapi(ABC):
