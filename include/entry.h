@@ -52,14 +52,13 @@ Params:
         Note: This cluster should be marked as <FREE>.
 - file_size - Size of file. If is_dir==1 not used.
 - entry - Place where data will be saved.
-- fi - FS data.
 
 Return 1 if entry data generation complete.
 Return 0 if something goes wrong.
 */
 int create_entry(
     const char* __restrict fullname, char is_dir, cluster_addr_t dca, 
-    unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
+    unsigned int file_size, directory_entry_t* __restrict entry
 );
 
 /*

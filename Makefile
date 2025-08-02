@@ -1,4 +1,6 @@
-CFLAGS = -fPIC -shared -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
+CFLAGS = -fPIC -shared -nostdlib -nodefaultlibs -Ikernel/include
+# Errors
+CFLAGS += -Wall -Wextra -Wcomment
 CC = gcc-14
 
 # Logger flags

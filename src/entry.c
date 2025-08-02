@@ -113,7 +113,7 @@ int entry_search(
         checksum_t entry_hash = murmur3_x86_32((const_buffer_t)name, 11, 0);
         ecache_t* cached_entry = ecache_find(cache, entry_hash);
         if (cached_entry) {
-            if (meta) create_entry(name, IS_ECACHE_DIR(cached_entry), cached_entry->ca, 0, meta, fi);
+            if (meta) create_entry(name, IS_ECACHE_DIR(cached_entry), cached_entry->ca, 0, meta);
             return 1;
         }
     }
@@ -163,7 +163,6 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     buffer_t cluster_data, decoded_cluster;
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
     
-    cluster_addr_t root_ca = ca;
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
@@ -304,7 +303,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __res
 
 int create_entry(
     const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
-    unsigned int file_size, directory_entry_t* __restrict entry, fat_data_t* __restrict fi
+    unsigned int file_size, directory_entry_t* __restrict entry
 ) {
     entry->checksum = 0;
     entry->cluster  = first_cluster;

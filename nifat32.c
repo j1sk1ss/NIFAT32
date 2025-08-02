@@ -195,7 +195,7 @@ static cluster_addr_t _get_cluster_by_path(
                     if (set_cluster_end(nca, &_fs_data)) {
                         create_entry(
                             fatname_buffer, path[iterator] || GET_MODE_TARGET(mode) != FILE_TARGET, 
-                            nca, _fs_data.cluster_size, &current_entry, &_fs_data
+                            nca, _fs_data.cluster_size, &current_entry
                         );
 
                         if (entry_add(active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
@@ -405,7 +405,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
         }
     }
 
-    directory_entry_t entry;
+    // directory_entry_t entry;
     // create_entry(get_content_name(ci), 0, get_content_data_ca(ci), total_size + total_written, &entry, &_fs_data);
     // entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
     return total_written;
@@ -415,7 +415,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     print_log("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
     directory_entry_t meta;
     create_entry(
-        info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta, &_fs_data
+        info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta
     );
 
     if (!entry_edit(get_content_root_ca(ci), get_content_ecache(ci), get_content_name(ci), &meta, &_fs_data)) {
@@ -456,7 +456,7 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
     } while (!is_cluster_end(ca) && !is_cluster_bad(ca));
 
     directory_entry_t entry;
-    create_entry(get_content_name(ci), 0, start_ca, end_size, &entry, &_fs_data);
+    create_entry(get_content_name(ci), 0, start_ca, end_size, &entry);
     entry_edit(get_content_root_ca(ci), NO_ECACHE, get_content_name(ci), &entry, &_fs_data);
     return 1;
 }
@@ -478,7 +478,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     }
 
     create_entry(
-        info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry, &_fs_data
+        info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry
     );
     
     int is_add = entry_add(target, entry_cache, &entry, &_fs_data);
