@@ -72,7 +72,8 @@ static int _read_journal(int index, journal_entry_t* entry, fat_data_t* fi) {
 
 static int _squeeze_entry(unsqueezed_entry_t* src, squeezed_entry_t* dst) {
     dst->attributes = src->attributes;
-    dst->cluster    = src->cluster;
+    dst->rca        = src->rca;
+    dst->dca        = src->dca;
     dst->file_size  = src->file_size;
     str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
     return 1;
@@ -80,7 +81,8 @@ static int _squeeze_entry(unsqueezed_entry_t* src, squeezed_entry_t* dst) {
 
 static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
     dst->attributes = src->attributes;
-    dst->cluster    = src->cluster;
+    dst->rca        = src->rca;
+    dst->dca        = src->dca;
     dst->file_size  = src->file_size;
     str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
     dst->name_hash = murmur3_x86_32((const_buffer_t)dst->file_name, sizeof(dst->file_name), 0);

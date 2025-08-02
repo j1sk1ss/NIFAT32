@@ -200,7 +200,7 @@ static cluster_addr_t _get_cluster_by_path(
 
                         if (entry_add(active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
                             print_error("Can't add new entry with mode=%p", mode);
-                            dealloc_cluster(current_entry.cluster, &_fs_data);
+                            dealloc_cluster(current_entry.dca, &_fs_data);
                         }
                     }
                     else {
@@ -215,8 +215,8 @@ static cluster_addr_t _get_cluster_by_path(
 
             curr_ci = NO_RCI;
             start = iterator + 1;
-            parent_cluster = active_cluster;
-            active_cluster = current_entry.cluster;
+            parent_cluster = current_entry.rca;
+            active_cluster = current_entry.dca;
         }
     }
 
@@ -243,7 +243,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
         return ci;
     }
 
-    cluster_addr_t rca;
+    cluster_addr_t rca = 0;
     directory_entry_t meta;
     cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode, rci);
     if (is_cluster_bad(ca)) {
@@ -252,7 +252,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
         return -2;
     }
     else {
-        print_debug("NIFAT32_open_content: Content cluster is: %u", ca);
+        print_debug("NIFAT32_open_content: cca=%u, rca=%u", ca, rca);
     }
     
     setup_content(ci, (meta.attributes & FILE_DIRECTORY) == FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
@@ -484,12 +484,12 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     int is_add = entry_add(target, entry_cache, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
-        dealloc_cluster(entry.cluster, &_fs_data);
+        dealloc_cluster(entry.dca, &_fs_data);
         return 0;
     }
 
     if (reserve > NO_RESERVE) {
-        cluster_addr_t lca = entry.cluster;
+        cluster_addr_t lca = entry.dca;
         for (; reserve-- > NO_RESERVE; ) {
             lca = _add_cluster_to_chain(lca);
         }
@@ -499,7 +499,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 }
 
 static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
-    cluster_addr_t old_ca = entry->cluster;
+    cluster_addr_t old_ca = entry->dca;
     cluster_addr_t nca = alloc_cluster(&_fs_data);
     cluster_addr_t hca = nca;
     if (set_cluster_end(nca, &_fs_data)) {
@@ -515,7 +515,7 @@ static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void*
         } while (!is_cluster_end(old_ca) && !is_cluster_bad(old_ca) && !is_cluster_bad(nca));
     }
     
-    entry->cluster  = hca;
+    entry->dca = hca;
     entry->checksum = 0;
     entry->checksum = murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
@@ -585,7 +585,7 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
 }
 
 static int _repair_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
-    if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->cluster, _repair_handler, ctx, &_fs_data);
+    if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->dca, _repair_handler, ctx, &_fs_data);
     return 0;
 }
 

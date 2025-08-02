@@ -78,7 +78,7 @@ static int _index_handler(entry_info_t* info, directory_entry_t* entry, void* ct
     }
 
     checksum_t entry_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
-    *context = ecache_insert(*context, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
+    *context = ecache_insert(*context, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     return 0;
 }
 
@@ -101,7 +101,11 @@ static int _search_handler(entry_info_t* info, directory_entry_t* entry, void* c
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
     if (str_strncmp(context->name, (char*)entry->file_name, 11)) return 0;
-    if (context->meta) str_memcpy(context->meta, entry, sizeof(directory_entry_t));
+    if (context->meta) {
+        str_memcpy(context->meta, entry, sizeof(directory_entry_t));
+        context->meta->rca = info->ca;
+    }
+
     return 1;
 }
 
@@ -134,7 +138,7 @@ static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx
         src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
         dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
-        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
+        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     }
 
     str_memcpy(entry, context->meta, sizeof(directory_entry_t));
@@ -181,7 +185,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
                 if (cache != NO_ECACHE) {
                     checksum_t entry_hash = murmur3_x86_32((const_buffer_t)meta->file_name, sizeof(meta->file_name), 0);
-                    ecache_insert(cache, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, meta->cluster);
+                    ecache_insert(cache, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, meta->dca);
                 }
 
                 pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
@@ -249,7 +253,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
             for (unsigned int i = 0; i < entries_per_cluster; i++, entry++) {
                 if (entry->file_name[0] == ENTRY_END) break;
                 if (_validate_entry(entry) && entry->file_name[0] != ENTRY_FREE) {
-                    if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
+                    if (_entry_erase_rec(entry->dca, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
                         print_warn("Recursive erase error!");
                     }
                 }
@@ -280,11 +284,11 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
         src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
         dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
-        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->cluster);
+        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     }
 
     context->ji = journal_add_operation(DEL_OP, info->ca, info->offset, (unsqueezed_entry_t*)entry, context->fi);
-    if (_entry_erase_rec(entry->cluster, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, context->fi) < 0) {
+    if (_entry_erase_rec(entry->dca, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, context->fi) < 0) {
         print_error("Cluster chain delete failed. Aborting...");
         return 1;
     }
@@ -306,7 +310,8 @@ int create_entry(
     unsigned int file_size, directory_entry_t* __restrict entry
 ) {
     entry->checksum = 0;
-    entry->cluster  = first_cluster;
+    entry->rca = FAT_CLUSTER_BAD;
+    entry->dca = first_cluster;
 
     if (is_dir) {
         entry->file_size  = 1;

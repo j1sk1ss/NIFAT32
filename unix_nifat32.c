@@ -12,26 +12,27 @@ This is a template file with simple implementation of file manage on nifat32.
 #include "nifat32.h"
 
 typedef enum {
-    CP, MV, RM, MKDIR, MKFILE, // DDL
-    READ, WRITE, TRUNC,        // DML
+    CP, MV, RM, MKDIR, MKFILE, FRENAME, // DDL
+    READ, WRITE, TRUNC, // DML
     CD, LS, 
     UNKNOWN,
     RS, WS  // Debug sector functions
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
-    if (!strcmp(input, "cd"))          return CD;
-    else if (!strcmp(input, "cp"))     return CP;
-    else if (!strcmp(input, "mv"))     return MV;
-    else if (!strcmp(input, "read"))   return READ;
-    else if (!strcmp(input, "write"))  return WRITE;
-    else if (!strcmp(input, "ls"))     return LS;
-    else if (!strcmp(input, "rm"))     return RM;
-    else if (!strcmp(input, "mkdir"))  return MKDIR;
-    else if (!strcmp(input, "mkfile")) return MKFILE;
-    else if (!strcmp(input, "trunc"))  return TRUNC;
-    else if (!strcmp(input, "rs"))     return RS;
-    else if (!strcmp(input, "ws"))     return WS;
+    if (!strcmp(input, "cd"))           return CD;
+    else if (!strcmp(input, "cp"))      return CP;
+    else if (!strcmp(input, "mv"))      return MV;
+    else if (!strcmp(input, "read"))    return READ;
+    else if (!strcmp(input, "write"))   return WRITE;
+    else if (!strcmp(input, "frename")) return FRENAME;
+    else if (!strcmp(input, "ls"))      return LS;
+    else if (!strcmp(input, "rm"))      return RM;
+    else if (!strcmp(input, "mkdir"))   return MKDIR;
+    else if (!strcmp(input, "mkfile"))  return MKFILE;
+    else if (!strcmp(input, "trunc"))   return TRUNC;
+    else if (!strcmp(input, "rs"))      return RS;
+    else if (!strcmp(input, "ws"))      return WS;
     return UNKNOWN;
 }
 
@@ -254,6 +255,28 @@ upper: {}
                 else {
                     NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
                     NIFAT32_close_content(root_ci);
+                }
+            }
+            break;
+
+            case FRENAME: {
+                const char* name = cmds[1];
+                char src_path[128] = { 0 };
+                name_to_fatname(name, src_path);
+
+                ci_t src = NIFAT32_open_content(NO_RCI, src_path, DF_MODE);
+                if (src >= 0) {
+                    const char* file_name = cmds[2];
+                    const char* file_ext  = cmds[3];
+                    cinfo_t file_info = { .type = STAT_FILE, .size = 12 };
+                    str_memcpy(file_info.file_name, file_name, strlen(file_name) + 1);
+                    str_memcpy(file_info.file_extension, file_ext, strlen(file_ext) + 1);
+
+                    char fullname[128] = { 0 };
+                    sprintf(fullname, "%s.%s", file_name, file_ext);
+                    name_to_fatname(fullname, file_info.full_name);
+                    NIFAT32_change_meta(src, &file_info);
+                    NIFAT32_close_content(src);
                 }
             }
             break;

@@ -38,7 +38,8 @@ typedef struct directory_entry {
     unsigned char  file_name[11];
     checksum_t     name_hash;
     unsigned char  attributes;
-    cluster_addr_t cluster;
+    cluster_addr_t rca; // root cluster
+    cluster_addr_t dca; // data cluster
     unsigned int   file_size;
     checksum_t     checksum;
 } __attribute__((packed)) directory_entry_t;
