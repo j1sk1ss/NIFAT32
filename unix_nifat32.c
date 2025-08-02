@@ -1,3 +1,8 @@
+/*
+unix_nifat32.c
+This is a template file with simple implementation of file manage on nifat32.
+*/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -7,12 +12,17 @@
 #include "nifat32.h"
 
 typedef enum {
-    CD, CP, READ, WRITE, LS, RM, MKDIR, MKFILE, TRUNC, UNKNOWN
+    CP, MV, RM, MKDIR, MKFILE, // DDL
+    READ, WRITE, TRUNC,        // DML
+    CD, LS, 
+    UNKNOWN,
+    RS, WS  // Debug sector functions
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
     if (!strcmp(input, "cd"))          return CD;
     else if (!strcmp(input, "cp"))     return CP;
+    else if (!strcmp(input, "mv"))     return MV;
     else if (!strcmp(input, "read"))   return READ;
     else if (!strcmp(input, "write"))  return WRITE;
     else if (!strcmp(input, "ls"))     return LS;
@@ -20,19 +30,19 @@ cmd_t _get_cmd(const char* input) {
     else if (!strcmp(input, "mkdir"))  return MKDIR;
     else if (!strcmp(input, "mkfile")) return MKFILE;
     else if (!strcmp(input, "trunc"))  return TRUNC;
+    else if (!strcmp(input, "rs"))     return RS;
+    else if (!strcmp(input, "ws"))     return WS;
     return UNKNOWN;
 }
 
-#define DISK_PATH   "nifat32.img"
-#define SECTOR_SIZE 512
-
+static int sector_size = 512;
 static int disk_fd = 0;
 static int _mock_sector_read_(sector_addr_t sa, sector_offset_t offset, buffer_t buffer, int buff_size) {
-    return pread(disk_fd, buffer, buff_size, sa * SECTOR_SIZE + offset) > 0;
+    return pread(disk_fd, buffer, buff_size, sa * sector_size + offset) > 0;
 }
 
 static int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t data, int data_size) {
-    return pwrite(disk_fd, data, data_size, sa * SECTOR_SIZE + offset) > 0;
+    return pwrite(disk_fd, data, data_size, sa * sector_size + offset) > 0;
 }
 
 static int _mock_fprintf_(const char* fmt, ...) {
@@ -47,24 +57,37 @@ static int _mock_vfprintf_(const char* fmt, va_list args) {
     return vfprintf(stdout, fmt, args);
 }
 
+/*
+argv[1] - Path to nifat32 image
+argv[2] - Image size
+argv[3] - Sector size
+argv[4] - bs_count
+argv[5] - jc
+*/
 int main(int argc, char* argv[]) {
-    disk_fd = open(DISK_PATH, O_RDWR);
+    disk_fd = open(argv[1], O_RDWR);
     if (disk_fd < 0) {
-        fprintf(stderr, "%s not found!\n", DISK_PATH);
+        fprintf(stderr, "%s not found!\n", argv[1]);
         return EXIT_FAILURE;
     }
 
-    #define DEFAULT_VOLUME_SIZE (64 * 1024 * 1024)
+    int v_size = atoi(argv[2]);
+    sector_size = atoi(argv[3]);
+    int bs = atoi(argv[4]);
+    int jc = atoi(argv[5]);
+    #define DEFAULT_VOLUME_SIZE (1024 * 1024)
+    fprintf(stdout, "v_size=%i, sector_size=%i, bs=%i, jc=%i\n", v_size, sector_size, bs, jc);
+
     nifat32_params params = { 
         .bs_num    = 0, 
-        .ts        = DEFAULT_VOLUME_SIZE / SECTOR_SIZE, 
+        .ts        = (v_size * DEFAULT_VOLUME_SIZE) / sector_size, 
         .fat_cache = CACHE | HARD_CACHE, 
-        .jc        = 1, 
-        .bs_count  = 5,
+        .jc        = jc, 
+        .bs_count  = bs,
         .disk_io   = {
             .read_sector  = _mock_sector_read_,
             .write_sector = _mock_sector_write_,
-            .sector_size  = SECTOR_SIZE
+            .sector_size  = sector_size
         },
         .logg_io   = {
             .fd_fprintf  = _mock_fprintf_,
@@ -156,9 +179,41 @@ upper: {}
                     NIFAT32_close_content(src_ci);
                     NIFAT32_close_content(dst_ci);
                 }
-
-                break;
             }
+            break;
+
+            case MV: {
+                const char* src = cmds[1];
+                const char* dst = cmds[2];
+
+                char src_path[128] = { 0 };
+                char dst_path[128] = { 0 };
+
+                strcpy(src_path, current_path);
+                strcpy(dst_path, current_path);
+                if (strlen(current_path) > 1 && strcmp(current_path, "/")) {
+                    strcat(src_path, "/");
+                    strcat(dst_path, "/");
+                }
+                
+                strcat(src_path, src);
+                strcat(dst_path, dst);
+
+                char src_83[128] = { 0 };
+                char dst_83[128] = { 0 };
+                path_to_fatnames(src_path, src_83);
+                path_to_fatnames(dst_path, dst_83);
+
+                ci_t src_ci = NIFAT32_open_content(NO_RCI, src_83, DF_MODE);
+                ci_t dst_ci = NIFAT32_open_content(NO_RCI, dst_83, MODE(W_MODE | CR_MODE, FILE_TARGET));
+                if (src_ci >= 0 && dst_ci >= 0) {
+                    NIFAT32_copy_content(src_ci, dst_ci, DEEP_COPY);
+                    NIFAT32_delete_content(src_ci);
+                    NIFAT32_close_content(dst_ci);
+                }
+
+            }
+            break;
 
             case MKFILE: {
                 const char* file_name = cmds[1];
@@ -318,6 +373,21 @@ upper: {}
             }
             break;
             
+            case RS: {
+                int sector = atoi(cmds[1]);
+                char buffer[sector_size];
+                DSK_readoff_sectors(sector, 0, buffer, sector_size, 1);
+                printf("Data: [%s]\n", buffer);
+                printf("Data (hex):\n");
+                for (int i = 0; i < sector_size; i++) {
+                    printf("%02X ", (unsigned char)buffer[i]);
+                    if ((i + 1) % 16 == 0) printf("\n");
+                }
+
+                printf("\n");
+            }
+            break;
+
             default: break;
         }
     }
