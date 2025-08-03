@@ -61,9 +61,9 @@ int NIFAT32_init(nifat32_params* params) {
     _fs_data.fat_size       = bootstruct.extended_section.table_size_32;
 
     print_info("| NIFAT32 image load! Base information:");
-    print_info("| Sectors per cluster:    %i", bootstruct.sectors_per_cluster);
-    print_info("| Bytes per sector:       %u", bootstruct.bytes_per_sector);
-    print_info("| Reserved sectors:       %u", bootstruct.reserved_sector_count);
+    print_info("| Sectors per cluster: %i", bootstruct.sectors_per_cluster);
+    print_info("| Bytes per sector:    %u", bootstruct.bytes_per_sector);
+    print_info("| Reserved sectors:    %u", bootstruct.reserved_sector_count);
 
     int root_dir_sectors = ((bootstruct.root_entry_count * 32) + (bootstruct.bytes_per_sector - 1)) / bootstruct.bytes_per_sector;
     int data_sectors = _fs_data.total_sectors - (bootstruct.reserved_sector_count + (bootstruct.table_count * _fs_data.fat_size) + root_dir_sectors);
@@ -82,18 +82,18 @@ int NIFAT32_init(nifat32_params* params) {
     _fs_data.cluster_size        = _fs_data.bytes_per_sector * _fs_data.sectors_per_cluster;
 
     print_info("| NIFAT32 init success! Stats from boot sector:");
-    print_info("| Reserved sectors:          %u", bootstruct.reserved_sector_count);
-    print_info("| Number of FATs:            %u", bootstruct.table_count);
-    print_info("| FAT size (in sectors):     %u", _fs_data.fat_size);
-    print_info("| Total sectors:             %u", _fs_data.total_sectors);
-    print_info("| Root entry count:          %u", bootstruct.root_entry_count);
-    print_info("| Root dir sectors:          %d", root_dir_sectors);
-    print_info("| Data sectors:              %d", data_sectors);
-    print_info("| Total clusters:            %u", _fs_data.total_clusters);
-    print_info("| First FAT sector:          %u", _fs_data.sectors_padd);
-    print_info("| First data sector:         %u", _fs_data.first_data_sector);
-    print_info("| Root cluster (FAT32):      %u", _fs_data.ext_root_cluster);
-    print_info("| Cluster size (in bytes):   %u", _fs_data.cluster_size);
+    print_info("| Reserved sectors:        %u", bootstruct.reserved_sector_count);
+    print_info("| Number of FATs:          %u", bootstruct.table_count);
+    print_info("| FAT size (in sectors):   %u", _fs_data.fat_size);
+    print_info("| Total sectors:           %u", _fs_data.total_sectors);
+    print_info("| Root entry count:        %u", bootstruct.root_entry_count);
+    print_info("| Root dir sectors:        %d", root_dir_sectors);
+    print_info("| Data sectors:            %d", data_sectors);
+    print_info("| Total clusters:          %u", _fs_data.total_clusters);
+    print_info("| First FAT sector:        %u", _fs_data.sectors_padd);
+    print_info("| First data sector:       %u", _fs_data.first_data_sector);
+    print_info("| Root cluster (FAT32):    %u", _fs_data.ext_root_cluster);
+    print_info("| Cluster size (in bytes): %u", _fs_data.cluster_size);
 
     if (params->bs_num > 0) {
         print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
@@ -323,7 +323,6 @@ static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
     }
     else {
         print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
-        dealloc_cluster(allocated_cluster, &_fs_data);
         return FAT_CLUSTER_BAD;
     }
 

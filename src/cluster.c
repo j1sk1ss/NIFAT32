@@ -12,7 +12,6 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
         return FAT_CLUSTER_BAD;
     }
 
-    int reserved = 0;
     cluster_addr_t cluster = fatmap_find_free(last_allocated_cluster, 1, fi);
     if (!cluster) cluster = last_allocated_cluster;
     else {
@@ -21,6 +20,7 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
         return cluster;
     }
 
+    int nfree_skip_step = 0;
     cluster_status_t cluster_status = FAT_CLUSTER_FREE;
     while (cluster < fi->total_clusters) {
         cluster_status = read_fat(cluster, fi);
@@ -29,16 +29,8 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
             THR_release_write(&_allocater_lock, get_thread_num());
             return cluster;
         }
-        else if (is_cluster_bad(cluster_status)) {
-            print_error("Error occurred with read_fat(), aborting operations...");
-            THR_release_write(&_allocater_lock, get_thread_num());
-            return FAT_CLUSTER_BAD;
-        }
-        else if (is_cluster_reserved(cluster_status)) {
-            if (reserved++ > 3) {
-                cluster += 6;
-                reserved = 0;
-            }
+        else if (is_cluster_bad(cluster_status) || is_cluster_reserved(cluster_status)) {
+            cluster += nfree_skip_step++;
         }
 
         cluster++;

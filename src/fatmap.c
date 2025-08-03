@@ -27,7 +27,7 @@ int fatmap_unset(unsigned int ca) {
 unsigned int fatmap_find_free(unsigned int offset, int size, fat_data_t* fi) {
     if (!_bitmap) return 0;
     if (size <= 0 || offset >= fi->total_clusters) return 0;
-    unsigned int limit = fi->total_clusters - size;
+    unsigned int limit = fi->total_clusters - offset - size;
     for (unsigned int i = offset; i <= limit; ++i) {
         int found = 1;
         for (int j = 0; j < size; ++j) {

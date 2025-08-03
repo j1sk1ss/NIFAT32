@@ -70,6 +70,9 @@ int DSK_setup(
     int (*write)(sector_addr_t, sector_offset_t, const unsigned char*, int), 
     int sector_size
 ) {
+    print_debug("DSK_setup(read=%p, write=%p, sector_size=%i)", read, write, sector_size);
+    if (!read || !write || sector_size <= 0) return 0;
+    
     _disk_io.read_sector  = read;
     _disk_io.write_sector = write;
     _disk_io.sector_size  = sector_size;
