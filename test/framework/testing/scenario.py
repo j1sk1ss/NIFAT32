@@ -1,5 +1,5 @@
-from fs_api import FSapi
-from injector import Injector
+from framework.api.fs_api import FSapi
+from framework.testing.injector import Injector
 from abc import ABC, abstractmethod
 
 class Action(ABC):

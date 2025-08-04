@@ -16,11 +16,11 @@
 typedef struct {
     char* save_path;
     char* source_path;
-    int v_size; // virtual disk size in mb
-    int spc;    // sector per cluster
-    int fc;     // fats count
-    int bsbc;   // bootsector count
-    int jc;     // journals count
+    int   v_size; // virtual disk size in mb
+    int   spc;    // sector per cluster
+    int   fc;     // fats count
+    int   bsbc;   // bootsector count
+    int   jc;     // journals count
 } opt_t;
 
 int process_input(int argc, char* argv[], opt_t* opt);

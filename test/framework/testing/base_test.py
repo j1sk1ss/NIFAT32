@@ -1,6 +1,6 @@
 # FS test template
 from enum import Enum
-from fs_api import FSapi
+from framework.api.fs_api import FSapi
 from abc import ABC, abstractmethod
 
 class ScenarioAction(Enum):
