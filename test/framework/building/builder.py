@@ -6,7 +6,11 @@ class ImageBuilder(ABC):
         super().__init__()
 
     @abstractmethod
-    def build(self) -> None:
+    def image_build(self) -> None:
+        pass
+
+    @abstractmethod
+    def so_build(self) -> None:
         pass
 
     @abstractmethod
