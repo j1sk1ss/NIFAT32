@@ -18,11 +18,10 @@ class Injection(Action):
     def action(self) -> None:
         self.injector.inject()
 
-class MKfile(Action):
-    def __init__(self, fs: FSapi, **kwargs) -> None:
+class MKRandomFile(Action):
+    def __init__(self, fs: FSapi) -> None:
         super().__init__()
         self.fs: FSapi = fs
-        self.args = kwargs
 
     def action(self) -> None:
         self.fs.mkfile(**self.args)
