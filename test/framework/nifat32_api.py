@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Callable
-from framework.api.fs_api import FSapi, File
+from api.fs_api import FSapi, File
 
 def to_83(filename: str | None) -> str | None:
     if not filename:
@@ -128,7 +128,7 @@ class TargetType(IntFlag):
 class NIFAT32api(FSapi):
     def __init__(self, lib: str, params: NIFAT32Params) -> None:
         super().__init__()
-        self.lib = ctypes.CDLL(lib)
+        self.lib: ctypes.CDLL = ctypes.CDLL(lib)
 
         self.lib.NIFAT32_init.argtypes = [POINTER(NIFAT32Params)]
         self.lib.NIFAT32_init.restype = c_int
@@ -261,3 +261,120 @@ class NIFAT32api(FSapi):
     
     def __del__(self) -> None:
         self.lib.NIFAT32_unload()
+
+if __name__ == "__main__":
+    disk_fd = None
+    sector_size = 512
+
+    @READ_SECTOR_FUNC
+    def dummy_read(sector_addr, offset, buffer, buff_size):
+        if buff_size == 0:
+            return 1
+        
+        global disk_fd, sector_size
+        try:
+            data = os.pread(disk_fd, buff_size, sector_addr * sector_size + offset)
+            if not data:
+                return 0
+            
+            memmove(buffer, data, len(data))
+            return 1
+        except Exception as e:
+            print(f"[API] Read error: {e}")
+            return 0
+
+    @WRITE_SECTOR_FUNC
+    def dummy_write(sector_addr, offset, data_ptr, data_size):
+        if data_size == 0:
+            return 1
+        
+        global disk_fd, sector_size
+        try:
+            buf = string_at(data_ptr, data_size)
+            written = os.pwrite(disk_fd, buf, sector_addr * sector_size + offset)
+            return 1 if written == data_size else 0
+        except Exception as e:
+            print(f"[API] Write error: {e}")
+            return 0
+
+    import sys
+
+    @FPRINTF_FUNC
+    def dummy_fprintf(fmt, *args):
+        try:
+            fmt_str = fmt.decode('utf-8')
+        except UnicodeDecodeError:
+            fmt_str = fmt.decode('latin1')
+        
+        try:
+            formatted = fmt_str % args if args else fmt_str
+        except (TypeError, ValueError) as e:
+            formatted = fmt_str
+        
+        sys.stdout.write(formatted)
+        return len(formatted)
+
+    @VPRINTF_FUNC
+    def dummy_vfprintf(fmt, args):
+        try:
+            fmt_str = fmt.decode('utf-8')
+        except UnicodeDecodeError:
+            fmt_str = fmt.decode('latin1')
+        
+        try:
+            formatted = fmt_str % args if args else fmt_str
+        except (TypeError, ValueError) as e:
+            formatted = fmt_str
+        
+        sys.stdout.write(formatted)
+        return len(formatted)
+    
+    import argparse
+    parser = argparse.ArgumentParser(description="Initialize NIFAT32 API with parameters.")
+    parser.add_argument("--fat-cache", type=int, default=1, help="FAT cache value")
+    parser.add_argument("--bs-count", type=int, default=6, help="Boot sector count")
+    parser.add_argument("--jc", type=int, default=1, help="Jump count")
+    parser.add_argument("--v-size", type=int, default=128, help="Volume size in mbytes")
+    parser.add_argument("--sector-size", type=int, default=512, help="Sector size in bytes")
+    parser.add_argument("--lib", type=str, required=True, help="Path to shared library")
+    parser.add_argument("--image", type=str, required=True, help="Path to disk image")
+
+    args = parser.parse_args()
+
+    disk_fd = os.open(args.image, os.O_RDWR)
+    sector_size = args.sector_size
+    ts = (args.v_size * 1024 * 1024) // args.sector_size
+
+    disk_io: DiskIO = DiskIO.new(
+        read_sector_func=dummy_read,
+        write_sector_func=dummy_write,
+        sector_size=args.sector_size
+    )
+
+    log_io: LogIO = LogIO.new(
+        fd_fprintf_func=dummy_fprintf,
+        fd_vfprintf_func=dummy_vfprintf
+    )
+
+    params: NIFAT32Params = NIFAT32Params.new(
+        fat_cache=args.fat_cache,
+        bs_num=0,
+        bs_count=args.bs_count,
+        ts=ts,
+        jc=args.jc,
+        disk_io=disk_io,
+        logg_io=log_io
+    )
+
+    api: NIFAT32api = NIFAT32api(lib=args.lib, params=params)
+    print("[API] NIFAT32 API initialized successfully. Reading file...")
+    
+    tfile_name: str = to_83("test.txt")
+    print(f"[API] Opening {tfile_name}...")
+    tfile: NIFAT32file = api.open(path=None, mode=NIFAT32api.get_open_mode(OpenMode.READ, TargetType.NONE))
+    buf = create_string_buffer(1024)
+    read_bytes = api.read(file=tfile, offset=0, size=512, buffer=buf)
+    data = buf.raw[:read_bytes]
+    
+    print(f"[API] Data: {data.hex()}, ci={tfile.ci}")
+    api.close(file=tfile)

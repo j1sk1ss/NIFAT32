@@ -76,6 +76,11 @@ class NIFAT32builder(ImageBuilder):
             "-fPIC", "-shared", "-nostdlib", "-nodefaultlibs", "-Ikernel/include"
         ]
         
+        if self.cparams.debug:
+            build_flags.extend([
+                "-DERROR_LOGS", "-DWARNING_LOGS", "-DDEBUG_LOGS", "-DINFO_LOGS", "-DLOGGING_LOGS"
+            ])
+        
         compile_cmd: list[str] = [
             self.cparams.compiler, *build_flags,
             str(fat_path), str(std_path), str(src_path),
@@ -91,6 +96,10 @@ class NIFAT32builder(ImageBuilder):
         pass
 
 if __name__ == "__main__":
+    """
+    This is an example usage of NIFAT32builder class.
+    In default workcase, this class should be used in testing framework.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(
