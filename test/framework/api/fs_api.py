@@ -41,11 +41,29 @@ class FSapi(ABC):
         pass
     
     @abstractmethod
+    def mkrandfile(self, **kwargs) -> str:
+        """Create random file somewhere in filesystem.
+
+        Returns:
+            File: Return path to file.
+        """
+        pass
+    
+    @abstractmethod
     def mkdir(self, **kwargs) -> bool:
         """Create directory by path.
 
         Returns:
             bool: True if success.
+        """
+        pass
+    
+    @abstractmethod
+    def mkranddir(self, **kwargs) -> str:
+        """Create random directory somewhere if filesystem.
+
+        Returns:
+            str: Return path to directory.
         """
         pass
     

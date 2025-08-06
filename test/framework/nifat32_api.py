@@ -1,6 +1,14 @@
 from __future__ import annotations
+
+import random
+import string
 from typing import Any, Callable
 from api.fs_api import FSapi, File
+
+def generate_83_name() -> tuple:
+    name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    ext = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    return name, ext
 
 def to_83(filename: str | None) -> str | None:
     if not filename:
@@ -19,6 +27,10 @@ class NIFAT32file(File):
     def __init__(self, ci: int) -> None:
         super().__init__()
         self.ci = ci
+        
+    @staticmethod
+    def no_rci() -> NIFAT32file:
+        return NIFAT32file(ci=-1)
 
 READ_SECTOR_FUNC = CFUNCTYPE(c_int, c_uint32, c_uint32, POINTER(c_char), c_int)
 WRITE_SECTOR_FUNC = CFUNCTYPE(c_int, c_uint32, c_uint32, POINTER(c_char), c_int)
@@ -198,20 +210,58 @@ class NIFAT32api(FSapi):
         
         return False
     
+    def crcont(self, location: str | None, name: str, ext: str | None, is_dir: bool) -> bool:
+        rt: NIFAT32file = NIFAT32file.no_rci()
+        if location:
+            rt = self.open(path=location)
+                
+        if self.lib.NIFAT32_put_content(rt.ci, byref(CInfo.new(name=name, ext=ext, size=1, is_dir=is_dir)), 1) == 1:
+            self.close(rt)
+            return True
+        
+        self.close(rt)
+        return False
+        
     def mkfile(self, **kwargs) -> bool:
         name: str = kwargs.get("name", "")
         ext: str = kwargs.get("ext", "")
-        location: str = to_83(kwargs.get("location", None))
-        rt: NIFAT32file = self.open(path=location)
-        self.lib.NIFAT32_put_content(rt.ci, byref(CInfo.new(name=name, ext=ext, size=1, is_dir=False)), 1)
-        return True
+        location: str | None = to_83(kwargs.get("location", None))
+        return self.crcont(location=location, name=name, ext=ext, is_dir=False)
+    
+    def mkrandfile(self, **kwargs) -> str:
+        location: str | None = to_83(kwargs.get("location", None))
+        rt: NIFAT32file = NIFAT32file.no_rci()
+        if location:
+            rt = self.open(path=location)
+            
+        while True:
+            name, ext = generate_83_name()
+            nfl: NIFAT32file = CInfo.new(name=name, ext=ext, is_dir=False, size=1)
+            if self.lib.NIFAT32_put_content(rt.ci, byref(nfl), 1) == 1:
+                break
+            
+        self.close(rt)
+        return f"{name}.{ext}"
     
     def mkdir(self, **kwargs) -> bool:
         name: str = kwargs.get("name", "")
         location: str = to_83(kwargs.get("location", None))
-        rt: NIFAT32file = self.open(path=location)
-        self.lib.NIFAT32_put_content(rt.ci, byref(CInfo.new(name=name, size=0, is_dir=True)), 1)
-        return True
+        return self.crcont(location=location, name=name, ext=None, is_dir=True)
+    
+    def mkranddir(self, **kwargs) -> str:
+        location: str | None = to_83(kwargs.get("location", None))
+        rt: NIFAT32file = NIFAT32file.no_rci()
+        if location:
+            rt = self.open(path=location)
+            
+        while True:
+            name, _ = generate_83_name()
+            nfl: NIFAT32file = CInfo.new(name=name, ext=None, is_dir=False, size=1)
+            if self.lib.NIFAT32_put_content(rt.ci, byref(nfl), 1) == 1:
+                break
+            
+        self.close(rt)
+        return f"{name}"
     
     def write(self, file: File, **kwargs) -> int:
         if isinstance(file, NIFAT32file):
