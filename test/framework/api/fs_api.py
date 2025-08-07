@@ -20,6 +20,15 @@ class FSapi(ABC):
         pass
     
     @abstractmethod
+    def ropen(self, **kwargs) -> File:
+        """Open root element of filesystem. If filesystem support several roots, use kwargs.
+
+        Returns:
+            File: Root element.
+        """
+        pass
+    
+    @abstractmethod
     def close(self, file: File) -> bool:
         """Filesystem close provided file.
 
@@ -41,8 +50,11 @@ class FSapi(ABC):
         pass
     
     @abstractmethod
-    def mkrandfile(self, **kwargs) -> str:
+    def mkrandfile(self, rdir: str | None, **kwargs) -> str:
         """Create random file somewhere in filesystem.
+
+        Args:
+            rdir (str | None): Root directory path.
 
         Returns:
             File: Return path to file.
@@ -59,8 +71,11 @@ class FSapi(ABC):
         pass
     
     @abstractmethod
-    def mkranddir(self, **kwargs) -> str:
+    def mkranddir(self, rdir: str | None, **kwargs) -> str:
         """Create random directory somewhere if filesystem.
+
+        Args:
+            rdir (str | None): Root directory path.
 
         Returns:
             str: Return path to directory.
