@@ -91,5 +91,10 @@ class ClearFileSystem(Action):
         api.close(rfl)
 
 class Scenario:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, actions: list[Action]) -> None:
+        self.actions: list[Action] = actions
+        
+    def start(self, fs: FSapi) -> None:
+        for i in self.actions:
+            i.action(fs)
+        

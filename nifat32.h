@@ -103,9 +103,9 @@ Return 0 if content not exists.
 int NIFAT32_content_exists(const char* path);
 
 /* Open mode flags */
-#define R_MODE     0b0001  // Read mode
-#define W_MODE     0b0010  // Write mode
-#define CR_MODE    0b0100  // Create mode
+#define R_MODE  0b0001 // Read mode
+#define W_MODE  0b0010 // Write mode
+#define CR_MODE 0b0100 // Create mode
 
 /* Create target flags */
 #define NO_TARGET   0b0000
