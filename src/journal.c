@@ -1,5 +1,6 @@
 #include "../include/journal.h"
 
+#ifndef NIFAT32_RO
 static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, int journal) {
     decoded_t entry_buffer[sizeof(journal_entry_t)] = { 0 };
     cluster_offset_t entry_offset = index * sizeof(entry_buffer);
@@ -89,10 +90,12 @@ static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
     dst->checksum  = murmur3_x86_32((const_buffer_t)dst, sizeof(unsqueezed_entry_t), 0);
     return 1;
 }
+#endif
 
 static unsigned char _journal_index = 0;
 
 int restore_from_journal(fat_data_t* fi) {
+#ifndef NIFAT32_RO
     if (!fi->journals_count) return 0;
     for (
         _journal_index = 0; 
@@ -129,11 +132,15 @@ int restore_from_journal(fat_data_t* fi) {
 
     _journal_index = 0;
     return 1;
+#else
+    return 1;
+#endif
 }
 
 lock_t _journal_lock = NULL_LOCK;
 
 int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqueezed_entry_t* entry, fat_data_t* fi) {
+#ifndef NIFAT32_RO
     if (!fi->journals_count) return 0;
     print_debug("journal_add_operation(op=%u, ca=%u, offset=%i)", op, ca, offset);
     
@@ -156,12 +163,19 @@ int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqu
     _squeeze_entry(entry, &j_entry.entry);
     _write_journal(entry_index, &j_entry, fi);
     
-    return entry_index;    
+    return entry_index;
+#else
+    return -1;
+#endif
 }
 
 int journal_solve_operation(int index, fat_data_t* fi) {
+#ifndef NIFAT32_RO
     if (!fi->journals_count || index < 0) return 0;
     print_debug("journal_solve_operation(index=%i)", index);
     journal_entry_t solved = { 0x00 };
     return _write_journal(index, &solved, fi);
+#else
+    return 1;
+#endif
 }

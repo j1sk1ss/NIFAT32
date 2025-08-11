@@ -126,6 +126,7 @@ int entry_search(
     return entry_iterate(ca, _search_handler, (void*)&ctx, fi);
 }
 
+#ifndef NIFAT32_RO
 static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
@@ -144,10 +145,12 @@ static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx
     str_memcpy(entry, context->meta, sizeof(directory_entry_t));
     return 1;
 }
+#endif
 
 int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
+#ifndef NIFAT32_RO
     print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t context = { 
         .meta = (directory_entry_t*)meta, 
@@ -159,9 +162,13 @@ int entry_edit(
     int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
     journal_solve_operation(context.ji, fi);
     return result;
+#else
+    return 1;
+#endif
 }
 
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
+#ifndef NIFAT32_RO
     print_debug("entry_add(ca=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
@@ -232,8 +239,12 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     free_s(decoded_cluster);
     free_s(cluster_data);
     return -1;
+#else
+    return 1;
+#endif
 }
 
+#ifndef NIFAT32_RO
 static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     print_debug("_entry_erase_rec(cluster=%u, file=%i)", ca, file);
     if (file) return dealloc_chain(ca, fi);
@@ -296,13 +307,18 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
     entry->file_name[0] = ENTRY_FREE;
     return 1;
 }
+#endif
 
 int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi) {
+#ifndef NIFAT32_RO
     print_debug("entry_remove(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t ctx = { .name = name, .fi = fi, .index = cache };
     int result = entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
     journal_solve_operation(ctx.ji, fi);
     return result;
+#else
+    return 1;
+#endif
 }
 
 int create_entry(

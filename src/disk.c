@@ -130,6 +130,7 @@ int DSK_readoff_sectors(sector_addr_t sa, sector_offset_t offset, unsigned char*
 }
 
 int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size) {
+#ifndef NIFAT32_RO
     print_debug("DSK_write_sector(sa=%u, size=%i)", sa, data_size);
     if (_lock_area(sa, 1, WRITE_LOCK)) {
         int write_result = _disk_io.write_sector(sa, 0, data, data_size);
@@ -141,9 +142,13 @@ int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size)
     }
 
     return 0;
+#else
+    return 1;
+#endif
 }
 
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc) {
+#ifndef NIFAT32_RO
     print_debug("DSK_writeoff_sectors(sa=%u, offset=%u, size=%i, sc=%i)", sa, offset, data_size, sc);
     if (_lock_area(sa, sc, WRITE_LOCK)) {
         int total_written = 0;
@@ -171,9 +176,13 @@ int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigne
     }
 
     return 0;
+#else
+    return 1;
+#endif
 }
 
 int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char* buffer, int buff_size) {
+#ifndef NIFAT32_RO
     if (_lock_area(dst, sc, WRITE_LOCK)) {
         int copy_result = 0;
         for (int i = 0; i < sc; i++) {
@@ -189,6 +198,9 @@ int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char
     }
 
     return 0;
+#else
+    return 1;
+#endif
 }
 
 int DSK_get_sector_size() {

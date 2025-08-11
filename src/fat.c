@@ -30,6 +30,7 @@ int fat_cache_unload() {
     return 1;
 }
 
+#ifndef NIFAT32_RO
 static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi, int fat) {
     cluster_offset_t fat_offset = ca * sizeof(cluster_val_t) * sizeof(encoded_t);
     sector_addr_t fat_sector = fi->sectors_padd + GET_FATSECTOR(fat, fi->total_sectors) + (fat_offset / fi->bytes_per_sector);
@@ -45,8 +46,10 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
 
     return 1;    
 } 
+#endif
 
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
+#ifndef NIFAT32_RO
     print_debug("write_fat(ca=%u, value=%u)", ca, value);
     if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
     
@@ -56,6 +59,9 @@ int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
 
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
     return 1;
+#else
+    return 1;
+#endif
 }
 
 static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
