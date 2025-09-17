@@ -81,6 +81,29 @@ class ScratchStrategy(Strategy):
                     flip_mask = random.randint(1, 255)
                     mm[pos] ^= flip_mask
 
+class WeibullDistributionStrategy(Strategy):
+    def __init__(
+        self,
+        num_flips: int = 10,
+        shape: float = 1.5,
+        scale_ratio: float = 0.5,
+        seed: int = 123456789
+    ) -> None:
+        self.num_flips = num_flips
+        self.shape = shape
+        self.scale_ratio = scale_ratio
+        self._rng = random.Random(seed)
+
+    def inject(self, mm: mmap.mmap) -> None:
+        size = len(mm)
+        scale = self.scale_ratio * size
+
+        for _ in range(self.num_flips):
+            val = self._rng.weibullvariate(self.shape, scale)
+            idx = int(max(0, min(size - 1, val)))
+            bit = self._rng.randint(0, 7)
+            mm[idx] ^= (1 << bit)
+
 class Injector:
     """Injector base class
     """
