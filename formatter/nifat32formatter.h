@@ -20,8 +20,9 @@
 https://en.wikipedia.org/wiki/Golden_ratio
 2^32 / φ, where φ = +-1.618
 */
-#define BS_BACKUPS 5
+#define BS_BACKUPS       5
 #define JOURNALS_BACKUPS 2
+#define ERRORS_COUNT     1
 
 #define FILE_LAST_LONG_ENTRY 0x40
 #define ENTRY_FREE           0xE5
@@ -32,9 +33,11 @@ https://en.wikipedia.org/wiki/Golden_ratio
 #define BOOT_MULTIPLIER    2654435761U // Knuth's multiplier (2^32 / φ)
 #define FAT_MULTIPLIER     340573321U
 #define JOURNAL_MULTIPLIER 12345625789U
+#define ERRORS_MULTIPLIER  98776542U
 #define GET_BOOTSECTOR(n, ts)    (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
 #define GET_FATSECTOR(n, ts)     (((((n) + 7) * FAT_MULTIPLIER) >> 13) % (ts - 64))
 #define GET_JOURNALSECTOR(n, ts) (((((n) + 63) * JOURNAL_MULTIPLIER) >> 15) % (ts - 128))
+#define GET_ERRORSSECTOR(n, ts)  (((((n) + 34) * ERRORS_MULTIPLIER) >> 17) % (ts - 12))
 
 #define BYTES_PER_SECTOR     512
 #define SECTORS_PER_CLUSTER  8

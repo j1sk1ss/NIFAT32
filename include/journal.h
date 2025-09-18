@@ -1,14 +1,17 @@
 #ifndef JOURNAL_H_
 #define JOURNAL_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "str.h"
-#include "fat.h"
-#include "disk.h"
-#include "cluster.h"
-#include "fatinfo.h"
-#include "logging.h"
-#include "checksum.h"
-#include "threading.h"
+#include <str.h>
+#include <fat.h>
+#include <disk.h>
+#include <cluster.h>
+#include <fatinfo.h>
+#include <logging.h>
+#include <checksum.h>
+#include <threading.h>
 
 #define JOURNAL_MULTIPLIER 12345625789U
 #define GET_JOURNALSECTOR(n, ts) (((((n) + 63) * JOURNAL_MULTIPLIER) >> 15) % (ts - 128))
@@ -79,4 +82,7 @@ Return 0 if something goes wrong.
 */
 int journal_solve_operation(int index, fat_data_t* fi);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -4,10 +4,10 @@
 extern "C" {
 #endif
 
-#include "mm.h"
-#include "fat.h"
-#include "str.h"
-#include "checksum.h"
+#include <mm.h>
+#include <fat.h>
+#include <str.h>
+#include <checksum.h>
 
 // === Flags for ecache_t.flags ===
 #define ECACHE_BLACK   0b00000001

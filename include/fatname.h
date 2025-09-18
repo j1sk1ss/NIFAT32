@@ -35,7 +35,7 @@ Dependencies:
 extern "C" {
 #endif
 
-#include "str.h"
+#include <str.h>
 
 #define PATH_SPLITTER '/'
 

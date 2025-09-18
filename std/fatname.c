@@ -1,4 +1,4 @@
-#include "../include/fatname.h"
+#include <fatname.h>
 
 int fatname_to_name(const char* fatname, char* name) {
     if (fatname[0] == '.') {

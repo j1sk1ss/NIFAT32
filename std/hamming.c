@@ -1,4 +1,4 @@
-#include "../include/hamming.h"
+#include <hamming.h>
 
 static encoded_t _encode_hamming_15_11(decoded_t data) {
     encoded_t encoded = 0;

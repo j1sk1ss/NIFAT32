@@ -1,4 +1,4 @@
-#include "../include/journal.h"
+#include <journal.h>
 
 #ifndef NIFAT32_RO
 static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, int journal) {

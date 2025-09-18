@@ -1,4 +1,4 @@
-#include "../include/logging.h"
+#include <logging.h>
 
 static log_io_t _log_io = {
     .fd_fprintf  = NULL,

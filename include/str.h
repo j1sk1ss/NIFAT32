@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-#include "null.h"
+#include <null.h>
 
 /*
 Memory special functions. 

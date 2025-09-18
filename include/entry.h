@@ -4,15 +4,15 @@
 extern "C" {
 #endif
 
-#include "mm.h"
-#include "ecache.h"
-#include "logging.h"
-#include "hamming.h"
-#include "fatinfo.h"
-#include "cluster.h"
-#include "fatname.h"
-#include "journal.h"
-#include "checksum.h"
+#include <mm.h>
+#include <ecache.h>
+#include <logging.h>
+#include <hamming.h>
+#include <fatinfo.h>
+#include <cluster.h>
+#include <fatname.h>
+#include <journal.h>
+#include <checksum.h>
 
 #define FILE_LAST_LONG_ENTRY 0x40
 #define ENTRY_FREE           0xE5

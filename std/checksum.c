@@ -1,4 +1,4 @@
-#include "../include/checksum.h"
+#include <checksum.h>
 
 static inline unsigned int _rotl32(unsigned int x, char r) {
     return (x << r) | (x >> (32 - r));

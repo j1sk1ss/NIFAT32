@@ -1,4 +1,4 @@
-#include "../include/threading.h"
+#include <threading.h>
 
 int THR_require_read(lock_t* lock) {
     if (!lock) return 0;

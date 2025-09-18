@@ -1,4 +1,4 @@
-#include "../include/ecache.h"
+#include <ecache.h>
 
 static int _rotate_left(ecache_t** root, ecache_t* x) {
     ecache_t* y = x->r;

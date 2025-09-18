@@ -37,10 +37,10 @@ Dependencies:
 extern "C" {
 #endif
 
-#include "str.h"
-#include "null.h"
-#include "logging.h"
-#include "threading.h"
+#include <str.h>
+#include <null.h>
+#include <logging.h>
+#include <threading.h>
 
 #define ALLOC_BUFFER_SIZE   512000
 #define ALIGNMENT           8  

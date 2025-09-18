@@ -40,14 +40,14 @@ Dependencies:
 extern "C" {
 #endif
 
-#include "mm.h"
-#include "disk.h"
-#include "null.h"
-#include "fatmap.h"
-#include "hamming.h"
-#include "fatinfo.h"
-#include "logging.h"
-#include "threading.h"
+#include <mm.h>
+#include <disk.h>
+#include <null.h>
+#include <fatmap.h>
+#include <hamming.h>
+#include <fatinfo.h>
+#include <logging.h>
+#include <threading.h>
 
 #define FAT_CLUSTER_FREE     0x00000000
 #define FAT_CLUSTER_BAD      0x0FFFFFF7

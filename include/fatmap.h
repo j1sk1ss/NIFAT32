@@ -4,12 +4,12 @@
 extern "C" {
 #endif
 
-#include "mm.h"
-#include "str.h"
-#include "null.h"
-#include "fatinfo.h"
-#include "logging.h"
-#include "threading.h"
+#include <mm.h>
+#include <str.h>
+#include <null.h>
+#include <fatinfo.h>
+#include <logging.h>
+#include <threading.h>
 
 #define BITMAP_NFREE 0x00000000
 #define BITMAP_IS_FREE(val, pos)    (!(((val) >> (pos)) & 1))

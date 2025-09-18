@@ -21,6 +21,7 @@ typedef struct {
     int   fc;     // fats count
     int   bsbc;   // bootsector count
     int   jc;     // journals count
+    int   ec;     // errors count (error storage)
 } opt_t;
 
 int process_input(int argc, char* argv[], opt_t* opt);

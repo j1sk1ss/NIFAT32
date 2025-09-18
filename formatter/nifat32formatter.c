@@ -1,7 +1,8 @@
 #include "nifat32formatter.h"
 
 static int      _write_bs(int, uint32_t, uint32_t);
-static int      _write_journals(int fd, uint32_t ts);
+static int      _write_journals(int, uint32_t);
+static int      _write_errors(int, uint32_t);
 static int      _write_fats(int, fat_table_t, uint32_t, uint32_t);
 static int      _initialize_fat(fat_table_t, uint32_t, uint32_t);
 static int      _write_root_directory(int, uint32_t, uint32_t);
@@ -16,7 +17,8 @@ static opt_t opt = {
     .v_size = DEFAULT_VOLUME_SIZE,
     .fc     = FAT_COUNT,
     .bsbc   = BS_BACKUPS,
-    .jc     = JOURNALS_BACKUPS
+    .jc     = JOURNALS_BACKUPS,
+    .ec     = ERRORS_COUNT
 };
 
 int main(int argc, char* argv[]) {
@@ -63,6 +65,12 @@ int main(int argc, char* argv[]) {
 
     if (!_write_journals(fd, total_sectors)) {
         fprintf(stderr, "Error writing journal sector\n");
+        close(fd);
+        return EXIT_FAILURE;
+    }
+
+    if (!_write_errors(fd, total_sectors)) {
+        fprintf(stderr, "Error writing errors sector\n");
         close(fd);
         return EXIT_FAILURE;
     }
@@ -269,6 +277,18 @@ static int _write_journals(int fd, uint32_t ts) {
     return 1;
 }
 
+static int _write_errors(int fd, uint32_t ts) {
+    for (int i = 0; i < opt.ec; i++) {
+        uint8_t buffer[BYTES_PER_SECTOR * opt.spc];
+        memset(buffer, 0, BYTES_PER_SECTOR * opt.spc);
+        uint32_t sector = GET_ERRORSSECTOR(i, ts);
+        if (pwrite(fd, buffer, sizeof(buffer), sector * BYTES_PER_SECTOR) != sizeof(buffer)) return 0;
+        fprintf(stdout, "[i=%i] viped area for errors has been written at sa=%u -> %u!\n", i, sector, sector + opt.spc);
+    }
+
+    return 1;
+}
+
 /* Generate first clusters, reserve clusters for bootstructs */
 static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
     fat_table[0] = FAT_ENTRY_RESERVED | (0xF8 << 24);
@@ -303,6 +323,15 @@ static int _initialize_fat(uint32_t* fat_table, uint32_t ts, uint32_t tc) {
     /* Journals */
     for (int i = 0; i < opt.jc; i++) {
         uint32_t sector = GET_JOURNALSECTOR(i, ts);
+        cluster_for_backup = sector / opt.spc;
+        if (cluster_for_backup < tc) {
+            fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);
+        }
+    }
+
+    /* Errors */
+    for (int i = 0; i < opt.ec; i++) {
+        uint32_t sector = GET_ERRORSSECTOR(i, ts);
         cluster_for_backup = sector / opt.spc;
         if (cluster_for_backup < tc) {
             fat_table[cluster_for_backup] = FAT_ENTRY_RESERVED | (0xF8 << 24);

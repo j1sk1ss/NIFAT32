@@ -36,9 +36,9 @@ Dependencies:
 extern "C" {
 #endif
 
-#include "null.h"
-#include "logging.h"
-#include "threading.h"
+#include <null.h>
+#include <logging.h>
+#include <threading.h>
 
 typedef int sector_offset_t;
 typedef unsigned int sector_addr_t;

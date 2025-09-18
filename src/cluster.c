@@ -1,4 +1,4 @@
-#include "../include/cluster.h"
+#include <cluster.h>
 
 int get_cluster_count(unsigned int size, fat_data_t* fi) {
     return size / (fi->sectors_per_cluster * fi->bytes_per_sector);

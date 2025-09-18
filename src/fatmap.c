@@ -1,4 +1,4 @@
-#include "../include/fatmap.h"
+#include <fatmap.h>
 
 static bitmap_val_t* _bitmap = NULL;
 int fatmap_init(fat_data_t* fi) {
