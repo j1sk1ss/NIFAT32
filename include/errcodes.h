@@ -27,6 +27,8 @@ typedef enum {
     WRITE_CLUSTER_ERROR,
     WRITE_FAT_ERROR,
     READ_FAT_ERROR,
+    SECTOR_READ_ERROR,
+    SECTOR_WRITE_ERROR,
     ALLOCATED_CLUSTER_BAD_ERROR,
     CLUSTER_ALLOCATION_ERROR,
     ENTRY_EDIT_ERROR,
@@ -46,8 +48,9 @@ typedef enum {
     READLOCK_SECTOR_ERROR,
     WRITELOCK_SECTOR_ERROR,
     DISK_IO_WRITE_ERROR,
-    DISK_IO_READ_ERROR
-} errors_t;
+    DISK_IO_READ_ERROR,
+    PROCESSED_ERROR, // last error
+} error_code_t;
 
 #ifdef __cplusplus
 }

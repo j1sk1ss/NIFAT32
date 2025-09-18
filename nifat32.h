@@ -4,21 +4,23 @@
 extern "C" {
 #endif
 
-#include "include/null.h"
-#include "include/hamming.h"
-#include "include/threading.h"
-#include "include/checksum.h"
-#include "include/fatname.h"
-#include "include/fat.h"
-#include "include/fatinfo.h"
-#include "include/mm.h"
-#include "include/logging.h"
-#include "include/cluster.h"
-#include "include/disk.h"
-#include "include/str.h"
-#include "include/ecache.h"
-#include "include/entry.h"
-#include "include/ctable.h"
+#include <mm.h>
+#include <fat.h>
+#include <str.h>
+#include <null.h>
+#include <disk.h>
+#include <entry.h>
+#include <ecache.h>
+#include <ctable.h>
+#include <errors.h>
+#include <hamming.h>
+#include <logging.h>
+#include <cluster.h>
+#include <fatinfo.h>
+#include <fatname.h>
+#include <errcodes.h>
+#include <checksum.h>
+#include <threading.h>
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {

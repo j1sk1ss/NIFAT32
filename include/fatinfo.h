@@ -18,6 +18,7 @@ typedef struct {
     unsigned int  ext_root_cluster;
     unsigned int  sectors_padd;
     unsigned char journals_count;
+    unsigned char errors_count;
 } fat_data_t;
 
 #ifdef __cplusplus

@@ -20,12 +20,14 @@ int NIFAT32_init(nifat32_params* params) {
     buffer_t encoded_bs = (buffer_t)malloc_s(sector_size);
     if (!encoded_bs) {
         print_error("malloc_s() error!");
+        ERR_register_error(MALLOC_ERROR);
         return 0;
     }
 
     _fs_data.bs_count = params->bs_count;
     if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
+        ERR_register_error(SECTOR_READ_ERROR);
         free_s(encoded_bs);
         return 0;
     }
@@ -47,6 +49,7 @@ int NIFAT32_init(nifat32_params* params) {
         );
 
         params->bs_num++;
+        ERR_register_error(CHECKSUM_CHECK_ERROR);
         return NIFAT32_init(params);
     }
     else {
@@ -56,6 +59,7 @@ int NIFAT32_init(nifat32_params* params) {
 
     _fs_data.fat_type       = 32;
     _fs_data.journals_count = params->jc;
+    _fs_data.errors_count   = params->ec;
     _fs_data.fat_count      = bootstruct.table_count;
     _fs_data.total_sectors  = bootstruct.total_sectors_32;
     _fs_data.fat_size       = bootstruct.extended_section.table_size_32;
@@ -201,10 +205,12 @@ static cluster_addr_t _get_cluster_by_path(
                         if (entry_add(active_cluster, entry_index, &current_entry, &_fs_data) < 0) {
                             print_error("Can't add new entry with mode=%p", mode);
                             dealloc_cluster(current_entry.dca, &_fs_data);
+                            ERR_register_error(ADD_ENTRY_ERROR);
                         }
                     }
                     else {
                         print_error("set_cluster_end() error!");
+                        ERR_register_error(SET_CLUSTER_END_ERROR);
                         return FAT_CLUSTER_BAD;
                     }
                 }
@@ -235,6 +241,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     ci_t ci;
     if ((ci = alloc_ci()) < 0) {
         print_error("Ctable is full!");
+        ERR_register_error(CTABLE_FULL_ERROR);
         return -1;
     }
 
@@ -248,6 +255,7 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode, rci);
     if (is_cluster_bad(ca)) {
         print_error("Entry path=%s, not found!", path);
+        ERR_register_error(ENTRY_PATH_NFOUND_ERROR);
         destroy_content(ci);
         return -2;
     }
@@ -263,6 +271,7 @@ int NIFAT32_index_content(const ci_t ci) {
     print_log("NIFAT32_index_content(ci=%u)", ci);
     if (get_content_type(ci) != CONTENT_TYPE_DIRECTORY) {
         print_error("Can't index content ci=%i. This content is not a directory! Type: [%i]", ci, get_content_type(ci));
+        ERR_register_error(CONTENT_INDEX_ERROR);
         return 0;
     }
 
@@ -278,6 +287,7 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
     print_log("NIFAT32_read_content2buffer(ci=%i, offset=%u, readsize=%i)", ci, offset, buff_size);
     if (!IS_READ_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to read!", ci);
+        ERR_register_error(NO_READ_ACCESS_ERROR);
         return 0;
     }
 
@@ -289,6 +299,7 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
             int readeble = (buff_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : buff_size;
             if (!readoff_cluster(ca, offset, buffer + total_readden, readeble, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
+                ERR_register_error(READOFF_CLUSTER_ERROR);
                 return 0;
             }
 
@@ -310,12 +321,14 @@ static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
     if (!is_cluster_bad(allocated_cluster)) {
         if (!set_cluster_end(allocated_cluster, &_fs_data)) {
             print_error("Can't set cluster to <END> state!");
+            ERR_register_error(SET_CLUSTER_END_ERROR);
             dealloc_cluster(allocated_cluster, &_fs_data);
             return FAT_CLUSTER_BAD;
         }
 
         if (!write_fat(hca, allocated_cluster, &_fs_data)) {
             print_error("Allocated cluster can't be added to content!");
+            ERR_register_error(WRITE_FAT_ERROR);
             dealloc_cluster(allocated_cluster, &_fs_data);
             return FAT_CLUSTER_BAD;
         }
@@ -324,6 +337,7 @@ static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
     }
     else {
         print_error("Allocated cluster [addr=%i] is <BAD>!", allocated_cluster);
+        ERR_register_error(ALLOCATED_CLUSTER_BAD_ERROR);
         return FAT_CLUSTER_BAD;
     }
 
@@ -350,6 +364,7 @@ static cluster_addr_t _add_cluster_to_content(const ci_t ci, cluster_addr_t lca)
 
         if (max_iterations <= 0) {
             print_error("Can't allocate cluster!");
+            ERR_register_error(CLUSTER_ALLOCATION_ERROR);
             return FAT_CLUSTER_BAD;
         }
     }
@@ -363,6 +378,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
     print_log("NIFAT32_write_buffer2content(ci=%i, offset=%u, writesize=%i)", ci, offset, data_size);
     if (!IS_WRITE_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to write!", ci);
+        ERR_register_error(NO_WRITE_ACCESS_ERROR);
         return 0;
     }
 
@@ -379,6 +395,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
             int writable = (data_size > (int)(_fs_data.cluster_size - offset)) ? (int)(_fs_data.cluster_size - offset) : data_size;
             if (!writeoff_cluster(ca, offset, data + total_written, writable, &_fs_data)) {
                 print_error("readoff_cluster() error. Aborting...");
+                ERR_register_error(READOFF_CLUSTER_ERROR);
                 return 0;
             }
 
@@ -426,6 +443,7 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 
     if (!entry_edit(get_content_root_ca(ci), get_content_ecache(ci), get_content_name(ci), &meta, &_fs_data)) {
         print_error("entry_edit() encountered an error. Aborting...");
+        ERR_register_error(ENTRY_EDIT_ERROR);
         return 0;
     }
     
@@ -440,6 +458,7 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
     print_log("NIFAT32_truncate_content(ci=%i, offset=%u, size=%i)", ci, offset, size);
     if (!IS_WRITE_MODE(get_content_mode(ci))) {
         print_error("Can't open content ci=%i. No access to write!", ci);
+        ERR_register_error(NO_WRITE_ACCESS_ERROR);
         return 0;
     }
 
@@ -481,6 +500,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     ecache_t* entry_cache = get_content_ecache(target);
     if (entry_search((char*)info->full_name, target, entry_cache, NULL, &_fs_data)) {
         print_error("entry_search() encountered an error. Aborting...");
+        ERR_register_error(ENTRY_SEARCH_ERROR);
         return 0;
     }
 
@@ -488,6 +508,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     cluster_addr_t entry_ca = alloc_cluster(&_fs_data);
     if (!set_cluster_end(entry_ca, &_fs_data)) {
         print_error("set_cluster_end() error!");
+        ERR_register_error(SET_CLUSTER_END_ERROR);
         return 0;
     }
 
@@ -498,6 +519,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     int is_add = entry_add(target, entry_cache, &entry, &_fs_data);
     if (is_add < 0) {
         print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
+        ERR_register_error(ENTRY_ADD_ERROR);
         dealloc_cluster(entry.dca, &_fs_data);
         return 0;
     }
@@ -524,6 +546,7 @@ static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void*
         do {
             if (!copy_cluster(old_ca, nca, ctx, _fs_data.bytes_per_sector, &_fs_data)) {
                 print_error("copy_cluster() error. Aborting...");
+                ERR_register_error(COPY_CLUSTER_ERROR);
                 dealloc_chain(hca, &_fs_data);
                 return 0;
             }
@@ -551,6 +574,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
             buffer_t copy_buffer = (buffer_t)malloc_s(_fs_data.bytes_per_sector);
             if (!copy_buffer) {
                 print_error("malloc_s() error!");
+                ERR_register_error(MALLOC_ERROR);
                 return 0;
             }
 
@@ -558,6 +582,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
             do {
                 if (!copy_cluster(src_ca, dst_ca, copy_buffer, _fs_data.bytes_per_sector, &_fs_data)) {
                     print_error("copy_cluster() error. Aborting...");
+                    ERR_register_error(COPY_CLUSTER_ERROR);
                     dealloc_chain(hca_dst, &_fs_data);
                     free_s(copy_buffer);
                     return 0;
@@ -581,6 +606,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
         }
         default: {
             print_error("Unknown deep=%i type!", deep);
+            ERR_register_error(UNKNOWN_DEEP_TYPE_ERROR);
             return 0;
         }
     }
@@ -596,6 +622,7 @@ int NIFAT32_delete_content(ci_t ci) {
     print_log("NIFAT32_delete_content(ci=%i)", ci);
     if (!entry_remove(get_content_root_ca(ci), get_content_name(ci), get_content_ecache(ci), &_fs_data)) {
         print_error("entry_remove() encountered an error. Aborting...");
+        ERR_register_error(ENTRY_REMOVE_ERROR);
         return 0;
     }
 
@@ -620,6 +647,7 @@ int NIFAT32_repair_content(const ci_t ci, int rec) {
     print_log("NIFAT32_repair_content(ci=%i)", ci);
     if (get_content_type(ci) != CONTENT_TYPE_DIRECTORY) {
         print_error("Can't repair content ci=%i. This content is not a directory! Type: [%i]", ci, get_content_type(ci));
+        ERR_register_error(REPAIR_CONTENT_ERROR);
         return 0;
     }
 
