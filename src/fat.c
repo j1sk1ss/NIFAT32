@@ -41,6 +41,7 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
         !DSK_writeoff_sectors(fat_sector, fat_offset % fi->bytes_per_sector, (const unsigned char*)table_buffer, sizeof(table_buffer), 1)
     ) {
         print_error("Could not write new FAT32 cluster number to sector.");
+        errors_register_error(WRITE_FAT_ERROR, fi);
         return 0;
     }
 
@@ -73,6 +74,7 @@ static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
         !DSK_readoff_sectors(fat_sector, fat_offset % fi->bytes_per_sector, (unsigned char*)table_buffer, sizeof(table_buffer), 1
     )) {
         print_error("Could not read sector that contains FAT32 table entry needed.");
+        errors_register_error(READ_FAT_ERROR, fi);
         return FAT_CLUSTER_BAD;
     }
 

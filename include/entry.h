@@ -6,6 +6,7 @@ extern "C" {
 
 #include <mm.h>
 #include <ecache.h>
+#include <errors.h>
 #include <logging.h>
 #include <hamming.h>
 #include <fatinfo.h>

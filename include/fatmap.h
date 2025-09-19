@@ -7,6 +7,7 @@ extern "C" {
 #include <mm.h>
 #include <str.h>
 #include <null.h>
+#include <errors.h>
 #include <fatinfo.h>
 #include <logging.h>
 #include <threading.h>

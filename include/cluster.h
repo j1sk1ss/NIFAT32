@@ -42,6 +42,7 @@ extern "C" {
 #include <fat.h>
 #include <null.h>
 #include <disk.h>
+#include <errors.h>
 #include <fatinfo.h>
 #include <logging.h>
 #include <threading.h>

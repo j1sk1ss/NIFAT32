@@ -44,6 +44,7 @@ extern "C" {
 #include <disk.h>
 #include <null.h>
 #include <fatmap.h>
+#include <errors.h>
 #include <hamming.h>
 #include <fatinfo.h>
 #include <logging.h>

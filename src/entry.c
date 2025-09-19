@@ -15,6 +15,7 @@ static int _read_encoded_cluster(
     if (!enc || !dec || is_cluster_bad(ca)) return 0;
     if (!read_cluster(ca, enc, enc_size, fi)) {
         print_error("read_cluster() encountered an error. Aborting...");
+        errors_register_error(READ_CLUSTER_ERROR, fi);
         return 0;
     }
 
@@ -43,10 +44,13 @@ int entry_iterate(
     print_debug("entry_iterate(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
-    if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
-    unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
+    if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) {
+        errors_register_error(MALLOC_ERROR, fi);
+        return -1;
+    }
 
     int exit = 0;
+    unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     do {
         if (!_read_encoded_cluster(ca, cluster_data, fi->cluster_size, decoded_cluster, decoded_len, fi)) {
             break;
@@ -62,6 +66,7 @@ int entry_iterate(
         pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
         if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {
             print_error("Error correction of directory entry failed. Aborting...");
+            errors_register_error(ERROR_CORRECTION_ERROR, fi);
             break;
         }
     } while (!is_cluster_end((ca = read_fat(ca, fi))) && !exit);
@@ -172,7 +177,10 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     print_debug("entry_add(ca=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
-    if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
+    if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) {
+        errors_register_error(MALLOC_ERROR, fi);
+        return -1;
+    }
     
     unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
     do {
@@ -198,6 +206,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 pack_memory(decoded_cluster, (encoded_t*)cluster_data, decoded_len);
                 if (!write_cluster(ca, cluster_data, fi->cluster_size, fi)) {
                     print_error("Writing new directory entry failed. Aborting...");
+                    errors_register_error(ENTRY_ADD_ERROR, fi);
                     free_s(decoded_cluster);
                     free_s(cluster_data);
                     return -6;
@@ -213,22 +222,26 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
         cluster_addr_t nca = read_fat(ca, fi);
         if (is_cluster_bad(nca)) {
              print_error("<BAD> cluster in the chain. Aborting...");
+             errors_register_error(BAD_CLUSTER_IN_CHAIN_ERROR, fi);
             break;
         }
 
         if (is_cluster_end(nca)) {
             if (is_cluster_bad((nca = alloc_cluster(fi)))) {
                 print_error("Allocation of new cluster failed. Aborting...");
+                errors_register_error(CLUSTER_ALLOCATION_ERROR, fi);
                 break;
             }
 
             if (!set_cluster_end(nca, fi)) {
                 print_error("Can't set new cluster as <END>. Aborting...");
+                errors_register_error(ALLOCATED_CLUSTER_BAD_ERROR, fi);
                 break;
             }
 
             if (!write_fat(ca, nca, fi)) {
                 print_error("Extension of the cluster chain with new cluster failed. Aborting...");
+                errors_register_error(CLUSTER_CHAIN_APPEND_ERROR, fi);
                 break;
             }
         }
@@ -251,7 +264,11 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     else {
         int decoded_len = fi->cluster_size / sizeof(encoded_t);
         buffer_t cluster_data, decoded_cluster;
-        if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) return -1;
+        if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) {
+            errors_register_error(MALLOC_ERROR, fi);
+            return -1;
+        }
+        
         cluster_addr_t nca = ca;
         unsigned int entries_per_cluster = (fi->cluster_size / sizeof(encoded_t)) / sizeof(directory_entry_t);
         do {
@@ -266,12 +283,14 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
                 if (_validate_entry(entry) && entry->file_name[0] != ENTRY_FREE) {
                     if (_entry_erase_rec(entry->dca, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, fi) < 0) {
                         print_warn("Recursive erase error!");
+                        errors_register_error(RECURSIVE_ERASE_ERROR, fi);
                     }
                 }
             }
 
             if (!dealloc_cluster(ca, fi)) {
                 print_warn("dealloc_cluster() encountered an error.");
+                errors_register_error(CLUSTER_DEALLOCATION_ERROR, fi);
             }
 
             ca = nca;
@@ -301,6 +320,7 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
     context->ji = journal_add_operation(DEL_OP, info->ca, info->offset, (unsqueezed_entry_t*)entry, context->fi);
     if (_entry_erase_rec(entry->dca, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, context->fi) < 0) {
         print_error("Cluster chain delete failed. Aborting...");
+        errors_register_error(CLUSTER_CHAIN_DELETION_ERROR, context->fi);
         return 1;
     }
 

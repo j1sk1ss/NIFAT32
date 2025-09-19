@@ -288,6 +288,15 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_repair_content(const ci_t ci, int rec);
 
+/*
+Get last registered error. Error registration based on ring buffer with maxim unhandled errors
+count equals CLUSTER_SIZE / sizeof(unsigned int)
+
+Return -1 if there is no registered errors.
+Return error code of last occured error.
+*/
+error_code_t NIFAT32_get_last_error();
+
 #ifdef __cplusplus
 }
 #endif

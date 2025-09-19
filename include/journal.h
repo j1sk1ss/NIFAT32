@@ -7,6 +7,7 @@ extern "C" {
 #include <str.h>
 #include <fat.h>
 #include <disk.h>
+#include <errors.h>
 #include <cluster.h>
 #include <fatinfo.h>
 #include <logging.h>

@@ -11,6 +11,7 @@ static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, 
         )
     ) {
         print_error("Could not write journal to journal sector!");
+        errors_register_error(JOURNAL_WRITE_ERROR, fi);
         return 0;
     }
 
@@ -32,6 +33,7 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
         )
     ) {
         print_error("Could not read journal from journal sector!");
+        errors_register_error(JOURNAL_READ_ERROR, fi);
         return 0;
     }
 

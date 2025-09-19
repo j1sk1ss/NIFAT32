@@ -10,6 +10,7 @@ cluster_addr_t alloc_cluster(fat_data_t* fi) {
 #ifndef NIFAT32_RO
     if (!THR_require_write(&_allocater_lock, get_thread_num())) {
         print_error("Can't write-lock alloc_cluster function!");
+        errors_register_error(WRITELOCK_CLUSTER_ERROR, fi);
         return FAT_CLUSTER_BAD;
     }
 
@@ -51,6 +52,7 @@ int dealloc_cluster(const cluster_addr_t ca, fat_data_t* fi) {
     if (is_cluster_free(cluster_status)) return 1;
     if (set_cluster_free(ca, fi)) return 1;
     print_error("Error occurred with write_fat(), aborting operations...");
+    errors_register_error(WRITE_FAT_ERROR, fi);
     return 0;
 #else
     return 1;
@@ -63,6 +65,7 @@ int dealloc_chain(cluster_addr_t ca, fat_data_t* fi) {
         cluster_addr_t next_cluster = read_fat(ca, fi);
         if (!dealloc_cluster(ca, fi)) {
             print_error("dealloc_cluster() encountered an error. Aborting...");
+            errors_register_error(CLUSTER_DEALLOCATION_ERROR, fi);
             return 0;
         }
 

@@ -5,6 +5,7 @@ int fatmap_init(fat_data_t* fi) {
     _bitmap = (bitmap_val_t*)malloc_s((fi->total_clusters / BITS_PER_WORD) * sizeof(bitmap_val_t));
     if (!_bitmap) {
         print_error("malloc_s() error!");
+        errors_register_error(MALLOC_ERROR, fi);
         return 0;
     }
 

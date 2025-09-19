@@ -1,4 +1,4 @@
-CFLAGS = -fPIC -shared -nostdlib -nodefaultlibs -Ikernel/include
+CFLAGS = -fPIC -shared -nostdlib -nodefaultlibs -Iinclude
 # Errors
 CFLAGS += -Wall -Wextra -Wcomment
 CC = gcc-14

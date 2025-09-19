@@ -16,7 +16,8 @@ typedef enum {
     READ, WRITE, TRUNC, // DML
     CD, LS, 
     UNKNOWN,
-    RS, WS  // Debug sector functions
+    RS, WS,  // Debug sector functions
+    LE // lasr error
 } cmd_t;
 
 cmd_t _get_cmd(const char* input) {
@@ -33,6 +34,7 @@ cmd_t _get_cmd(const char* input) {
     else if (!strcmp(input, "trunc"))   return TRUNC;
     else if (!strcmp(input, "rs"))      return RS;
     else if (!strcmp(input, "ws"))      return WS;
+    else if (!strcmp(input, "get_le"))  return LE;
     return UNKNOWN;
 }
 
@@ -83,7 +85,8 @@ int main(int argc, char* argv[]) {
         .bs_num    = 0, 
         .ts        = (v_size * DEFAULT_VOLUME_SIZE) / sector_size, 
         .fat_cache = CACHE | HARD_CACHE, 
-        .jc        = jc, 
+        .jc        = jc,
+        .ec        = 1,
         .bs_count  = bs,
         .disk_io   = {
             .read_sector  = _mock_sector_read_,
@@ -148,8 +151,9 @@ upper: {}
                         goto upper;
                     }
                 }
+                
+                break;
             }
-            break;
             
             case CP: {
                 const char* src = cmds[1];
@@ -180,8 +184,9 @@ upper: {}
                     NIFAT32_close_content(src_ci);
                     NIFAT32_close_content(dst_ci);
                 }
+                
+                break;
             }
-            break;
 
             case MV: {
                 const char* src = cmds[1];
@@ -213,8 +218,8 @@ upper: {}
                     NIFAT32_close_content(dst_ci);
                 }
 
+                break;
             }
-            break;
 
             case MKFILE: {
                 const char* file_name = cmds[1];
@@ -238,8 +243,9 @@ upper: {}
                     NIFAT32_put_content(root_ci, &file_info, reserve);
                     NIFAT32_close_content(root_ci);
                 }
+                
+                break;
             }
-            break;
 
             case MKDIR: {
                 const char* name = cmds[1];
@@ -256,8 +262,9 @@ upper: {}
                     NIFAT32_put_content(root_ci, &dir_info, NO_RESERVE);
                     NIFAT32_close_content(root_ci);
                 }
+                
+                break;
             }
-            break;
 
             case FRENAME: {
                 const char* name = cmds[1];
@@ -278,8 +285,9 @@ upper: {}
                     NIFAT32_change_meta(src, &file_info);
                     NIFAT32_close_content(src);
                 }
+                
+                break;
             }
-            break;
 
             case RM: {
                 char path_buffer[256] = { 0 };
@@ -295,8 +303,8 @@ upper: {}
                 ci_t ci = NIFAT32_open_content(NO_RCI, path_buffer, DF_MODE);
                 if (ci >= 0) NIFAT32_delete_content(ci);
                 else printf("Content not found!\n");
+                break;
             }
-            break;
 
             case READ: {
                 char path_buffer[256] = { 0 };
@@ -319,8 +327,9 @@ upper: {}
                 else {
                     printf("Content not found!\n");
                 }
+                
+                break;
             }
-            break;
             
             case WRITE: {
                 char path_buffer[256] = { 0 };
@@ -340,8 +349,9 @@ upper: {}
                 else {
                     printf("Content not found!\n");
                 }
+                
+                break;
             }
-            break;
             
             case TRUNC: {
                 char path_buffer[256] = { 0 };
@@ -363,8 +373,9 @@ upper: {}
                 else {
                     printf("Content not found!\n");
                 }
+                
+                break;
             }
-            break;
 
             case LS: {
                 ci_t ci = -1;
@@ -393,8 +404,9 @@ upper: {}
                 else {
                     printf("Content not found!\n");
                 }
+
+                break;
             }
-            break;
             
             case RS: {
                 int sector = atoi(cmds[1]);
@@ -408,8 +420,14 @@ upper: {}
                 }
 
                 printf("\n");
+                break;
             }
-            break;
+
+            case LE: {
+                error_code_t c = NIFAT32_get_last_error();
+                printf("Last error code: %i\n", c);
+                break;
+            }
 
             default: break;
         }
