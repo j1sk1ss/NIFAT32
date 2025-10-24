@@ -13,7 +13,7 @@ from loguru import logger
 def build_image(
     formatter: str, 
     clean: bool = True,
-    spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, 
+    spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, ec: int = 0,
     output: str = "nifat32.img"
 ) -> str:
     """
@@ -48,7 +48,8 @@ def build_image(
             "--spc", str(spc), 
             "--fc", str(fc), 
             "--bsbc", str(bs_count),
-            "--jc", str(jc)
+            "--jc", str(jc),
+            "--ec", str(ec)
         ]
 
         logger.info(f"Running formatter to create nifat32.img args={build_seq}")
@@ -75,7 +76,7 @@ def build_image(
 
 
 def build_test(
-    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14"
+    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14", include_path: str = "include/"
 ) -> Path:
     """
     Build separated test
@@ -89,6 +90,7 @@ def build_test(
         e: Something goes wrong during compilation
     """
     
+    logger.info(f"Building nifat32_path={nifat32_path}, base_path={base_path}, test_path={test_path}, debug={debug}, creation={creation}, compiler={compiler}, include_path={include_path}")
     test_path: Path = Path(test_path)
     if not test_path.exists():
         raise FileNotFoundError(f"Test file not found: {test_path}")
@@ -96,10 +98,10 @@ def build_test(
     bin_name = test_path.stem
     output_path: Path = Path(base_path) / bin_name
 
-    build_flags: list[str] = []
+    build_flags: list[str] = [ f"-I{include_path}" ]
     if not creation:
         build_flags.append("-DNO_CREATION")
-            
+    
     if debug:
         for i in debug:
             build_flags.append({
@@ -116,7 +118,7 @@ def build_test(
         "-o", str(output_path)
     ]
 
-    logger.info(f"Compiling {bin_name}...")
+    logger.info(f"Compiling {bin_name}, cmd={compile_cmd}...")
 
     try:
         subprocess.run(" ".join(compile_cmd), shell=True, check=True)
@@ -177,6 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("--spc", type=int, default=8, help="Sectors per cluster")
     parser.add_argument("--bs-count", type=int, default=5, help="Bootsector count")
     parser.add_argument("--j-count", type=int, default=0, help="Journals count")
+    parser.add_argument("--e-count", type=int, default=0, help="Error-code count")
     parser.add_argument("--fat-count", type=int, default=5, help="FAT count")
     
     # === Bitflip setup ===
@@ -213,6 +216,7 @@ if __name__ == "__main__":
         logger.info(f"Image size:       {args.image_size} MB")
         logger.info(f"Bootsector count: {args.bs_count}")
         logger.info(f"Journal count:    {args.j_count}")
+        logger.info(f"Error-code count: {args.e_count}")
         logger.info(f"FAT count:        {args.fat_count}")
         if args.formatter:
             logger.info(f"Formatter tool path: {args.formatter}")
@@ -220,7 +224,7 @@ if __name__ == "__main__":
         image_path = build_image(
             formatter=args.formatter, 
             clean=args.clean,
-            spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count
+            spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count, ec=args.e_count
         )
     
     # === Build tests ===
@@ -240,7 +244,7 @@ if __name__ == "__main__":
                     str(Path(args.root_folder) / "nifat32.c"),
                     str(Path(args.root_folder) / "src/*"),
                     str(Path(args.root_folder) / "std/*")
-                ], base_path=str(tests_path), test_path=test, debug=args.debug, compiler=args.compiler
+                ], base_path=str(tests_path), test_path=test, debug=args.debug, compiler=args.compiler, include_path=str(Path(args.root_folder) / "include")
             ))
     
     # === Test running ===

@@ -17,7 +17,7 @@ int NIFAT32_init(nifat32_params* params) {
     }
 
     _fs_data.errors_count = params->ec;
-    if (!errors_setup(&_fs_data)) {
+    if (_fs_data.errors_count && !errors_setup(&_fs_data)) {
         print_error("errors_register_error() error!");
         return 0;
     }
@@ -130,7 +130,7 @@ int NIFAT32_init(nifat32_params* params) {
         print_warn("Ctable init error!");
     }
 
-    if (!restore_from_journal(&_fs_data) && params->jc) {
+    if (params->jc && !restore_from_journal(&_fs_data)) {
         print_warn("Journal restore error!");
     }
 
@@ -543,7 +543,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 }
 
 #ifndef NIFAT32_RO
-static int _deepcopy_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
+static int _deepcopy_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
     cluster_addr_t old_ca = entry->dca;
     cluster_addr_t nca = alloc_cluster(&_fs_data);
     cluster_addr_t hca = nca;
@@ -643,7 +643,7 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     return stat_content(ci, info);
 }
 
-static int _repair_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
+static int _repair_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->dca, _repair_handler, ctx, &_fs_data);
     return 0;
 }

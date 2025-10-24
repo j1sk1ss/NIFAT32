@@ -79,8 +79,8 @@ static int _read_error(int index, error_code_t* c, fat_data_t* fi) {
 }
 
 static int _dump_info(errors_t* i, fat_data_t* fi) {
-    print_debug("_dump_info(fe=%i, le=%i)", _errors.first_error, _errors.last_error);
-    unsigned int body = PACK_INFO_ENTRY(_errors.first_error, _errors.last_error);
+    print_debug("_dump_info(fe=%i, le=%i)", i->first_error, i->last_error);
+    unsigned int body = PACK_INFO_ENTRY(i->first_error, i->last_error);
     if (_write_error(0, body, fi)) return 1;
     print_error("Error during errors info dump!");
     return 0;

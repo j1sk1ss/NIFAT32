@@ -76,7 +76,7 @@ int entry_iterate(
     return exit;
 }
 
-static int _index_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
+static int _index_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
     ecache_t** context = (ecache_t**)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) {
         return 0;

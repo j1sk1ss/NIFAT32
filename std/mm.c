@@ -5,8 +5,8 @@ static mm_block_t* _mm_head = (mm_block_t*)_buffer;
 static int _allocated = 0;
 
 int mm_init() {
-    print_log("Memory manager init!");
     if (_mm_head->magic != MM_BLOCK_MAGIC) {
+        print_log("Memory manager init!");
         _mm_head->magic = MM_BLOCK_MAGIC;
         _mm_head->size  = ALLOC_BUFFER_SIZE - sizeof(mm_block_t);
         _mm_head->free  = 1;

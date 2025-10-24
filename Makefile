@@ -14,7 +14,7 @@ LOGGING_LOGS ?= 1
 SPECIAL_LOGS ?= 1
 
 ########
-# Logger flags
+# Logger flagså
 ifeq ($(ERROR_LOGS), 1)
     CFLAGS += -DERROR_LOGS
 endif

@@ -36,8 +36,8 @@ checksum_t murmur3_x86_32(const unsigned char* key, unsigned int len, unsigned i
     const unsigned char* tail = (const unsigned char*)(key + nblocks * 4);
     unsigned int k1 = 0;
     switch (len & 3) {
-        case 3: k1 ^= tail[2] << 16;
-        case 2: k1 ^= tail[1] << 8;
+        case 3: k1 ^= tail[2] << 16; __attribute__((fallthrough));
+        case 2: k1 ^= tail[1] << 8;  __attribute__((fallthrough));
         case 1: k1 ^= tail[0];
                 k1 *= c1;
                 k1 = _rotl32(k1, 15);
