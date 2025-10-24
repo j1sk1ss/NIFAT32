@@ -178,14 +178,13 @@ Return FAT_CLUSTER_BAD if path invalid.
 dfca - Default start cluster address. Place where we start search.
 */
 static cluster_addr_t _get_cluster_by_path(
-    const char* path, directory_entry_t* entry, cluster_addr_t* parent, unsigned char mode, const ci_t rci
+    const char* path, directory_entry_t* entry, unsigned char mode, const ci_t rci
 ) {
     print_debug("_get_cluster_by_path(path=%s, mode=%p, rci=%i)", path, mode, rci);
 
     ci_t curr_ci = rci;
-    cluster_addr_t parent_cluster = _fs_data.ext_root_cluster;
     cluster_addr_t active_cluster = _fs_data.ext_root_cluster;
-    if (rci != NO_RCI) parent_cluster = active_cluster = get_content_data_ca(rci);
+    if (rci != NO_RCI) active_cluster = get_content_data_ca(rci);
 
     unsigned int start = 0;
     directory_entry_t current_entry;
@@ -226,19 +225,17 @@ static cluster_addr_t _get_cluster_by_path(
 
             curr_ci = NO_RCI;
             start = iterator + 1;
-            parent_cluster = current_entry.rca;
             active_cluster = current_entry.dca;
         }
     }
 
-    if (entry)  str_memcpy(entry, &current_entry, sizeof(directory_entry_t));
-    if (parent) *parent = parent_cluster;
+    if (entry) str_memcpy(entry, &current_entry, sizeof(directory_entry_t));
     return active_cluster;    
 }
 
 int NIFAT32_content_exists(const char* path) {
     print_log("NIFAT32_content_exists(path=%s)", path);
-    return _get_cluster_by_path(path, NULL, NULL, DF_MODE, NO_RCI) != FAT_CLUSTER_BAD;
+    return _get_cluster_by_path(path, NULL, DF_MODE, NO_RCI) != FAT_CLUSTER_BAD;
 }
 
 ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) {
@@ -250,14 +247,13 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
         return -1;
     }
 
+    directory_entry_t meta = { .dca = _fs_data.ext_root_cluster, .rca = FAT_CLUSTER_BAD };
     if (!path) {
-        setup_content(ci, 1, "NIFAT32_DIR", _fs_data.ext_root_cluster, _fs_data.ext_root_cluster, NULL, mode);
+        setup_content(ci, 1, "NIFAT32_DIR", &meta, mode);
         return ci;
     }
 
-    cluster_addr_t rca = 0;
-    directory_entry_t meta;
-    cluster_addr_t ca = _get_cluster_by_path(path, &meta, &rca, mode, rci);
+    cluster_addr_t ca = _get_cluster_by_path(path, &meta, mode, rci);
     if (is_cluster_bad(ca)) {
         print_error("Entry path=%s, not found!", path);
         errors_register_error(ENTRY_PATH_NFOUND_ERROR, &_fs_data);
@@ -265,10 +261,10 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
         return -2;
     }
     else {
-        print_debug("NIFAT32_open_content: cca=%u, rca=%u", ca, rca);
+        print_debug("NIFAT32_open_content: dca=%u, rca=%u", meta.dca, meta.dca);
     }
     
-    setup_content(ci, (meta.attributes & FILE_DIRECTORY) == FILE_DIRECTORY, (const char*)meta.file_name, rca, ca, &meta, mode);
+    setup_content(ci, (meta.attributes & FILE_DIRECTORY) == FILE_DIRECTORY, (const char*)meta.file_name, &meta, mode);
     return ci;
 }
 
@@ -440,7 +436,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 #ifndef NIFAT32_RO
-    print_log("NIFAT32_change_meta(ci=%i, info=%s/%s/%s)", ci, info->full_name, info->file_name, info->file_extension);
+    print_log("NIFAT32_change_meta(ci=%i, info=%.11s/%.8s/%.3s)", ci, info->full_name, info->file_name, info->file_extension);
     directory_entry_t meta;
     create_entry(
         info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta

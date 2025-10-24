@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
         /* Open targer file */
         add_time2timer(MEASURE_TIME_US({
             ci = NIFAT32_open_content(NO_RCI, target_fatname, DF_MODE);
+            if (ci < 0) return EXIT_FAILURE;
         }), &open_timer);
 
         /* Write test data to file */
@@ -102,12 +103,13 @@ int main(int argc, char* argv[]) {
         name_to_fatname(name_buffer, target_fatname);
         ci_t dst_ci;
         add_time2timer(MEASURE_TIME_US({
-            dst_ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | CR_MODE, FILE_TARGET));
+            dst_ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | R_MODE | CR_MODE, FILE_TARGET));
+            if (dst_ci < 0) return EXIT_FAILURE;
         }), &create_timer);
 
         /* Copy data from source file to new file */
         add_time2timer(MEASURE_TIME_US({
-            NIFAT32_copy_content(ci, dst_ci, DEEP_COPY);
+            if (!NIFAT32_copy_content(ci, dst_ci, DEEP_COPY)) return EXIT_FAILURE;
         }), &copy_timer);
 
         /* Read and check data from new copied file */
@@ -117,12 +119,8 @@ int main(int argc, char* argv[]) {
             }
         }), &read_timer);
 
-        /* Delete copied file */
-        add_time2timer(MEASURE_TIME_US({
-            NIFAT32_delete_content(dst_ci);
-        }), &delete_timer);
-
         /* Close source file */
+        NIFAT32_close_content(dst_ci);
         NIFAT32_close_content(ci);
     }
 

@@ -103,6 +103,7 @@ typedef struct {
 
 static int _search_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
+    print_debug("ENTRY SEARCH: %.11s, ca=%u", context->name, info->ca);
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
     if (str_strncmp(context->name, (char*)entry->file_name, 11)) return 0;
@@ -128,7 +129,12 @@ int entry_search(
     }
 
     entry_ctx_t ctx = { .meta = meta, .name = name, .name_hash = murmur3_x86_32((const_buffer_t)name, 11, 0) };
-    return entry_iterate(ca, _search_handler, (void*)&ctx, fi);
+    if (entry_iterate(ca, _search_handler, (void*)&ctx, fi)) {
+        print_debug("Entry=%.11s found! dca=%u, rca=%u", meta->file_name, meta->dca, meta->rca);
+        return 1;
+    }
+
+    return 0;
 }
 
 #ifndef NIFAT32_RO
@@ -174,7 +180,7 @@ int entry_edit(
 
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
 #ifndef NIFAT32_RO
-    print_debug("entry_add(ca=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
+    print_debug("entry_add(ca=%u, name=%.11s, dca=%u, rca=%u, cache=%s)", ca, meta->file_name, meta->dca, meta->rca, cache != NO_ECACHE ? "YES" : "NO");
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
     buffer_t cluster_data, decoded_cluster;
     if (!_allocate_buffers(&cluster_data, fi->cluster_size, &decoded_cluster, decoded_len)) {
@@ -196,6 +202,10 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 entry->file_name[0] == ENTRY_END
             ) {
                 int ji = journal_add_operation(ADD_OP, ca, i, (unsqueezed_entry_t*)meta, fi);
+
+                meta->rca = ca;
+                meta->checksum = murmur3_x86_32((const_buffer_t)meta, sizeof(directory_entry_t), 0);
+
                 str_memcpy(entry, meta, sizeof(directory_entry_t));
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
                 if (cache != NO_ECACHE) {
@@ -310,11 +320,9 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
     if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
     if (context->index != NO_ECACHE) {
-        checksum_t src, dst;
+        checksum_t src;
         src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
-        dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
-        ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     }
 
     context->ji = journal_add_operation(DEL_OP, info->ca, info->offset, (unsqueezed_entry_t*)entry, context->fi);
@@ -331,7 +339,7 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
 
 int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi) {
 #ifndef NIFAT32_RO
-    print_debug("entry_remove(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
+    print_debug("entry_remove(cluster=%u, name=%.11s, cache=%s)", ca, name, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t ctx = { .name = name, .fi = fi, .index = cache };
     int result = entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
     journal_solve_operation(ctx.ji, fi);
@@ -342,8 +350,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __res
 }
 
 int create_entry(
-    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, 
-    unsigned int file_size, directory_entry_t* __restrict entry
+    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, unsigned int file_size, directory_entry_t* __restrict entry
 ) {
     entry->checksum = 0;
     entry->rca = FAT_CLUSTER_BAD;
@@ -360,7 +367,6 @@ int create_entry(
 
     str_memcpy(entry->file_name, fullname, 11);
     entry->name_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
-    entry->checksum  = murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
     print_debug("_create_entry=%.11s, is_dir=%i, fca=%u", entry->file_name, is_dir, first_cluster);
     return 1; 
 }
