@@ -4,10 +4,10 @@
 extern "C" {
 #endif
 
-#include <disk.h>
-#include <fatinfo.h>
-#include <hamming.h>
-#include <errcodes.h>
+#include <std/hamming.h>
+#include <std/errcodes.h>
+#include <src/disk.h>
+#include <src/fatinfo.h>
 
 #define PACK_INFO_ENTRY(f, c) (((unsigned int)(f) << 16) | ((unsigned int)(c) & 0xFFFF))
 #define GET_FIRST_ERROR(e)    ((unsigned short)((e) >> 16))

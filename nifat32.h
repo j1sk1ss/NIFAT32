@@ -4,23 +4,23 @@
 extern "C" {
 #endif
 
-#include <mm.h>
-#include <fat.h>
-#include <str.h>
-#include <null.h>
-#include <disk.h>
-#include <entry.h>
-#include <ecache.h>
-#include <ctable.h>
-#include <errors.h>
-#include <hamming.h>
-#include <logging.h>
-#include <cluster.h>
-#include <fatinfo.h>
-#include <fatname.h>
-#include <errcodes.h>
-#include <checksum.h>
-#include <threading.h>
+#include <std/mm.h>
+#include <std/str.h>
+#include <std/null.h>
+#include <std/hamming.h>
+#include <std/logging.h>
+#include <std/fatname.h>
+#include <std/errcodes.h>
+#include <std/checksum.h>
+#include <std/threading.h>
+#include <src/fat.h>
+#include <src/disk.h>
+#include <src/entry.h>
+#include <src/ecache.h>
+#include <src/ctable.h>
+#include <src/errors.h>
+#include <src/cluster.h>
+#include <src/fatinfo.h>
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
@@ -67,7 +67,7 @@ typedef struct {
     unsigned char ec;       // error clusters count
     disk_io_t     disk_io;
     log_io_t      logg_io;
-} nifat32_params;
+} nifat32_params_t;
 
 #define BOOT_MULTIPLIER 2654435761U // Knuth's multiplier (2^32 / φ)
 #define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
@@ -83,7 +83,7 @@ Params:
 Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
-int NIFAT32_init(nifat32_params* params);
+int NIFAT32_init(nifat32_params_t* params);
 
 /*
 Restore bootsectors on mount image.

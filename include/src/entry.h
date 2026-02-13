@@ -4,16 +4,16 @@
 extern "C" {
 #endif
 
-#include <mm.h>
-#include <ecache.h>
-#include <errors.h>
-#include <logging.h>
-#include <hamming.h>
-#include <fatinfo.h>
-#include <cluster.h>
-#include <fatname.h>
-#include <journal.h>
-#include <checksum.h>
+#include <std/mm.h>
+#include <std/logging.h>
+#include <std/hamming.h>
+#include <std/fatname.h>
+#include <std/checksum.h>
+#include <src/ecache.h>
+#include <src/errors.h>
+#include <src/fatinfo.h>
+#include <src/cluster.h>
+#include <src/journal.h>
 
 #define FILE_LAST_LONG_ENTRY 0x40
 #define ENTRY_FREE           0xE5

@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
     #define DEFAULT_VOLUME_SIZE (1024 * 1024)
     fprintf(stdout, "v_size=%i, sector_size=%i, bs=%i, jc=%i\n", v_size, sector_size, bs, jc);
 
-    nifat32_params params = { 
+    nifat32_params_t params = { 
         .bs_num    = 0, 
         .ts        = (v_size * DEFAULT_VOLUME_SIZE) / sector_size, 
         .fat_cache = CACHE | HARD_CACHE, 

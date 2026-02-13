@@ -2,7 +2,7 @@
 
 static fat_data_t _fs_data;
 
-int NIFAT32_init(nifat32_params* params) {
+int NIFAT32_init(nifat32_params_t* params) {
     LOG_setup(params->logg_io.fd_fprintf, params->logg_io.fd_vfprintf);
     print_log("NIFAT32 init. Reading %i bootsector at sa=%i", params->bs_num, GET_BOOTSECTOR(params->bs_num, params->ts));
     if (params->bs_num >= params->bs_count) {

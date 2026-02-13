@@ -4,13 +4,13 @@
 extern "C" {
 #endif
 
-#include <mm.h>
-#include <str.h>
-#include <null.h>
-#include <errors.h>
-#include <fatinfo.h>
-#include <logging.h>
-#include <threading.h>
+#include <std/mm.h>
+#include <std/str.h>
+#include <std/null.h>
+#include <std/logging.h>
+#include <std/threading.h>
+#include <src/errors.h>
+#include <src/fatinfo.h>
 
 #define BITMAP_NFREE 0x00000000
 #define BITMAP_IS_FREE(val, pos)    (!(((val) >> (pos)) & 1))

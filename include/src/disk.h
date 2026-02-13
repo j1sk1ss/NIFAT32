@@ -26,6 +26,7 @@ Description:
     This file contains main tools for working with disk / flash etc.
 
 Dependencies:
+    - null.h - NULL value.
     - logging.h - Logging tools.
     - threading.h - Locks for IO operations.
 */
@@ -36,9 +37,9 @@ Dependencies:
 extern "C" {
 #endif
 
-#include <null.h>
-#include <logging.h>
-#include <threading.h>
+#include <std/null.h>
+#include <std/logging.h>
+#include <std/threading.h>
 
 typedef int sector_offset_t;
 typedef unsigned int sector_addr_t;

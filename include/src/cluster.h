@@ -39,13 +39,13 @@ Dependencies:
 extern "C" {
 #endif
 
-#include <fat.h>
-#include <null.h>
-#include <disk.h>
-#include <errors.h>
-#include <fatinfo.h>
-#include <logging.h>
-#include <threading.h>
+#include <src/fat.h>
+#include <src/disk.h>
+#include <src/errors.h>
+#include <src/fatinfo.h>
+#include <std/null.h>
+#include <std/logging.h>
+#include <std/threading.h>
 
 /* Default offset for new clusters */
 #define CLUSTER_OFFSET 128

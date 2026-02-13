@@ -4,15 +4,15 @@
 extern "C" {
 #endif
 
-#include <str.h>
-#include <fat.h>
-#include <disk.h>
-#include <errors.h>
-#include <cluster.h>
-#include <fatinfo.h>
-#include <logging.h>
-#include <checksum.h>
-#include <threading.h>
+#include <std/str.h>
+#include <std/logging.h>
+#include <std/checksum.h>
+#include <std/threading.h>
+#include <src/fat.h>
+#include <src/disk.h>
+#include <src/errors.h>
+#include <src/cluster.h>
+#include <src/fatinfo.h>
 
 #define JOURNAL_MULTIPLIER 12345625789U
 #define GET_JOURNALSECTOR(n, ts) (((((n) + 63) * JOURNAL_MULTIPLIER) >> 15) % (ts - 128))

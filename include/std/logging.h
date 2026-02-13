@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#include <null.h>
+#include <std/null.h>
 #include <stdarg.h>
 
 typedef struct {

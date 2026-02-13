@@ -1,4 +1,4 @@
-#include <entry.h>
+#include <src/entry.h>
 
 static int _validate_entry(directory_entry_t* entry) {
     checksum_t entry_checksum = entry->checksum;

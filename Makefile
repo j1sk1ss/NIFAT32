@@ -48,7 +48,7 @@ ifeq ($(SPECIAL_LOGS), 1)
 endif
 
 OUTPUT = builds/nifat32.so
-SOURCES = nifat32.c src/* std/*
+SOURCES = nifat32.c src/*.c std/*.c
 
 all: force_build $(OUTPUT)
 

@@ -38,13 +38,13 @@ Dependencies:
 extern "C" {
 #endif
 
-#include <mm.h>
-#include <fat.h>
-#include <null.h>
-#include <entry.h>
-#include <ecache.h>
-#include <fatinfo.h>
-#include <threading.h>
+#include <std/mm.h>
+#include <std/null.h>
+#include <std/threading.h>
+#include <src/fat.h>
+#include <src/entry.h>
+#include <src/ecache.h>
+#include <src/fatinfo.h>
 
 #define CONTENT_TABLE_SIZE 50
 

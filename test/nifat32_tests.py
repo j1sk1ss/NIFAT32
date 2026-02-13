@@ -30,10 +30,10 @@ def build_image(
         output (str, optional): Output location for image. Defaults to "nifat32.img".
     """
     
-    original_dir = os.getcwd()
+    original_dir  = os.getcwd()
     formatter_dir = os.path.abspath(formatter)
     formatter_bin = os.path.join(formatter_dir, "formatter")
-    output_image = os.path.join(original_dir, output)
+    output_image  = os.path.join(original_dir, output)
 
     try:
         logger.info(f"Building formatter in {formatter_dir}")

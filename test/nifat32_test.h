@@ -1,7 +1,7 @@
 #ifndef NIFAT32_TEST_
 #define NIFAT32_TEST_
 
-#include "../../nifat32.h"
+#include "../nifat32.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -82,7 +82,7 @@ static int setup_nifat32() {
         return 0;
     }
 
-    nifat32_params params = { 
+    nifat32_params_t params = { 
         .bs_num    = 0, 
 #ifdef V_SIZE
         .ts        = V_SIZE / sector_size,
@@ -112,6 +112,12 @@ static int setup_nifat32() {
     }
 
     return 1;
+}
+
+static int destroy_nifat32() {
+    int ret = close(disk_fd);
+    disk_fd = -1;
+    return ret;
 }
 
 #define SUCCESS 1
