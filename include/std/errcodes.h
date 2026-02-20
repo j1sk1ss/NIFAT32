@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 typedef enum {
+    NO_ERROR,
     NO_RESERVE_SECTORS_ERROR,
     DSK_SETUP_ERROR,
     MALLOC_ERROR,

@@ -37,22 +37,22 @@ typedef struct fat_extBS_32 {
 } __attribute__((packed)) nifat32_ext32_bootsector_t;
 
 typedef struct fat_BS {
-    unsigned char  bootjmp[3];
-    unsigned char  oem_name[8];
-    unsigned short bytes_per_sector;
-    unsigned char  sectors_per_cluster;
-    unsigned short reserved_sector_count;
-    unsigned char  table_count;
-    unsigned short root_entry_count;
-    unsigned short total_sectors_16;
-    unsigned char  media_type;
-    unsigned short table_size_16;
-    unsigned short sectors_per_track;
-    unsigned short head_side_count;
-    unsigned int   hidden_sector_count;
-    unsigned int   total_sectors_32;
+    unsigned char              bootjmp[3];
+    unsigned char              oem_name[8];
+    unsigned short             bytes_per_sector;
+    unsigned char              sectors_per_cluster;
+    unsigned short             reserved_sector_count;
+    unsigned char              table_count;
+    unsigned short             root_entry_count;
+    unsigned short             total_sectors_16;
+    unsigned char              media_type;
+    unsigned short             table_size_16;
+    unsigned short             sectors_per_track;
+    unsigned short             head_side_count;
+    unsigned int               hidden_sector_count;
+    unsigned int               total_sectors_32;
     nifat32_ext32_bootsector_t extended_section;
-    checksum_t     checksum;
+    checksum_t                 checksum;
 } __attribute__((packed)) nifat32_bootsector_t;
 
 #define NO_CACHE   0b00000000
@@ -78,7 +78,7 @@ Note: This function also init memory manager.
 Note 2: For noise-immunity purpuses for initialization of NIFAT32 we
 should know end count of sectors.
 Params:
-- params - NIFAT32 setup params.
+- `params` - NIFAT32 setup params.
 
 Return 1 if init success.
 Return 0 if init was interrupted by error.
@@ -100,6 +100,7 @@ Return 1.
 int NIFAT32_unload();
 
 /*
+Checks if a content by the provided path exists.
 Return 1 if content exists.
 Return 0 if content not exists.
 */
@@ -132,26 +133,26 @@ int NIFAT32_content_exists(const char* path);
 /*
 Open content to content table.
 Params:
-- rci - Root content index. If we don't want to search in entire file system.
-        Note: By default use NO_RCI
-- path - Path to content (dir or file).
-         Note: Can be NULL. In this case will open ROOT directory.
-- mode - Content open mode.
-         Note: If mode is CR_MODE, function will create all directories in path.
-         For last entry in path will use DIR_ or FILE_ MODE. 
+- `rci` - Root content index. If we don't want to search in entire file system.
+          Note: By default use NO_RCI
+- `path` - Path to content (dir or file).
+           Note: Can be NULL. In this case will open ROOT directory.
+- `mode` - Content open mode.
+           Note: If mode is CR_MODE, function will create all directories in path.
+           For last entry in path will use DIR_ or FILE_ MODE. 
 
-Return content index or negative error code.
+Returns a content index or negative error code.
 */
 ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode);
 
 /*
 Get summary info about content.
 Params:
-- ci - Content index.
-- info - Pointer to info struct that will be filled by info.
+- `ci` - Content index.
+- `info` - Pointer to info struct that will be filled by info.
 
-Return 1 if stat success.
-Return 0 if something goes wrong.
+Returns 1 if stat was success.
+Returns 0 if something went wrong.
 */
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info);
 
@@ -160,12 +161,12 @@ Change meta data of content.
 Note: This function will change creation date, file and extention.
 Note 2: This function can't change filesize and base cluster.
 Params:
-- ci - Targer content index.
-- info - New meta data.
+- `ci` - Targer content index.
+- `info` - New meta data.
          Note: required fields is file_name, file_extension and type.
 
-Return 1 if change success.
-Return 0 if something goes wrong.
+Returns 1 if change was success.
+Returns 0 if something went wrong.
 */
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info);
 
@@ -176,12 +177,12 @@ Note 2: If offset larger then content size, function will return buff_size.
 Note 3: If ci is ci of directory, will return raw directory info. For working with this info
 use directory_entry_t.
 Params:
-- ci - Target content index.
-- offset - Offset in content.
-- buffer - Pointer where function should store data.
-- buff_size - Buffer size.
+- `ci` - Target content index.
+- `offset` - Offset in content.
+- `buffer` - Pointer where function should store data.
+- `buff_size` - Buffer size.
 
-Return count of bytes that was readden by function.
+Returns the count of bytes that were read by the function.
 */
 int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t buffer, int buff_size);
 
@@ -190,12 +191,12 @@ Write data from buffer to content.
 Note: This function don't check buffer and it's address.
 Note 2: If offset larger then content size, function will return data_size.
 Params:
-- ci - Target content index.
-- offset - Offset in content.
-- da - Pointer to source data.
-- data_size - Data size.
+- `ci` - Target content index.
+- `offset` - Offset in content.
+- `data` - Pointer to source data.
+- `data_size` - Data size.
 
-Return count of bytes that was written by function.
+Returns a count of bytes that were written by the function.
 */
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size);
 
@@ -203,31 +204,31 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 Trancate content will change occupied size of content.
 Note: Will save data in result clusters.
 Params:
-- ci - Target content index.
-- offset - Trancate offset in bytes.
-- size - Result size of file in bytes.
+- `ci` - Target content index.
+- `offset` - Trancate offset in bytes.
+- `size` - Result size of file in bytes.
 
-Return 1 if operation success.
-Return 0 if simething goes wrong.
+Returns 1 if operation succeed.
+Returns 0 if simething went wrong.
 */
 int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size);
 
 /*
 Index content directory for improving search speed.
-- ci - Content index.
+- `ci` - Content index.
 
 Return 1 if index was success.
-Return 0 if something goes wrong.
+Return 0 if something went wrong.
 */
 int NIFAT32_index_content(const ci_t ci);
 
 /*
 Close content from table and release all resources.
 Params:
-- ci - Content index.
+- `ci` - Content index.
 
 Return 1 if close was success.
-Return 0 if something goes wrong.
+Return 0 if something went wrong.
 */
 int NIFAT32_close_content(ci_t ci);
 
@@ -235,14 +236,14 @@ int NIFAT32_close_content(ci_t ci);
 /*
 Add content to target content index. 
 Params:
-- ci - Root content index. Should be directory.
-- info - Pointer to info about new content.
-- reserve - Reserved cluster count for content. 
-            Note: This option can be NO_RESERVE.
-            Note 2: Will reserve cluster chain for defragmentation prevent.
+- `ci` - Root content index. Should be directory.
+- `info` - Pointer to info about new content.
+- `reserve` - Reserved cluster count for content. 
+              Note: This option can be NO_RESERVE.
+              Note 2: Will reserve cluster chain for defragmentation prevent.
 
-Return 1 if operation was success.
-Return 0 if something goes wrong.
+Returns 1 if operation was success.
+Returns 0 if something went wrong.
 */
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve);
 
@@ -255,12 +256,12 @@ Note: deep parametr can set copy type:
 - SHALLOW_COPY create link in dst to src data.
 Note 2: NIFAT32_copy_content will deallocate all previous data in dst.
 Params:
-- src - Source content index.
-- dst - Destination content index.
-- deep - Copy type.
+- `src` - Source content index.
+- `dst` - Destination content index.
+- `deep` - Copy type.
 
-Return 1 if copy success.
-Return 0 if something goes wrong.
+Returns 1 if copy succeed.
+Returns 0 if something went wrong.
 */
 int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep);
 
@@ -268,7 +269,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep);
 Delete content by content index.
 Note: This function will close this content.
 Params:
-- ci - Content index.
+- `ci` - Content index.
 
 Return 1 if delete success.
 Return 0 if something goes wrong.
@@ -280,8 +281,8 @@ Repair content by reading, unpacking (error correcting) and writing to disk.
 Note: Will read, correct and write all directry entries in content.
 Note 2: This function will ignore file entries.
 Params:
-- ci - Content index.
-- rec - Recursive.
+- `ci` - Content index.
+- `rec` - Recursive.
 
 Return 1 if repair success.
 Return 0 if something goes wrong.
@@ -292,8 +293,8 @@ int NIFAT32_repair_content(const ci_t ci, int rec);
 Get last registered error. Error registration based on ring buffer with maxim unhandled errors
 count equals CLUSTER_SIZE / sizeof(unsigned int)
 
-Return -1 if there is no registered errors.
-Return error code of last occured error.
+Returns -1 if there is no registered errors.
+Returns error code of last occured error.
 */
 error_code_t NIFAT32_get_last_error();
 

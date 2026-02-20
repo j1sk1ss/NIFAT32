@@ -1,6 +1,9 @@
 #include "nifat32.h"
 
-static fat_data_t _fs_data;
+/* Main information about the current NiFAT32 'entity'.
+   Contains data about the root cluster, offsets and general properties.
+*/
+static fat_data_t _fs_data = { 0 };
 
 int NIFAT32_init(nifat32_params_t* params) {
     LOG_setup(params->logg_io.fd_fprintf, params->logg_io.fd_vfprintf);
@@ -23,23 +26,21 @@ int NIFAT32_init(nifat32_params_t* params) {
     }
 
     int sector_size = DSK_get_sector_size();
-    buffer_t encoded_bs = (buffer_t)malloc_s(sector_size);
-    if (!encoded_bs) {
-        print_error("malloc_s() error!");
-        errors_register_error(MALLOC_ERROR, &_fs_data);
+    if (sector_size < 0) {
+        print_error("DSK_get_sector_size returns value lower than 0!");
         return 0;
     }
 
+    stack_buffer_t encoded_bs[sector_size];
     _fs_data.bs_count = params->bs_count;
-    if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), encoded_bs, sector_size)) {
+    if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), (buffer_t)&encoded_bs, sector_size)) {
         print_error("DSK_read_sector() error!");
         errors_register_error(SECTOR_READ_ERROR, &_fs_data);
-        free_s(encoded_bs);
         return 0;
     }
 
     nifat32_bootsector_t bootstruct;
-    unpack_memory((encoded_t*)encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
+    unpack_memory((encoded_t*)&encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
 
     checksum_t bcheck = bootstruct.checksum;
     bootstruct.checksum = 0;
@@ -134,15 +135,11 @@ int NIFAT32_init(nifat32_params_t* params) {
         print_warn("Journal restore error!");
     }
 
-    free_s(encoded_bs);
     return 1;
 }
 
 int NIFAT32_repair_bootsectors() {
-    nifat32_bootsector_t bs = { 
-        .bootjmp = { 0xEB, 0x5B, 0x9 }, .media_type = 0xF8, .sectors_per_track = 63, .head_side_count = 255
-    };
-
+    nifat32_bootsector_t bs = { .bootjmp = { 0xEB, 0x5B, 0x9 }, .media_type = 0xF8, .sectors_per_track = 63, .head_side_count = 255 };
     str_memcpy(bs.oem_name, "recover ", 8);
     bs.bytes_per_sector      = _fs_data.bytes_per_sector;
     bs.sectors_per_cluster   = _fs_data.sectors_per_cluster;
@@ -151,7 +148,6 @@ int NIFAT32_repair_bootsectors() {
     bs.total_sectors_32      = _fs_data.total_sectors;
 
     nifat32_ext32_bootsector_t ext = { .boot_signature = 0x5A, .drive_number = 0x8, .volume_id = 0x1234 };
-
     ext.table_size_32 = _fs_data.fat_size;
     ext.root_cluster  = _fs_data.ext_root_cluster;
     str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
@@ -174,8 +170,13 @@ int NIFAT32_repair_bootsectors() {
 
 /*
 Find cluster active cluster by path.
-Return FAT_CLUSTER_BAD if path invalid.
-dfca - Default start cluster address. Place where we start search.
+Params:
+    - `path` - Path to find the cluster.
+    - `entry` - Output entry data by the provided path.
+    - `mode` - Search mode.
+    - `rci` - Root content index. Can be NO_RCI.
+
+Return FAT_CLUSTER_BAD if path is invalid.
 */
 static cluster_addr_t _get_cluster_by_path(
     const char* path, directory_entry_t* entry, unsigned char mode, const ci_t rci
@@ -316,6 +317,13 @@ int NIFAT32_read_content2buffer(const ci_t ci, cluster_offset_t offset, buffer_t
 }
 
 #ifndef NIFAT32_RO
+/*
+Add a new cluster to an existed chain.
+Params:
+    - `hca` - Existed chain head cluster.
+
+Returns BAD_CLUSTER if something goes wrong or a new allocated cluster.
+*/
 static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
     print_debug("_add_cluster_to_chain(hca=%i)", hca);
     cluster_addr_t allocated_cluster = alloc_cluster(&_fs_data);
@@ -346,9 +354,10 @@ static cluster_addr_t _add_cluster_to_chain(cluster_addr_t hca) {
 }
 
 /*
+Add an allocated cluster to the provided content index.
 Params:
-- ci - Content that needs new cluster.
-- lca - Last cluster of content. Can be FAT_CLUSTER_BAD if we don't now yet last cluster.
+- `ci` - Content that needs new cluster.
+- `lca` - Last cluster of content. Can be FAT_CLUSTER_BAD if we don't now yet last cluster.
 
 Return cluster_addr_t to new cluster. Also new cluster marked as FAT_CLUSTER_END.
 Return FAT_CLUSTER_BAD if comething goes wrong.
@@ -572,20 +581,18 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
         case DEEP_COPY: {
             cluster_addr_t dst_ca = get_content_data_ca(dst);
             cluster_addr_t src_ca = get_content_data_ca(src);
-            buffer_t copy_buffer = (buffer_t)malloc_s(_fs_data.bytes_per_sector);
-            if (!copy_buffer) {
-                print_error("malloc_s() error!");
-                errors_register_error(MALLOC_ERROR, &_fs_data);
+            if (_fs_data.bytes_per_sector < 0) {
+                print_error("bytes_per_sector value is lo2er than 0!");
                 return 0;
             }
 
+            stack_buffer_t copy_buffer[_fs_data.bytes_per_sector];
             cluster_addr_t hca_dst = dst_ca;
             do {
-                if (!copy_cluster(src_ca, dst_ca, copy_buffer, _fs_data.bytes_per_sector, &_fs_data)) {
+                if (!copy_cluster(src_ca, dst_ca, (buffer_t)&copy_buffer, _fs_data.bytes_per_sector, &_fs_data)) {
                     print_error("copy_cluster() error. Aborting...");
                     errors_register_error(COPY_CLUSTER_ERROR, &_fs_data);
                     dealloc_chain(hca_dst, &_fs_data);
-                    free_s(copy_buffer);
                     return 0;
                 }
 
@@ -594,10 +601,9 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
             } while (!is_cluster_end(src_ca) && !is_cluster_bad(src_ca) && !is_cluster_bad(dst_ca));
 
             if (get_content_type(src) == CONTENT_TYPE_DIRECTORY) {
-                entry_iterate(hca_dst, _deepcopy_handler, (void*)copy_buffer, &_fs_data);
+                entry_iterate(hca_dst, _deepcopy_handler, (void*)&copy_buffer, &_fs_data);
             }
 
-            free_s(copy_buffer);
             break;
         }
         case SHALLOW_COPY: {

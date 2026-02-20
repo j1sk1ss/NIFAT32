@@ -6,6 +6,7 @@ static errors_t _errors = {
     .last_error  = 1
 };
 
+#ifndef NIFAT32_NO_ERROR
 static int __write_error__(int index, error_code_t c, fat_data_t* fi, int copy_index) {
     decoded_t entry_buffer[sizeof(error_code_t)] = { 0 };
     unsigned int entry_offset = index * sizeof(entry_buffer);
@@ -85,7 +86,9 @@ static int _dump_info(errors_t* i, fat_data_t* fi) {
     print_error("Error during errors info dump!");
     return 0;
 }
+#endif
 
+#ifndef NIFAT32_NO_ERROR
 static int _load_info(errors_t* i, fat_data_t* fi) {
     unsigned int body = 0;
     if (_read_error(0, &body, fi)) {
@@ -101,18 +104,26 @@ static int _load_info(errors_t* i, fat_data_t* fi) {
     print_error("Error during errors info load!");
     return 0;
 }
+#endif
 
 int errors_setup(fat_data_t* fi) {
+#ifndef NIFAT32_NO_ERROR
     return _load_info(&_errors, fi);
+#else
+    return 1;
+#endif
 }
 
+#ifndef NIFAT32_NO_ERROR
 static inline unsigned int _next_ring_index(unsigned int idx, fat_data_t* fi) {
     idx++;
     if ((idx * sizeof(error_code_t)) >= fi->cluster_size) idx = 1;
     return idx;
 }
+#endif
 
 int errors_register_error(error_code_t code, fat_data_t* fi) {
+#ifndef NIFAT32_NO_ERROR
     print_debug("errors_register_error(code=%i)", code);
     if (!_write_error(_errors.current, code, fi)) {
         return 0;
@@ -126,9 +137,13 @@ int errors_register_error(error_code_t code, fat_data_t* fi) {
     _errors.current    = next;
     _errors.last_error = _errors.current;
     return _dump_info(&_errors, fi);
+#else
+    return 1;
+#endif
 }
 
 error_code_t errors_last_error(fat_data_t* fi) {
+#ifndef NIFAT32_NO_ERROR
     print_debug("errors_last_error()");
     if (_errors.first_error == _errors.last_error) {
         print_warn("No errors!");
@@ -143,4 +158,7 @@ error_code_t errors_last_error(fat_data_t* fi) {
     _errors.first_error = _next_ring_index(_errors.first_error, fi);
     _dump_info(&_errors, fi);
     return c;
+#else
+    return NO_ERROR;
+#endif
 }

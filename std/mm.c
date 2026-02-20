@@ -90,26 +90,6 @@ void* malloc_s(unsigned int size) {
     return ptr;
 }
 
-void* malloc_off_s(unsigned int size, unsigned int offset) {
-    void* ptr = __malloc_s(size, offset, 0);
-    if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
-    return ptr;
-}
-
-void* realloc_s(void* ptr, unsigned int elem) {
-    void* mem = NULL;
-    if (elem) {
-        if (!ptr) return malloc_s(elem);
-        mem = malloc_s(elem);
-        if (mem) {
-            str_memcpy(mem, ptr, elem);
-            free_s(ptr);
-        }
-    }
-
-    return mem;
-}
-
 int free_s(void* ptr) {
     if (!ptr || ptr < (void*)_buffer || ptr >= (void*)(_buffer + ALLOC_BUFFER_SIZE)) {
         print_mm("ptr=%p is not valid!", ptr);

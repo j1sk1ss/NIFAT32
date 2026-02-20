@@ -12,7 +12,9 @@ extern "C" {
     #define NULL 0
   #endif
 #else
+#ifndef NULL
   #define NULL ((void*)0)
+#endif
 #endif
 
 #ifdef __cplusplus

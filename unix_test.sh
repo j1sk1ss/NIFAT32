@@ -1,4 +1,4 @@
-gcc-14 unix_nifat32.c nifat32.c -Iinclude src/* std/* -DERROR_LOGS -DLOGGING_LOGS -DWARNING_LOGS -DDEBUG_LOGS -o builds/nifat32_unix
+gcc unix_nifat32.c nifat32.c -Iinclude src/* std/* -DERROR_LOGS -DLOGGING_LOGS -DWARNING_LOGS -DDEBUG_LOGS -o builds/nifat32_unix
 
 cd formatter && make && ./formatter --jc 2 -o nifat32.img -s nifat32
 rm formatter

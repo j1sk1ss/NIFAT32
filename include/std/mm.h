@@ -76,33 +76,6 @@ Return pointer to allocated memory.
 void* malloc_s(unsigned int size);
 
 /*
-Allocate memory block with offset.
-[Thread-safe]
-
-Params:
-    - size - Memory block size.
-    - offset - Minimum offset for memory block.
-
-Return NULL if can't allocate memory.
-Return pointer to allocated memory.
-*/
-void* malloc_off_s(unsigned int size, unsigned int offset);
-
-/*
-Realloc pointer to new location with new size.
-Realloc took from https://github.com/j1sk1ss/CordellOS.PETPRJ/blob/Userland/src/kernel/memory/allocator.c#L138
-[Thread-safe]
-
-Params:
-    - ptr - Pointer to old place.
-    - elem - Size of new allocated area.
-
-Return NULL if can't allocate data.
-Return pointer to new allocated area.
-*/
-void* realloc_s(void* ptr, unsigned int elem);
-
-/*
 Free allocated memory.
 [Thread-safe]
 

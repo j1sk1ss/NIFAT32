@@ -50,6 +50,7 @@ extern "C" {
 /* Default offset for new clusters */
 #define CLUSTER_OFFSET 128
 
+typedef unsigned char        stack_buffer_t;
 typedef unsigned char*       buffer_t;
 typedef const unsigned char* const_buffer_t;
 
