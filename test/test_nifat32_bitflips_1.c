@@ -18,7 +18,7 @@ char* paths[] = {
 
 int main() {
 #ifndef NO_CREATION
-    if (!setup_nifat32()) return EXIT_FAILURE;
+    if (!setup_nifat32(NULL)) return EXIT_FAILURE;
     fprintf(stdout, "Creating files...\n");
     for (int i = 0; i < 8; i++) {
         ci_t ci = nifat32_open_test(NO_RCI, paths[i], MODE(CR_MODE | R_MODE | W_MODE, FILE_TARGET), SUCCESS);

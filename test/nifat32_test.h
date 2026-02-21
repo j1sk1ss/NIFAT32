@@ -75,7 +75,7 @@ static inline int _mock_vfprintf_(const char* fmt, va_list args) {
     return vfprintf(stdout, fmt, args);
 }
 
-static int setup_nifat32() {
+static int setup_nifat32(nifat32_params_t* out) {
     disk_fd = open(disk_path, O_RDWR);
     if (disk_fd < 0) {
         fprintf(stderr, "%s not found!\n", disk_path);
@@ -104,6 +104,7 @@ static int setup_nifat32() {
             .fd_vfprintf = _mock_vfprintf_
         }
     };
+    if (out) memcpy(out, &params, sizeof(nifat32_params_t));
 
     if (!NIFAT32_init(&params)) {
         fprintf(stderr, "NIFAT32_init() error!\n");

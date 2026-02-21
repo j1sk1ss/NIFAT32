@@ -17,7 +17,7 @@ char* paths[] = {
 };
 
 int main() {
-    if (!setup_nifat32()) return EXIT_FAILURE;
+    if (!setup_nifat32(NULL)) return EXIT_FAILURE;
     fprintf(stdout, "Opening files...\n");
     for (int i = 0; i < 8; i++) {
         ci_t ci = nifat32_open_test(NO_RCI, paths[i], MODE(R_MODE, NO_TARGET), SUCCESS);

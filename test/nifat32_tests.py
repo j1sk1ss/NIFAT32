@@ -74,9 +74,8 @@ def build_image(
         
     return output
 
-
 def build_test(
-    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14", include_path: str = "include/"
+    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14", include_path: str = "include/", flags: list[str] = []
 ) -> Path:
     """
     Build separated test
@@ -101,6 +100,10 @@ def build_test(
     build_flags: list[str] = [ f"-I{include_path}" ]
     if not creation:
         build_flags.append("-DNO_CREATION")
+    
+    if flags:
+        for i in flags:
+            build_flags.append(i)
     
     if debug:
         for i in debug:
@@ -129,7 +132,6 @@ def build_test(
     
     return output_path
 
-
 def print_welcome(parser: argparse.ArgumentParser) -> None:
     print("Welcome! Avaliable arguments:\n")
     help_text = parser.format_help()
@@ -139,7 +141,6 @@ def print_welcome(parser: argparse.ArgumentParser) -> None:
         print(textwrap.indent(options_text, "    "))
     else:
         print(textwrap.indent(help_text, "    "))
-
 
 def run_tests(test_bins: list[Path], test_size: int) -> bool:
     for bin_path in test_bins:
@@ -156,14 +157,12 @@ def run_tests(test_bins: list[Path], test_size: int) -> bool:
             
     return True
 
-
 if __name__ == "__main__":
     ascii_banner = pyfiglet.figlet_format("NIFAT32 Tester")
     print(ascii_banner)
     
     parser = argparse.ArgumentParser(description="NIFAT32 tests")
     
-    # === Main setup ===
     parser.add_argument("--debug", nargs="+", help="Debug flags (e.g. debug, log, info, error, special)")
     parser.add_argument("--test-type", type=str, default="default", help="Test type: default, bitflip.")
     parser.add_argument("--new-image", action="store_true", help="Build a new nifat32 image for test.")
@@ -171,7 +170,6 @@ if __name__ == "__main__":
     parser.add_argument("--test-size", type=int, default=1000, help="Test size.")
     parser.add_argument("--compiler", type=str, default="gcc-14", help="Compiler for compilation.")
     
-    # === Formatter setup ===
     parser.add_argument("--formatter", type=str, help="Path to formatter tool.")
     parser.add_argument("--tests-folder", type=str, help="Path to tests folder. (Test name example: test_*.c).")
     parser.add_argument("--root-folder", type=str, help="Path to NIFAT32 root folder (With nifat32.h).")
@@ -182,13 +180,11 @@ if __name__ == "__main__":
     parser.add_argument("--e-count", type=int, default=0, help="Error-code count")
     parser.add_argument("--fat-count", type=int, default=5, help="FAT count")
     
-    # === Bitflip setup ===
     parser.add_argument("--bitflips-strategy", type=str, default="random", help="Bitflip strategy: random or scratch.")
     parser.add_argument("--scratch-width", type=int, default=1)
     parser.add_argument("--scratch-intensity", type=float, default=.7)
     parser.add_argument("--bitflips-count", type=int, default=10)
     
-    # === Injection setup ===
     parser.add_argument("--injector-scenario", type=str, help="Path to injector scenario.")
     args = parser.parse_args()
     
@@ -196,7 +192,6 @@ if __name__ == "__main__":
         print_welcome(parser=parser)
         exit(1)
         
-    # === Log setup options ===
     logger.info(f"Test starting. Type={args.test_type}")
     if args.test_type not in ["benchmark", "index", "default", "bitflip"]:
         logger.error(f"Unknown test type: {args.test_type}")
@@ -209,7 +204,6 @@ if __name__ == "__main__":
     if args.debug:
         logger.info(f"Debug flags: {args.debug}")
                 
-    # === Build nifat32 image ===
     image_path: str = "nifat32.img"
     if args.new_image:
         logger.info("A new NIFAT32 image will be created for the test.")
@@ -227,7 +221,6 @@ if __name__ == "__main__":
             spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count, ec=args.e_count
         )
     
-    # === Build tests ===
     if args.tests_folder and args.root_folder:
         logger.info(f"Tests folder path:        {args.tests_folder}")
         logger.info(f"NIFAT32 root folder path: {args.root_folder}")
@@ -244,10 +237,15 @@ if __name__ == "__main__":
                     str(Path(args.root_folder) / "nifat32.c"),
                     str(Path(args.root_folder) / "src/*"),
                     str(Path(args.root_folder) / "std/*")
-                ], base_path=str(tests_path), test_path=test, debug=args.debug, compiler=args.compiler, include_path=str(Path(args.root_folder) / "include")
+                ], 
+                base_path=str(tests_path), 
+                test_path=test, 
+                debug=args.debug,
+                compiler=args.compiler, 
+                include_path=str(Path(args.root_folder) / "include"),
+                flags=[ f'-DVSIZE={args.image_size}', f'-DBS_COUNT={args.bs_count}', f'-DJ_COUNT={args.j_count}' ]
             ))
     
-    # === Test running ===
     if args.test_type == "bitflip":
         logger.info("Bitflip testing mode selected.")
         logger.info(f"Bitflip strategy: {args.bitflips_strategy}")
@@ -289,7 +287,6 @@ if __name__ == "__main__":
         for act, size in scenario:
             logger.info(f"Running scenario act={act}, total_bitlips={bitflips_count}")
             
-            # Testing
             if act == "T":
                 logger.info(f"Forward tesing, size={size}...")
                 if not run_tests(test_bins=test_bins, test_size=size):
@@ -309,12 +306,10 @@ if __name__ == "__main__":
                                 str(Path(args.root_folder) / "std/*")
                             ], base_path=str(tests_path), test_path=test, debug=args.debug, creation=False
                         ))
-            # Injection
             elif act == "I":
                 bitflips_count += size
                 logger.info(f"Bitflip injection, size={size}...")
                 random_bitflips(file_path=image_path, num_flips=size)
-            # Scratch
             elif act == "S":
                 bitflips_count += size * args.scratch_width * args.scratch_intensity
                 logger.info(f"Scratch injection, size={size}...")
@@ -325,7 +320,6 @@ if __name__ == "__main__":
         logger.info("Running compiled tests sequentially...")
         run_tests(test_bins=test_bins, test_size=args.test_size)
 
-    # === Cleaning ===
     if args.clean:
         logger.info("Cleaning up test binaries...")
         for bin_path in test_bins:

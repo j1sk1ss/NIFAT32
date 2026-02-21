@@ -5,6 +5,7 @@ int fat_cache_init(fat_data_t* fi) {
     _fat = (cluster_val_t*)malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
         print_error("malloc_s() error!");
+        errors_register_error(MALLOC_ERROR, fi);
         return 0;
     }
 

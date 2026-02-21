@@ -28,7 +28,9 @@ Description:
 Dependencies:
     - fat.h - Reading data from file allocation table and writing.
     - disk.h - Working with disk sectors.
+    - errors.h - Error logging.
     - fatinfo.h - Info structure about current FS setup.
+    - null.h - NULL.
     - logging.h - Logging tools.
     - threading.h - Locks for IO operations (cluster allocation).
 */
@@ -57,8 +59,8 @@ typedef const unsigned char* const_buffer_t;
 /*
 Calculate count of clusters for provided size of data.
 Params:
-- size - Data size.
-- fi - Pointer to FS data.
+- `size` - Data size.
+- `fi` - Pointer to FS data.
 
 Return count of cluster for provided data.
 */
@@ -69,7 +71,7 @@ Allocate cluster from free-clusters on disk and DON'T mark cluster as "END_CLUST
 [Thread-safe]
 
 Params:
-- fi - FS data.
+- `fi` - FS data.
 
 Return cluster address or BAD_CLUSTER if error.
 */
@@ -78,8 +80,8 @@ cluster_addr_t alloc_cluster(fat_data_t* fi);
 /*
 Mark cluster as <FREE>.
 Params:
-- ca - Cluster address.
-- fi - FS data.
+- `ca` - Cluster address.
+- `fi` - FS data.
 
 Return 1 if dealloc success.
 Return 0 if something goes wrong.
@@ -89,8 +91,8 @@ int dealloc_cluster(const cluster_addr_t ca, fat_data_t* fi);
 /*
 Deallocate entier cluster chain from start to <END>.
 Params:
-- ca - Start cluster in chain.
-- fi - FS data.
+- `ca` - Start cluster in chain.
+- `fi` - FS data.
 
 Return 1 if chain deallocated.
 Return 0 if chain is broken (<BAD> or no <END>).
@@ -100,11 +102,11 @@ int dealloc_chain(cluster_addr_t ca, fat_data_t* fi);
 /*
 Read data from cluster with offset.
 Params:
-- ca - Cluster address.
-- offset - Offset in cluster (Should be lower than spc * sector_size).
-- buffer - Pointer where function will store data.
-- buff_size - buffer size.
-- fi - FS data.
+- `offset` - Offset in cluster (Should be lower than spc * sector_size).
+- `ca` - Cluster address.
+- `buffer` - Pointer where function will store data.
+- `buff_size` - buffer size.
+- `fi` - FS data.
 
 Return count of readden bytes.
 */
@@ -115,10 +117,10 @@ int readoff_cluster(
 /*
 Read data from cluster.
 Params:
-- ca - Cluster address.
-- buffer - Pointer where function will store data.
-- buff_size - buffer size.
-- fi - FS data.
+- `ca` - Cluster address.
+- `buffer` - Pointer where function will store data.
+- `buff_size` - buffer size.
+- `fi` - FS data.
 
 Return count of readden bytes.
 */
@@ -127,11 +129,11 @@ int read_cluster(cluster_addr_t ca, buffer_t __restrict buffer, int buff_size, f
 /*
 Write data to cluster with offset.
 Params:
-- ca - Cluster address.
-- offset - Offset in cluster (Should be lower than spc * sector_size).
-- buffer - Pointer where function will take data for write.
-- buff_size - buffer size.
-- fi - FS data.
+- `ca` - Cluster address.
+- `offset` - Offset in cluster (Should be lower than spc * sector_size).
+- `buffer` - Pointer where function will take data for write.
+- `buff_size` - buffer size.
+- `fi` - FS data.
 
 Return count of written bytes.
 */
@@ -142,10 +144,10 @@ int writeoff_cluster(
 /*
 Write data to cluster.
 Params:
-- ca - Cluster address.
-- buffer - Pointer where function will take data for write.
-- buff_size - buffer size.
-- fi - FS data.
+- `ca` - Cluster address.
+- `buffer` - Pointer where function will take data for write.
+- `buff_size` - buffer size.
+- `fi` - FS data.
 
 Return count of written bytes.
 */
@@ -155,11 +157,11 @@ int write_cluster(cluster_addr_t ca, const_buffer_t __restrict data, int data_si
 Copy source cluster content to destination cluster.
 Note: copy buffer should be greater or equals to sector size.
 Params:
-- src - Source cluster.
-- dst - Destination cluster.
-- buffer - Copy buffer.
-- buff_size - Copy buffer size.
-- fi - FS data.
+- `src` - Source cluster.
+- `dst` - Destination cluster.
+- `buffer` - Copy buffer.
+- `buff_size` - Copy buffer size.
+- `fi` - FS data.
 
 Return count of readden and written bytes.
 */

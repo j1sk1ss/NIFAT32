@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!setup_nifat32()) {
+    if (!setup_nifat32(NULL)) {
         fprintf(stderr, "setup_nifat32() error!\n");
         return EXIT_FAILURE;        
     }

@@ -10,7 +10,7 @@ typedef struct {
 
 int main() {
 #ifndef NO_CREATION
-    if (!setup_nifat32()) return EXIT_FAILURE;
+    if (!setup_nifat32(NULL)) return EXIT_FAILURE;
 
     // Create target structure of directories and files
     ci_t ci = nifat32_open_test(NO_RCI, "root1/root2/test.txt", MODE(CR_MODE | W_MODE | R_MODE, FILE_TARGET), SUCCESS);

@@ -1,5 +1,6 @@
 #include <src/ecache.h>
 
+#ifndef NIFAT32_NO_ECACHE
 static int _rotate_left(ecache_t** root, ecache_t* x) {
     ecache_t* y = x->r;
     x->r = y->l;
@@ -75,21 +76,22 @@ static int _fix_insert(ecache_t** root, ecache_t* z) {
     SET_ECACHE_BLACK((*root));
     return 1;
 }
+#endif
 
 ecache_t* ecache_insert(ecache_t* root, checksum_t hash, unsigned char is_dir, cluster_addr_t ca) {
+#ifndef NIFAT32_NO_ECACHE
     ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
     if (!z) return root;
 
     z->hash = hash;
-    z->ca = ca;
+    z->ca   = ca;
     z->l = z->r = z->p = NULL;
     SET_ECACHE_RED(z);
     if (is_dir) SET_ECACHE_DIR(z);
-    else SET_ECACHE_FILE(z); 
+    else        SET_ECACHE_FILE(z); 
 
     ecache_t* y = NULL;
     ecache_t* x = root;
-
     while (x) {
         y = x;
         if (hash < x->hash) x = x->l;
@@ -106,19 +108,22 @@ ecache_t* ecache_insert(ecache_t* root, checksum_t hash, unsigned char is_dir, c
     else y->r = z;
 
     _fix_insert(&root, z);
+#endif
     return root;
 }
 
 ecache_t* ecache_find(ecache_t* root, checksum_t hash) {
+#ifndef NIFAT32_NO_ECACHE
     while (root) {
-        if (hash < root->hash) root = root->l;
+        if (hash < root->hash)      root = root->l;
         else if (hash > root->hash) root = root->r;
         else return root;
     }
-
+#endif
     return NULL;
 }
 
+#ifndef NIFAT32_NO_ECACHE
 static ecache_t* _minimum(ecache_t* node) {
     while (node->l) node = node->l;
     return node;
@@ -209,8 +214,10 @@ static int _fix_delete(ecache_t** root, ecache_t* x, ecache_t* x_parent) {
     if (x) SET_ECACHE_BLACK(x);
     return 1;
 }
+#endif
 
 ecache_t* ecache_delete(ecache_t* root, checksum_t hash) {
+#ifndef NIFAT32_NO_ECACHE
     ecache_t* z = ecache_find(root, hash);
     if (!z) return root;
 
@@ -235,7 +242,8 @@ ecache_t* ecache_delete(ecache_t* root, checksum_t hash) {
         if (y->p == z) {
             if (x) x->p = y;
             x_parent = y;
-        } else {
+        } 
+        else {
             _transplant(&root, y, y->r);
             y->r = z->r;
             if (y->r) y->r->p = y;
@@ -252,14 +260,16 @@ ecache_t* ecache_delete(ecache_t* root, checksum_t hash) {
     if (IS_ECACHE_BLACK(y)) {
         _fix_delete(&root, x, x_parent);
     }
-
+#endif
     return root;
 }
 
 int ecache_free(ecache_t* root) {
+#ifndef NIFAT32_NO_ECACHE
     if (!root) return 0;
     ecache_free(root->l);
     ecache_free(root->r);
     free_s(root);
+#endif
     return 1;
 }
