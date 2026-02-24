@@ -47,7 +47,8 @@ int main(int argc, char* argv[]) {
 
     long index_time_st = 0;
     fprintf(stdout, "\n==== Performance Summary ====\n");
-    fprintf(stdout, "Index time:  %.2f µs\n", (MEASURE_TIME_US({index_time_st = NIFAT32_index_content(rci);})));
+    double index_time = (double)MEASURE_TIME_US({index_time_st = NIFAT32_index_content(rci);});
+    fprintf(stdout, "Index time:  %.2f µs\n", index_time);
 
     for (int i = 0; i < _id; i++) {
         char target_fatname[128] = { 0 };

@@ -5,6 +5,11 @@
 */
 static fat_data_t _fs_data = { 0 };
 
+int NIFAT32_get_fs_data(fat_data_t* d) {
+    str_memcpy(d, &_fs_data, sizeof(fat_data_t));
+    return 1;
+}
+
 int NIFAT32_init(nifat32_params_t* params) {
     LOG_setup(params->logg_io.fd_fprintf, params->logg_io.fd_vfprintf);
     print_log("NIFAT32 init. Reading %i bootsector at sa=%i", params->bs_num, GET_BOOTSECTOR(params->bs_num, params->ts));
@@ -25,15 +30,9 @@ int NIFAT32_init(nifat32_params_t* params) {
         return 0;
     }
 
-    int sector_size = DSK_get_sector_size();
-    if (sector_size < 0) {
-        print_error("DSK_get_sector_size returns value lower than 0!");
-        return 0;
-    }
-
-    stack_buffer_t encoded_bs[sector_size];
+    stack_buffer_t encoded_bs[params->disk_io.sector_size];
     _fs_data.bs_count = params->bs_count;
-    if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), (buffer_t)&encoded_bs, sector_size)) {
+    if (!DSK_read_sector(GET_BOOTSECTOR(params->bs_num, params->ts), (buffer_t)&encoded_bs, params->disk_io.sector_size)) {
         print_error("DSK_read_sector() error!");
         errors_register_error(SECTOR_READ_ERROR, &_fs_data);
         return 0;
@@ -109,7 +108,7 @@ int NIFAT32_init(nifat32_params_t* params) {
         print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
         for (int i = 0; i < params->bs_count; i++) {
             if (i == params->bs_num) continue;
-            if (!DSK_write_sector(GET_BOOTSECTOR(i, params->ts), (const_buffer_t)encoded_bs, sector_size)) {
+            if (!DSK_write_sector(GET_BOOTSECTOR(i, params->ts), (const_buffer_t)encoded_bs, params->disk_io.sector_size)) {
                 print_warn("Attempt for bootsector restore failed!");
             }
         }
@@ -152,9 +151,9 @@ int NIFAT32_repair_bootsectors() {
     ext.root_cluster  = _fs_data.ext_root_cluster;
     str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
     str_memcpy(ext.fat_type_label, "NIFAT32 ", 8);
-    ext.checksum = murmur3_x86_32((unsigned char*)&ext, sizeof(ext), 0);
+    ext.checksum = murmur3_x86_32((buffer_t)&ext, sizeof(ext), 0);
     str_memcpy(&bs.extended_section, &ext, sizeof(ext));
-    bs.checksum = murmur3_x86_32((unsigned char*)&bs, sizeof(bs), 0);
+    bs.checksum = murmur3_x86_32((buffer_t)&bs, sizeof(bs), 0);
 
     const_buffer_t encoded_bs[sizeof(nifat32_bootsector_t)];
     pack_memory((const byte_t*)&bs, (decoded_t*)encoded_bs, sizeof(bs));
@@ -179,7 +178,7 @@ Params:
 Return FAT_CLUSTER_BAD if path is invalid.
 */
 static cluster_addr_t _get_cluster_by_path(
-    const char* path, directory_entry_t* entry, unsigned char mode, const ci_t rci
+    const char* __restrict path, directory_entry_t* __restrict entry, unsigned char mode, const ci_t rci
 ) {
     print_debug("_get_cluster_by_path(path=%s, mode=%p, rci=%i)", path, mode, rci);
 
@@ -255,14 +254,12 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
     }
 
     cluster_addr_t ca = _get_cluster_by_path(path, &meta, mode, rci);
-    if (is_cluster_bad(ca)) {
+    if (!is_cluster_bad(ca)) print_debug("NIFAT32_open_content: dca=%u, rca=%u", meta.dca, meta.dca);
+    else {
         print_error("Entry path=%s, not found!", path);
         errors_register_error(ENTRY_PATH_NFOUND_ERROR, &_fs_data);
         destroy_content(ci);
         return -2;
-    }
-    else {
-        print_debug("NIFAT32_open_content: dca=%u, rca=%u", meta.dca, meta.dca);
     }
     
     setup_content(ci, (meta.attributes & FILE_DIRECTORY) == FILE_DIRECTORY, (const char*)meta.file_name, &meta, mode);
@@ -548,7 +545,7 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
 }
 
 #ifndef NIFAT32_RO
-static int _deepcopy_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
+static int _deepcopy_handler(entry_info_t* __restrict info __attribute__((unused)), directory_entry_t* __restrict entry, void* ctx) {
     cluster_addr_t old_ca = entry->dca;
     cluster_addr_t nca = alloc_cluster(&_fs_data);
     cluster_addr_t hca = nca;
@@ -645,7 +642,17 @@ int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {
     return stat_content(ci, info);
 }
 
-static int _repair_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
+/*
+Handler for entry to recursive repair.
+Idea is simple: Reading an entry immediately repairs it by the Hamming code ability to self-healthing.
+Params:
+    - `info` - Unused field in this handler.
+    - `entry` - Current entry.
+    - `ctx` - Context information.
+
+Returns 0 by default, which means - continue the entry traverse operation.
+*/
+static int _repair_handler(entry_info_t* __restrict info __attribute__((unused)), directory_entry_t* __restrict entry, void* __restrict ctx) {
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(entry->dca, _repair_handler, ctx, &_fs_data);
     return 0;
 }

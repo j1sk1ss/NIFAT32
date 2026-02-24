@@ -73,6 +73,15 @@ typedef struct {
 #define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
 
 /*
+Load general information.
+Params:
+    - `d` - Output data destination.
+
+Returns 1 if succeeds.
+*/
+int NIFAT32_get_fs_data(fat_data_t* d);
+
+/*
 Init function. 
 Note: This function also init memory manager.
 Note 2: For noise-immunity purpuses for initialization of NIFAT32 we
