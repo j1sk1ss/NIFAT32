@@ -59,7 +59,7 @@ typedef struct fat_BS {
 #define CACHE      0b00000001
 #define HARD_CACHE 0b00000010
 typedef struct {
-    char          fat_cache;
+    char          fat_cache : 2;
     char          bs_num;   // bootsectors number
     char          bs_count; // bootsector count
     unsigned int  ts;       // total clusters

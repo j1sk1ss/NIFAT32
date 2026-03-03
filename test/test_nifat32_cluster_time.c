@@ -7,11 +7,11 @@ int main() {
     fat_data_t fd;
     NIFAT32_get_fs_data(&fd);
     add_time2timer(MEASURE_TIME_US({
-        if (!read_fat(123, &fd)) return EXIT_FAILURE;
+        if (read_fat(123, &fd) == FAT_CLUSTER_BAD) return EXIT_FAILURE;
     }), &r);
     add_time2timer(MEASURE_TIME_US({
         if (!write_fat(124, FAT_CLUSTER_BAD, &fd)) return EXIT_FAILURE;
-    }), &r);
+    }), &w);
     fprintf(stdout, "FAT read time:   %.6f µs\n", get_avg_timer(&r));
     fprintf(stdout, "FAT write time:  %.6f µs\n", get_avg_timer(&w));
     return EXIT_SUCCESS;

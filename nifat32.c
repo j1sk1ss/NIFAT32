@@ -1,8 +1,7 @@
 #include "nifat32.h"
 
 /* Main information about the current NiFAT32 'entity'.
-   Contains data about the root cluster, offsets and general properties.
-*/
+   Contains data about the root cluster, offsets and general properties. */
 static fat_data_t _fs_data = { 0 };
 
 int NIFAT32_get_fs_data(fat_data_t* d) {
