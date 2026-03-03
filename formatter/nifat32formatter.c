@@ -17,6 +17,7 @@ static opt_t opt = {
     .v_size = DEFAULT_VOLUME_SIZE,
     .fc     = FAT_COUNT,
     .bsbc   = BS_BACKUPS,
+    .b_bsbc = B_BS,
     .jc     = JOURNALS_BACKUPS,
     .ec     = ERRORS_COUNT
 };
@@ -39,7 +40,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (ftruncate(fd, opt.v_size)) {
+    if (ftruncate(fd, opt.v_size * 1024u * 1024u)) {
         perror("Error setting volume size");
         close(fd);
         return EXIT_FAILURE;
@@ -253,7 +254,7 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     if (!encoded_bs) return 0;
 
     uint8_t padding[BYTES_PER_SECTOR] = { 0 };
-    for (int i = 0; i < opt.bsbc; i++) {
+    for (int i = opt.b_bsbc; i < opt.bsbc; i++) {
         unsigned int ca = GET_BOOTSECTOR(i, total_sectors);
         _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(nifat32_bootsector_t));
         if (pwrite(fd, padding, sizeof(padding), ca * BYTES_PER_SECTOR) != sizeof(padding)) return 0;

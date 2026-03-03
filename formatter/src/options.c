@@ -44,6 +44,13 @@ int process_input(int argc, char* argv[], opt_t* opt) {
                 return 0;
             }
         }
+        else if (!strcmp(argv[i], B_BS_OPT)) {
+            if (i + 1 < argc) opt->b_bsbc = atoi(argv[++i]);
+            else {
+                fprintf(stderr, "Error: b_bs backups count required after %s\n", B_BS_OPT);
+                return 0;
+            }
+        }
         else if (!strcmp(argv[i], JOURNALS_BACKUPS_OPT)) {
             if (i + 1 < argc) opt->jc = atoi(argv[++i]);
             else {

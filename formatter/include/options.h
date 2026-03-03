@@ -11,6 +11,7 @@
 #define SPC                  "--spc"         /* Sectors per cluster */
 #define FAT_COUNT_OPT        "--fc"
 #define BS_BACKUPS_OPT       "--bsbc"        /* Bootsector backups count */
+#define B_BS_OPT             "--b-bsbc"      /* [DEBUG] Wrong bootsectos */
 #define JOURNALS_BACKUPS_OPT "--jc"
 
 typedef struct {
@@ -20,6 +21,7 @@ typedef struct {
     int   spc;    // sector per cluster
     int   fc;     // fats count
     int   bsbc;   // bootsector count
+    int   b_bsbc; // [DEBUG] Wrong boot sectors
     int   jc;     // journals count
     int   ec;     // errors count (error storage)
 } opt_t;

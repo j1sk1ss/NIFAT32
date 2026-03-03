@@ -55,7 +55,9 @@ int disk_fd = -1;
 
 static inline int _mock_sector_read_(sector_addr_t sa, sector_offset_t offset, buffer_t buffer, int buff_size) {
     if (!buff_size) return 1;
-    return pread(disk_fd, buffer, buff_size, sa * sector_size + offset) > 0;
+    int res = pread(disk_fd, buffer, buff_size, sa * sector_size + offset) > 0;
+    if (res <= 0) printf("\nREAD ERROR, sa=%u, offset=%i, addr=%u\n", sa, offset, sa * sector_size + offset);
+    return res;
 }
 
 static inline int _mock_sector_write_(sector_addr_t sa, sector_offset_t offset, const_buffer_t data, int data_size) {
@@ -85,7 +87,7 @@ static int setup_nifat32(nifat32_params_t* out) {
     nifat32_params_t params = { 
         .bs_num    = 0, 
 #ifdef V_SIZE
-        .ts        = V_SIZE / sector_size,
+        .ts        = (V_SIZE * 1024 * 1024) / sector_size,
         .jc        = J_COUNT,
         .bs_count  = BS_COUNT,
 #else

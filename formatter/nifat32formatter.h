@@ -21,6 +21,7 @@ https://en.wikipedia.org/wiki/Golden_ratio
 2^32 / φ, where φ = +-1.618
 */
 #define BS_BACKUPS       5
+#define B_BS             0
 #define JOURNALS_BACKUPS 2
 #define ERRORS_COUNT     1
 

@@ -9,27 +9,12 @@ import subprocess
 from pathlib import Path
 from loguru import logger
 
-
-def build_image(
+def _build_nifat32_image_base(
     formatter: str, 
     clean: bool = True,
-    spc: int = 8, v_size: int = 64, bs_count: int = 5, fc: int = 5, jc: int = 0, ec: int = 0,
+    spc: int = 8, v_size: int = 64, bs_count: int = 5, b_bs_count: int = 0, fc: int = 5, jc: int = 0, ec: int = 0,
     output: str = "nifat32.img"
-) -> str:
-    """
-    Create nifat32 image by building formatter and creating image.
-    Note: After building formatter and creating an image, will move it to root.
-    Args:
-        formatter (str): Path to formatter directory
-        clean (bool, optional): Clean all binary files after building. Defaults to True.
-        spc (int, optional): Sectors per cluster. Defaults to 8.
-        v_size (int, optional): Volume size. Defaults to 64.
-        bs_count (int, optional): BootSector count. Defaults to 5.
-        fc (int, optional): FAT count. Defaults to 5.
-        jc (int, optional): Journals (copies) count. Defaults to 0.
-        output (str, optional): Output location for image. Defaults to "nifat32.img".
-    """
-    
+) -> str:    
     original_dir  = os.getcwd()
     formatter_dir = os.path.abspath(formatter)
     formatter_bin = os.path.join(formatter_dir, "formatter")
@@ -48,6 +33,7 @@ def build_image(
             "--spc", str(spc), 
             "--fc", str(fc), 
             "--bsbc", str(bs_count),
+            "--b-bsbc", str(b_bs_count),
             "--jc", str(jc),
             "--ec", str(ec)
         ]
@@ -74,21 +60,11 @@ def build_image(
         
     return output
 
-def build_test(
-    nifat32_path: list[str], base_path: str, test_path: str,  debug: list | None, creation: bool = True, compiler: str = "gcc-14", include_path: str = "include/", flags: list[str] = []
-) -> Path:
-    """
-    Build separated test
-    Args:
-        nifat32_path (list[str]): nifat32 related info. Path to nifat32_test.h, nifat32.c, src/*, std/*
-        test_path (str): Path to test_*.c
-        debug (list | None): Debug flags
-
-    Raises:
-        FileNotFoundError: There is no test_*.c file
-        e: Something goes wrong during compilation
-    """
-    
+def _build_nifat32_test(
+    nifat32_path: list[str], base_path: str, test_path: str,  
+    debug: list | None, 
+    creation: bool = True, compiler: str = "gcc-14", include_path: str = "include/", flags: list[str] = []
+) -> Path:    
     logger.info(f"Building nifat32_path={nifat32_path}, base_path={base_path}, test_path={test_path}, debug={debug}, creation={creation}, compiler={compiler}, include_path={include_path}")
     test_path: Path = Path(test_path)
     if not test_path.exists():
@@ -162,7 +138,8 @@ if __name__ == "__main__":
     print(ascii_banner)
     
     parser = argparse.ArgumentParser(description="NIFAT32 tests")
-    
+    parser.add_argument("--test-specific", type=str, default=None, help="Select the specific test.")
+
     parser.add_argument("--debug", nargs="+", help="Debug flags (e.g. debug, log, info, error, special)")
     parser.add_argument("--test-type", type=str, default="default", help="Test type: default, bitflip.")
     parser.add_argument("--new-image", action="store_true", help="Build a new nifat32 image for test.")
@@ -176,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--image-size", type=int, default=64, help="Image size on MB")
     parser.add_argument("--spc", type=int, default=8, help="Sectors per cluster")
     parser.add_argument("--bs-count", type=int, default=5, help="Bootsector count")
+    parser.add_argument("--b-bs-count", type=int, default=0, help="Broken bootsector count")
     parser.add_argument("--j-count", type=int, default=0, help="Journals count")
     parser.add_argument("--e-count", type=int, default=0, help="Error-code count")
     parser.add_argument("--fat-count", type=int, default=5, help="FAT count")
@@ -215,10 +193,10 @@ if __name__ == "__main__":
         if args.formatter:
             logger.info(f"Formatter tool path: {args.formatter}")
             
-        image_path = build_image(
+        image_path = _build_nifat32_image_base(
             formatter=args.formatter, 
             clean=args.clean,
-            spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count, ec=args.e_count
+            spc=args.spc, v_size=args.image_size, bs_count=args.bs_count, fc=args.fat_count, jc=args.j_count, ec=args.e_count, b_bs_count=args.b_bs_count
         )
     
     if args.tests_folder and args.root_folder:
@@ -231,7 +209,10 @@ if __name__ == "__main__":
         
         test_bins: list[Path] = []
         for test in test_files:
-            test_bins.append(build_test(
+            if args.test_specific and not args.test_specific in str(test):
+                continue
+
+            test_bins.append(_build_nifat32_test(
                 nifat32_path=[
                     str(tests_path / "nifat32_test.h"),
                     str(Path(args.root_folder) / "nifat32.c"),
@@ -243,7 +224,7 @@ if __name__ == "__main__":
                 debug=args.debug,
                 compiler=args.compiler, 
                 include_path=str(Path(args.root_folder) / "include"),
-                flags=[ f'-DVSIZE={args.image_size}', f'-DBS_COUNT={args.bs_count}', f'-DJ_COUNT={args.j_count}' ]
+                flags=[ f'-DV_SIZE={args.image_size}', f'-DBS_COUNT={args.bs_count}', f'-DJ_COUNT={args.j_count}' ]
             ))
     
     if args.test_type == "bitflip":
@@ -298,7 +279,7 @@ if __name__ == "__main__":
                     no_creation = True
                     test_bins.clear()
                     for test in test_files:
-                        test_bins.append(build_test(
+                        test_bins.append(_build_nifat32_test(
                             nifat32_path=[
                                 str(tests_path / "nifat32_test.h"),
                                 str(Path(args.root_folder) / "nifat32.c"),

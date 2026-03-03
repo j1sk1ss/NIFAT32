@@ -31,3 +31,8 @@ Default testing
 ```
 python3 test/old/nifat32_tests.py --new-image --formatter formatter --tests-folder test/old --root-folder . --clean --test-type default
 ```
+
+For instance, that's how to evaluate how the boot time depends on boot sector index:
+```bash
+python3 test/nifat32_tests.py --new-image --formatter formatter/ --tests-folder test/ --root-folder . --clean --test-specific test_nifat32_boot --bs-count <max> --b-bs-count <offste>
+```
