@@ -35,7 +35,7 @@ typedef struct ecache {
     struct ecache* p;
     struct ecache* l;
     struct ecache* r;
-    unsigned char  flags;
+    unsigned char  flags : 3;
     checksum_t     hash;
     cluster_addr_t ca;
 } __attribute__((__packed__)) ecache_t;

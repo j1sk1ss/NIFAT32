@@ -14,8 +14,8 @@ extern "C" {
 #include <src/cluster.h>
 #include <src/fatinfo.h>
 
-#define JOURNAL_MULTIPLIER 12345625789U
-#define GET_JOURNALSECTOR(n, ts) (((((n) + 63) * JOURNAL_MULTIPLIER) >> 15) % (ts - 128))
+#define JOURNAL_MULTIPLIER 12983229U
+#define GET_JOURNALSECTOR(n, ts) (((((n) + 35) * JOURNAL_MULTIPLIER) >> 3) % (ts - 2))
 
 typedef struct {
     unsigned char  file_name[11];

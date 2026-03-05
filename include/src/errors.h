@@ -13,8 +13,8 @@ extern "C" {
 #define GET_FIRST_ERROR(e)    ((unsigned short)((e) >> 16))
 #define GET_LAST_ERROR(e)     ((unsigned short)((e) & 0xFFFF))
 
-#define ERRORS_MULTIPLIER 98776542U
-#define GET_ERRORSSECTOR(n, ts) (((((n) + 34) * ERRORS_MULTIPLIER) >> 17) % (ts - 12))
+#define ERRORS_MULTIPLIER 10986542U
+#define GET_ERRORSSECTOR(n, ts) (((((n) + 23) * ERRORS_MULTIPLIER) >> 9) % (ts - 2))
 
 typedef struct {
     unsigned short first_error;

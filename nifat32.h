@@ -70,7 +70,7 @@ typedef struct {
 } nifat32_params_t;
 
 #define BOOT_MULTIPLIER 2654435761U // Knuth's multiplier (2^32 / φ)
-#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 2))
 
 /*
 Load general information.
