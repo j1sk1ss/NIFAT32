@@ -1,7 +1,7 @@
 CFLAGS = -fPIC -shared -nostdlib -nodefaultlibs -Iinclude
 # Errors
 CFLAGS += -Wall -Wextra -Wcomment
-CC = gcc-14
+CC ?= gcc-14
 
 # Logger flags
 ERROR_LOGS ?= 1
@@ -56,7 +56,7 @@ force_build:
 	@if [ -e $(OUTPUT) ]; then rm -f $(OUTPUT); fi
 
 $(OUTPUT): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES) -g -O0
+	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES) -g
 
 clean:
 	rm -f $(OUTPUT)

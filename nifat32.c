@@ -577,10 +577,6 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
         case DEEP_COPY: {
             cluster_addr_t dst_ca = get_content_data_ca(dst);
             cluster_addr_t src_ca = get_content_data_ca(src);
-            if (_fs_data.bytes_per_sector < 0) {
-                print_error("bytes_per_sector value is lo2er than 0!");
-                return 0;
-            }
 
             stack_buffer_t copy_buffer[_fs_data.bytes_per_sector];
             cluster_addr_t hca_dst = dst_ca;

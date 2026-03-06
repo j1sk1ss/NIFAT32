@@ -28,8 +28,8 @@ int entry_iterate(
 ) {
     print_debug("entry_iterate(cluster=%u)", ca);
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
-    if (fi->cluster_size < 0 || decoded_len < 0) {
-        print_error("Cluster_size (%i) or decoded_len (%i) is lower than 0!", fi->cluster_size, decoded_len);
+    if (decoded_len < 0) {
+        print_error("decoded_len (%i) is lower than 0!", decoded_len);
         return 0;
     }
 
@@ -164,8 +164,8 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
 #ifndef NIFAT32_RO
     print_debug("entry_add(ca=%u, name=%.11s, dca=%u, rca=%u, cache=%s)", ca, meta->file_name, meta->dca, meta->rca, cache != NO_ECACHE ? "YES" : "NO");
     int decoded_len = fi->cluster_size / sizeof(encoded_t);
-    if (fi->cluster_size < 0 || decoded_len < 0) {
-        print_error("Cluster_size (%i) or decoded_len (%i) is lower than 0!", fi->cluster_size, decoded_len);
+    if (decoded_len < 0) {
+        print_error("decoded_len (%i) is lower than 0!", decoded_len);
         return 0;
     }
 
@@ -248,8 +248,8 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     if (file) return dealloc_chain(ca, fi);
     else {
         int decoded_len = fi->cluster_size / sizeof(encoded_t);
-        if (fi->cluster_size < 0 || decoded_len < 0) {
-            print_error("Cluster_size (%i) or decoded_len (%i) is lower than 0!", fi->cluster_size, decoded_len);
+        if (fi->cluster_size || decoded_len < 0) {
+            print_error("decoded_len (%i) is lower than 0!", decoded_len);
             return 0;
         }
 
