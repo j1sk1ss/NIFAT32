@@ -23,7 +23,21 @@ python3 test/nifat32_tests.py --new-image --formatter <path> --tests-folder <pat
 # Examples
 Bitflip testing
 ```
-python3 test/old/nifat32_tests.py --new-image --formatter formatter --tests-folder test/old --root-folder . --clean --test-type bitflip --injector-scenario test/injector_scenario.txt
+python3 test/nifat32_tests.py --new-image --formatter formatter --tests-folder test --root-folder . --clean --test-type bitflip --injector-scenario test/injector_scenario.txt
+```
+
+*P.S.: If you want test the specific test under bitflips, use the next querry:*
+```bash
+python3 test/nifat32_tests.py \ 
+  --test-type bitflip \ 
+  --test-specific <test_name> \ 
+  --bitflip-runs 100 \ 
+  --bitflip-stats-output <path/to/*.txt> \ 
+  --injector-scenario <path/to/*.txt> \ 
+  --new-image \ 
+  --formatter formatter \ 
+  --tests-folder test \ 
+  --root-folder .
 ```
 
 Default testing
