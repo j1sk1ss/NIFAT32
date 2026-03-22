@@ -441,7 +441,7 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
 #ifndef NIFAT32_RO
-    print_log("NIFAT32_change_meta(ci=%i, info=%.11s/%.8s/%.3s)", ci, info->full_name, info->file_name, info->file_extension);
+    print_log("NIFAT32_change_meta(ci=%i, info=%.11s/%.8s/%.3s)", ci, info->full_name, info->name, info->extention);
     directory_entry_t meta;
     create_entry(
         info->full_name, info->type == STAT_DIR, get_content_data_ca(ci), info->size, &meta
@@ -518,13 +518,10 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
         return 0;
     }
 
-    create_entry(
-        info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry
-    );
-    
+    create_entry(info->full_name, info->type == STAT_DIR, entry_ca, reserve * _fs_data.cluster_size, &entry);
     int is_add = entry_add(target, entry_cache, &entry, &_fs_data);
     if (is_add < 0) {
-        print_error("entry_add() encountered an error [%i]. Aborting...", is_add);
+        print_error("entry_add() during final entry save encountered an error=%i!", is_add);
         errors_register_error(ENTRY_ADD_ERROR, &_fs_data);
         dealloc_cluster(entry.dca, &_fs_data);
         return 0;
@@ -551,9 +548,13 @@ static int _deepcopy_handler(entry_info_t* __restrict info __attribute__((unused
     if (set_cluster_end(nca, &_fs_data)) {
         do {
             if (!copy_cluster(old_ca, nca, ctx, _fs_data.bytes_per_sector, &_fs_data)) {
-                print_error("copy_cluster() error. Aborting...");
+                print_error("copy_cluster() error during the deep copy operation!");
                 errors_register_error(COPY_CLUSTER_ERROR, &_fs_data);
-                dealloc_chain(hca, &_fs_data);
+                if (!dealloc_chain(hca, &_fs_data)) {
+                    print_error("Can't deallocate the destination's chain as a part of abort operation in deep copy!!");
+                    errors_register_error(CLUSTER_CHAIN_DELETION_ERROR, &_fs_data);
+                }
+                
                 return 0;
             }
 
@@ -582,9 +583,13 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
             cluster_addr_t hca_dst = dst_ca;
             do {
                 if (!copy_cluster(src_ca, dst_ca, (buffer_t)&copy_buffer, _fs_data.bytes_per_sector, &_fs_data)) {
-                    print_error("copy_cluster() error. Aborting...");
+                    print_error("copy_cluster() error. Can't copy a cluster from the destination!");
                     errors_register_error(COPY_CLUSTER_ERROR, &_fs_data);
-                    dealloc_chain(hca_dst, &_fs_data);
+                    if (!dealloc_chain(hca_dst, &_fs_data)) {
+                        print_error("Can't deallocate the destination's chain after the copy error!");
+                        errors_register_error(CLUSTER_CHAIN_DELETION_ERROR, &_fs_data);
+                    }
+
                     return 0;
                 }
 
@@ -599,12 +604,40 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
             break;
         }
         case SHALLOW_COPY: {
-            print_warn("Shallow copy not implemented yet!");
+            directory_entry_t source, destination;
+            if (!entry_search(get_content_name(src), get_content_root_ca(src), NO_ECACHE, &source, &_fs_data)) {
+                print_error("Source content %i wasn't found! I don't know what I need to copy!", src);
+                errors_register_error(ENTRY_SEARCH_ERROR, &_fs_data);
+                return 0;
+            }
+
+            if (!entry_search(get_content_name(dst), get_content_root_ca(dst), NO_ECACHE, &destination, &_fs_data)) {
+                print_error("Destination content %i wasn't found! I don't know where I need to store a link!", dst);
+                errors_register_error(ENTRY_SEARCH_ERROR, &_fs_data);
+                return 0;
+            }
+
+            if (!dealloc_chain(destination.dca, &_fs_data)) {
+                print_error("Can't deallocate the destination's chain before link update!");
+                errors_register_error(CLUSTER_CHAIN_DELETION_ERROR, &_fs_data);
+                return 0;
+            }
+
+            source.rca = get_content_root_ca(dst);
+            source.checksum = 0;
+            source.checksum = murmur3_x86_32((const_buffer_t)&source, sizeof(directory_entry_t), 0);
+
+            if (!entry_edit(source.rca, NO_ECACHE, get_content_name(dst), &source, &_fs_data)) {
+                print_error("Content %i wasn't found and can't be edited!", dst);
+                errors_register_error(ENTRY_EDIT_ERROR, &_fs_data);
+                return 0;
+            }
+
             set_content_data_ca(dst, get_content_data_ca(src));
             break;
         }
         default: {
-            print_error("Unknown deep=%i type!", deep);
+            print_error("Unknown deep=%i type! I don't know what I need to do!", deep);
             errors_register_error(UNKNOWN_DEEP_TYPE_ERROR, &_fs_data);
             return 0;
         }
@@ -672,5 +705,6 @@ error_code_t NIFAT32_get_last_error() {
 
 int NIFAT32_unload() {
     fat_cache_unload();
+    ctable_destroy();
     return 1;
 }

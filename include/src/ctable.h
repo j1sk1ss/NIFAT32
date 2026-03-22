@@ -93,8 +93,8 @@ typedef struct {
 #define STAT_DIR    0x02 /* The entry is a directory   */
 typedef struct {
     char         full_name[12];
-    char         file_name[8];
-    char         file_extension[4];
+    char         name[8];
+    char         extention[4];
     unsigned int size;
     int          type;
 } cinfo_t;
@@ -229,6 +229,12 @@ Params:
 Returns 1 if a tree was created. Otherwise will return 0.
 */
 int index_content(const ci_t ci, fat_data_t* fi);
+
+/*
+Unload the content table.
+Returns 1.
+*/
+int ctable_destroy();
 
 #ifdef __cplusplus
 }

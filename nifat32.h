@@ -59,10 +59,10 @@ typedef struct fat_BS {
 #define CACHE      0b00000001
 #define HARD_CACHE 0b00000010
 typedef struct {
-    char          fat_cache : 2;
+    char          fat_cache;
     char          bs_num;   // bootsectors number
     char          bs_count; // bootsector count
-    unsigned int  ts;       // total clusters
+    unsigned int  ts;       // total sectors
     unsigned char jc;       // journals count
     unsigned char ec;       // error clusters count
     disk_io_t     disk_io;
@@ -245,10 +245,12 @@ int NIFAT32_close_content(ci_t ci);
 /*
 Add content to target content index. 
 Params:
-- `ci` - Root content index. Should be directory.
+- `ci` - Root content index. Should be directory. 
+         Note: Can't be the `NO_RCI`. Use the open function with the NO_RCI 
+               to get this value instead.
 - `info` - Pointer to info about new content.
 - `reserve` - Reserved cluster count for content. 
-              Note: This option can be NO_RESERVE.
+              Note: This option can be `NO_RESERVE`.
               Note 2: Will reserve cluster chain for defragmentation prevent.
 
 Returns 1 if operation was success.
@@ -261,8 +263,10 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve);
 /*
 Copy content data to destination place.
 Note: deep parametr can set copy type: 
-- DEEP_COPY copy all data from source with new cluster creation in destination.
-- SHALLOW_COPY create link in dst to src data.
+- `DEEP_COPY` copy all data from the source with new cluster creation in destination.
+- `SHALLOW_COPY` create a link from the dst to the src.
+Note 1: Shallow copy won't create a new name, which means you *must* ensure, that the
+        shallow copy placed somewhere not in the same directory with the source.
 Note 2: NIFAT32_copy_content will deallocate all previous data in dst.
 Params:
 - `src` - Source content index.

@@ -144,7 +144,7 @@ int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
 ) {
 #ifndef NIFAT32_RO
-    print_debug("entry_edit(cluster=%u, cache=%s)", ca, cache != NO_ECACHE ? "YES" : "NO");
+    print_debug("entry_edit(cluster=%u, name=%.11s, cache=%s)", ca, name, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t context = { 
         .meta = (directory_entry_t*)meta, 
         .name = name, 

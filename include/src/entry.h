@@ -124,15 +124,15 @@ Return < 0 if something goes wrong.
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi);
 
 /*
-Edit entry in cluster.
+Edit an entry in a cluster.
 Params:
-- ca - Clyster where entry is placed.
-- name - Name entry for edit.
-- meta - New meta for entry.
-- fi - FS data.
+- `ca` - Cluster where the entry is placed.
+- `name` - Name of the entry for edit.
+- `meta` - New meta for the entry.
+- `fi` - FS data.
 
-Return 1 if edit success.
-Return 0 if something goes wrong.
+Returns 1 if edit was succeed.
+Returns 0 if something went wrong.
 */
 int entry_edit(
     cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, 

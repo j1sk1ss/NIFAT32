@@ -84,9 +84,9 @@ int main(int argc, char* argv[]) {
     nifat32_params_t params = { 
         .bs_num    = 0, 
         .ts        = (v_size * DEFAULT_VOLUME_SIZE) / sector_size, 
-        .fat_cache = CACHE | HARD_CACHE, 
+        .fat_cache = CACHE, 
         .jc        = jc,
-        .ec        = 1,
+        .ec        = 0,
         .bs_count  = bs,
         .disk_io   = {
             .read_sector  = _mock_sector_read_,
@@ -180,7 +180,7 @@ upper: {}
                 ci_t src_ci = NIFAT32_open_content(NO_RCI, src_83, DF_MODE);
                 ci_t dst_ci = NIFAT32_open_content(NO_RCI, dst_83, DF_MODE);
                 if (src_ci >= 0 && dst_ci >= 0) {
-                    NIFAT32_copy_content(src_ci, dst_ci, DEEP_COPY);
+                    NIFAT32_copy_content(src_ci, dst_ci, SHALLOW_COPY);
                     NIFAT32_close_content(src_ci);
                     NIFAT32_close_content(dst_ci);
                 }
@@ -228,8 +228,8 @@ upper: {}
                 if (cmds[3]) reserve = atoi(cmds[3]);
                 
                 cinfo_t file_info = { .type = STAT_FILE };
-                str_memcpy(file_info.file_name, file_name, strlen(file_name) + 1);
-                str_memcpy(file_info.file_extension, file_ext, strlen(file_ext) + 1);
+                str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
+                str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
 
                 char fullname[128] = { 0 };
                 sprintf(fullname, "%s.%s", file_name, file_ext);
@@ -251,7 +251,7 @@ upper: {}
                 const char* name = cmds[1];
                 
                 cinfo_t dir_info = { .type = STAT_DIR };
-                str_memcpy(dir_info.file_name, name, strlen(name) + 1);
+                str_memcpy(dir_info.name, name, strlen(name) + 1);
                 name_to_fatname(name, dir_info.full_name);
 
                 ci_t root_ci;
@@ -276,8 +276,8 @@ upper: {}
                     const char* file_name = cmds[2];
                     const char* file_ext  = cmds[3];
                     cinfo_t file_info = { .type = STAT_FILE, .size = 12 };
-                    str_memcpy(file_info.file_name, file_name, strlen(file_name) + 1);
-                    str_memcpy(file_info.file_extension, file_ext, strlen(file_ext) + 1);
+                    str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
+                    str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
 
                     char fullname[128] = { 0 };
                     sprintf(fullname, "%s.%s", file_name, file_ext);
@@ -411,7 +411,7 @@ upper: {}
             case RS: {
                 int sector = atoi(cmds[1]);
                 char buffer[sector_size];
-                DSK_readoff_sectors(sector, 0, buffer, sector_size, 1);
+                DSK_readoff_sectors(sector, 0, (buffer_t)buffer, sector_size, 1);
                 printf("Data: [%s]\n", buffer);
                 printf("Data (hex):\n");
                 for (int i = 0; i < sector_size; i++) {

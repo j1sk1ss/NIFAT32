@@ -112,8 +112,8 @@ int stat_content(const ci_t ci, cinfo_t* info) {
         }
         case CONTENT_TYPE_FILE: {
             str_memcpy(info->full_name, _content_table[ci].meta.file_name, 11);
-            str_strncpy(info->file_name, _content_table[ci].file.name, 8);
-            str_strncpy(info->file_extension, _content_table[ci].file.extension, 3);
+            str_strncpy(info->name, _content_table[ci].file.name, 8);
+            str_strncpy(info->extention, _content_table[ci].file.extension, 3);
             info->type = STAT_FILE;
             break;
         }
@@ -136,5 +136,10 @@ int destroy_content(ci_t ci) {
     if (_content_table[ci].index.root) ecache_free(_content_table[ci].index.root);
     _content_table[ci].content_type = CONTENT_TYPE_EMPTY;
     _content_table[ci].index.root   = NO_ECACHE;
+    return 1;
+}
+
+int ctable_destroy() {
+    for (ci_t i = 0; i < CONTENT_TABLE_SIZE; i++) destroy_content(i);
     return 1;
 }
