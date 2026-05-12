@@ -144,7 +144,7 @@ upper: {}
 
                     char fatbuffer[24] = { 0 };
                     strcpy(fatbuffer, path);
-                    str_uppercase(fatbuffer);
+                    nft32_str_uppercase(fatbuffer);
                     strcat(current_path, fatbuffer);
 
                     if (!NIFAT32_content_exists(current_path)) {
@@ -174,8 +174,8 @@ upper: {}
 
                 char src_83[128] = { 0 };
                 char dst_83[128] = { 0 };
-                path_to_fatnames(src_path, src_83);
-                path_to_fatnames(dst_path, dst_83);
+                nft32_path_to_fatnames(src_path, src_83);
+                nft32_path_to_fatnames(dst_path, dst_83);
 
                 ci_t src_ci = NIFAT32_open_content(NO_RCI, src_83, DF_MODE);
                 ci_t dst_ci = NIFAT32_open_content(NO_RCI, dst_83, DF_MODE);
@@ -207,8 +207,8 @@ upper: {}
 
                 char src_83[128] = { 0 };
                 char dst_83[128] = { 0 };
-                path_to_fatnames(src_path, src_83);
-                path_to_fatnames(dst_path, dst_83);
+                nft32_path_to_fatnames(src_path, src_83);
+                nft32_path_to_fatnames(dst_path, dst_83);
 
                 ci_t src_ci = NIFAT32_open_content(NO_RCI, src_83, DF_MODE);
                 ci_t dst_ci = NIFAT32_open_content(NO_RCI, dst_83, MODE(W_MODE | CR_MODE, FILE_TARGET));
@@ -228,12 +228,12 @@ upper: {}
                 if (cmds[3]) reserve = atoi(cmds[3]);
                 
                 cinfo_t file_info = { .type = STAT_FILE };
-                str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
-                str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
+                nft32_str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
+                nft32_str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
 
                 char fullname[128] = { 0 };
                 sprintf(fullname, "%s.%s", file_name, file_ext);
-                name_to_fatname(fullname, file_info.full_name);
+                nft32_name_to_fatname(fullname, file_info.full_name);
 
                 ci_t root_ci;
                 if (strlen(current_path) > 1) root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
@@ -251,8 +251,8 @@ upper: {}
                 const char* name = cmds[1];
                 
                 cinfo_t dir_info = { .type = STAT_DIR };
-                str_memcpy(dir_info.name, name, strlen(name) + 1);
-                name_to_fatname(name, dir_info.full_name);
+                nft32_str_memcpy(dir_info.name, name, strlen(name) + 1);
+                nft32_name_to_fatname(name, dir_info.full_name);
 
                 ci_t root_ci;
                 if (strlen(current_path) > 1) root_ci = NIFAT32_open_content(NO_RCI, current_path, DF_MODE);
@@ -269,19 +269,19 @@ upper: {}
             case FRENAME: {
                 const char* name = cmds[1];
                 char src_path[128] = { 0 };
-                name_to_fatname(name, src_path);
+                nft32_name_to_fatname(name, src_path);
 
                 ci_t src = NIFAT32_open_content(NO_RCI, src_path, DF_MODE);
                 if (src >= 0) {
                     const char* file_name = cmds[2];
                     const char* file_ext  = cmds[3];
                     cinfo_t file_info = { .type = STAT_FILE, .size = 12 };
-                    str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
-                    str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
+                    nft32_str_memcpy(file_info.name, file_name, strlen(file_name) + 1);
+                    nft32_str_memcpy(file_info.extention, file_ext, strlen(file_ext) + 1);
 
                     char fullname[128] = { 0 };
                     sprintf(fullname, "%s.%s", file_name, file_ext);
-                    name_to_fatname(fullname, file_info.full_name);
+                    nft32_name_to_fatname(fullname, file_info.full_name);
                     NIFAT32_change_meta(src, &file_info);
                     NIFAT32_close_content(src);
                 }
@@ -295,7 +295,7 @@ upper: {}
 
                 char fatbuffer[24] = { 0 };
                 const char* path = cmds[1];
-                name_to_fatname(path, fatbuffer);
+                nft32_name_to_fatname(path, fatbuffer);
 
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
@@ -312,7 +312,7 @@ upper: {}
 
                 char fatbuffer[24] = { 0 };
                 const char* path = cmds[1];
-                name_to_fatname(path, fatbuffer);
+                nft32_name_to_fatname(path, fatbuffer);
 
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
@@ -336,7 +336,7 @@ upper: {}
                 strcpy(path_buffer, current_path);
 
                 char fatbuffer[24] = { 0 };
-                name_to_fatname(cmds[1], fatbuffer);
+                nft32_name_to_fatname(cmds[1], fatbuffer);
 
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
@@ -358,7 +358,7 @@ upper: {}
                 strcpy(path_buffer, current_path);
 
                 char fatbuffer[24] = { 0 };
-                name_to_fatname(cmds[1], fatbuffer);
+                nft32_name_to_fatname(cmds[1], fatbuffer);
 
                 if (strlen(path_buffer) > 1 && strcmp(path_buffer, "/")) strcat(path_buffer, "/");
                 strcat(path_buffer, fatbuffer);
@@ -386,7 +386,7 @@ upper: {}
                     NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 8192);
 
                     unsigned char decoded[4096] = { 0 };
-                    unpack_memory((encoded_t*)cluster_data, decoded, sizeof(decoded));
+                    nft32_unnft32_pack_memory((encoded_t*)cluster_data, decoded, sizeof(decoded));
 
                     unsigned int entries = (sizeof(cluster_data) / sizeof(short)) / sizeof(directory_entry_t);
                     directory_entry_t* entry = (directory_entry_t*)decoded;
@@ -394,7 +394,7 @@ upper: {}
                         if (entry->file_name[0] == ENTRY_END) break;
                         if (entry->file_name[0] != ENTRY_FREE) {
                             char name[128] = { 0 };
-                            fatname_to_name((const char*)entry->file_name, name);
+                            nft32_fatname_to_name((const char*)entry->file_name, name);
                             printf("%s\t%u\n", name, entry->file_size);
                         }
                     }

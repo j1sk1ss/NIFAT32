@@ -2,9 +2,9 @@
 
 static cluster_val_t* _fat = NULL;
 int fat_cache_init(fat_data_t* fi) {
-    _fat = (cluster_val_t*)malloc_s(fi->total_clusters * sizeof(cluster_val_t));
+    _fat = (cluster_val_t*)nft32_malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
-        print_error("malloc_s() error!");
+        print_error("nft32_malloc_s() error!");
         errors_register_error(MALLOC_ERROR, fi);
         return 0;
     }
@@ -26,7 +26,7 @@ int fat_cache_hload(fat_data_t* fi) {
 }
 
 int fat_cache_unload() {
-    if (_fat) free_s(_fat);
+    if (_fat) nft32_free_s(_fat);
     else return 0;
     return 1;
 }
@@ -37,7 +37,7 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
     sector_addr_t fat_sector = fi->sectors_padd + GET_FATSECTOR(fat, fi->total_sectors) + (fat_offset / fi->bytes_per_sector);
     
     decoded_t table_buffer[sizeof(cluster_val_t)] = { 0 };
-    pack_memory((const byte_t*)&value, table_buffer, sizeof(cluster_val_t));
+    nft32_pack_memory((const byte_t*)&value, table_buffer, sizeof(cluster_val_t));
     if (
         !DSK_writeoff_sectors(fat_sector, fat_offset % fi->bytes_per_sector, (const unsigned char*)table_buffer, sizeof(table_buffer), 1)
     ) {
@@ -80,7 +80,7 @@ static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
     }
 
     cluster_val_t table_value = 0;
-    unpack_memory(table_buffer, (byte_t*)&table_value, sizeof(cluster_val_t));
+    nft32_unnft32_pack_memory(table_buffer, (byte_t*)&table_value, sizeof(cluster_val_t));
     return table_value & 0x0FFFFFFF;
 }
 

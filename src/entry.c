@@ -3,7 +3,7 @@
 static int _validate_entry(directory_entry_t* entry) {
     checksum_t entry_checksum = entry->checksum;
     entry->checksum = 0;
-    if (murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) != entry_checksum) return 0;
+    if (nft32_murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) != entry_checksum) return 0;
     else entry->checksum = entry_checksum;
     return 1;
 }
@@ -19,7 +19,7 @@ static int _read_encoded_cluster(
         return 0;
     }
 
-    unpack_memory((const encoded_t*)enc, dec, dec_size);
+    nft32_unnft32_pack_memory((const encoded_t*)enc, dec, dec_size);
     return 1;
 }
 
@@ -48,7 +48,7 @@ int entry_iterate(
             exit = handler(&info, entry, ctx);
         }
 
-        pack_memory((buffer_t)&decoded_cluster, (encoded_t*)&cluster_data, decoded_len);
+        nft32_pack_memory((buffer_t)&decoded_cluster, (encoded_t*)&cluster_data, decoded_len);
         if (!write_cluster(ca, (buffer_t)&cluster_data, fi->cluster_size, fi)) {
             print_error("Error correction of directory entry failed. Aborting...");
             errors_register_error(ERROR_CORRECTION_ERROR, fi);
@@ -64,7 +64,7 @@ static int _index_handler(entry_info_t* info __attribute__((unused)), directory_
         return 0;
     }
 
-    checksum_t entry_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
+    checksum_t entry_hash = nft32_murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
     *context = ecache_insert(*context, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     return 0;
 }
@@ -88,9 +88,9 @@ static int _search_handler(entry_info_t* info, directory_entry_t* entry, void* c
     print_debug("ENTRY SEARCH: %.11s, ca=%u", context->name, info->ca);
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
-    if (str_strncmp(context->name, (char*)entry->file_name, 11)) return 0;
+    if (nft32_str_strncmp(context->name, (char*)entry->file_name, 11)) return 0;
     if (context->meta) {
-        str_memcpy(context->meta, entry, sizeof(directory_entry_t));
+        nft32_str_memcpy(context->meta, entry, sizeof(directory_entry_t));
         context->meta->rca = info->ca;
     }
 
@@ -102,7 +102,7 @@ int entry_search(
 ) {
     print_debug("entry_search(name=%s, ca=%u, cache=%s)", name, ca, cache != NO_ECACHE ? "YES" : "NO");
     if (cache != NO_ECACHE) {
-        checksum_t entry_hash = murmur3_x86_32((const_buffer_t)name, 11, 0);
+        checksum_t entry_hash = nft32_murmur3_x86_32((const_buffer_t)name, 11, 0);
         ecache_t* cached_entry = ecache_find(cache, entry_hash);
         if (cached_entry) {
             if (meta) create_entry(name, IS_ECACHE_DIR(cached_entry), cached_entry->ca, 0, meta);
@@ -110,7 +110,7 @@ int entry_search(
         }
     }
 
-    entry_ctx_t ctx = { .meta = meta, .name = name, .name_hash = murmur3_x86_32((const_buffer_t)name, 11, 0) };
+    entry_ctx_t ctx = { .meta = meta, .name = name, .name_hash = nft32_murmur3_x86_32((const_buffer_t)name, 11, 0) };
     if (entry_iterate(ca, _search_handler, (void*)&ctx, fi)) {
         print_debug("Entry=%.11s found! dca=%u, rca=%u", meta->file_name, meta->dca, meta->rca);
         return 1;
@@ -124,18 +124,18 @@ static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (context->name_hash != entry->name_hash) return 0;
-    if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
+    if (nft32_str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
     context->ji = journal_add_operation(EDIT_OP, info->ca, info->offset, (unsqueezed_entry_t*)context->meta, context->fi);
     if (context->index != NO_ECACHE) {
         checksum_t src, dst;
-        src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
+        src = nft32_murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
-        dst = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
+        dst = nft32_murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
         ecache_insert(context->index, dst, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, entry->dca);
     }
 
-    str_memcpy(entry, context->meta, sizeof(directory_entry_t));
+    nft32_str_memcpy(entry, context->meta, sizeof(directory_entry_t));
     return 1;
 }
 #endif
@@ -148,7 +148,7 @@ int entry_edit(
     entry_ctx_t context = { 
         .meta = (directory_entry_t*)meta, 
         .name = name, 
-        .name_hash = murmur3_x86_32((const_buffer_t)name, 11, 0), 
+        .name_hash = nft32_murmur3_x86_32((const_buffer_t)name, 11, 0), 
         .index = cache, .fi = fi 
     };
 
@@ -186,16 +186,16 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
                 int ji = journal_add_operation(ADD_OP, ca, i, (unsqueezed_entry_t*)meta, fi);
 
                 meta->rca = ca;
-                meta->checksum = murmur3_x86_32((const_buffer_t)meta, sizeof(directory_entry_t), 0);
+                meta->checksum = nft32_murmur3_x86_32((const_buffer_t)meta, sizeof(directory_entry_t), 0);
 
-                str_memcpy(entry, meta, sizeof(directory_entry_t));
+                nft32_str_memcpy(entry, meta, sizeof(directory_entry_t));
                 if (i + 1 < entries_per_cluster) (entry + 1)->file_name[0] = ENTRY_END;
                 if (cache != NO_ECACHE) {
-                    checksum_t entry_hash = murmur3_x86_32((const_buffer_t)meta->file_name, sizeof(meta->file_name), 0);
+                    checksum_t entry_hash = nft32_murmur3_x86_32((const_buffer_t)meta->file_name, sizeof(meta->file_name), 0);
                     ecache_insert(cache, entry_hash, (entry->attributes & FILE_DIRECTORY) != FILE_DIRECTORY, meta->dca);
                 }
 
-                pack_memory((buffer_t)&decoded_cluster, (encoded_t*)&cluster_data, decoded_len);
+                nft32_pack_memory((buffer_t)&decoded_cluster, (encoded_t*)&cluster_data, decoded_len);
                 if (!write_cluster(ca, (buffer_t)&cluster_data, fi->cluster_size, fi)) {
                     print_error("Writing new directory entry failed. Aborting...");
                     errors_register_error(ENTRY_ADD_ERROR, fi);
@@ -289,11 +289,11 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
 static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
-    if (str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
+    if (nft32_str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
 
     if (context->index != NO_ECACHE) {
         checksum_t src;
-        src = murmur3_x86_32((const_buffer_t)context->name, 11, 0);
+        src = nft32_murmur3_x86_32((const_buffer_t)context->name, 11, 0);
         ecache_delete(context->index, src);
     }
 
@@ -337,8 +337,8 @@ int create_entry(
         entry->attributes = FILE_ARCHIVE;
     }
 
-    str_memcpy(entry->file_name, fullname, 11);
-    entry->name_hash = murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
+    nft32_str_memcpy(entry->file_name, fullname, 11);
+    entry->name_hash = nft32_murmur3_x86_32((const_buffer_t)entry->file_name, sizeof(entry->file_name), 0);
     print_debug("_create_entry=%.11s, is_dir=%i, fca=%u", entry->file_name, is_dir, first_cluster);
     return 1; 
 }

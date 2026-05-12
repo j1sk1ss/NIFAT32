@@ -10,7 +10,7 @@ static errors_t _errors = {
 static int __write_error__(int index, error_code_t c, fat_data_t* fi, int copy_index) {
     decoded_t entry_buffer[sizeof(error_code_t)] = { 0 };
     unsigned int entry_offset = index * sizeof(entry_buffer);
-    pack_memory((const byte_t*)&c, entry_buffer, sizeof(error_code_t));
+    nft32_pack_memory((const byte_t*)&c, entry_buffer, sizeof(error_code_t));
     if (
         !DSK_writeoff_sectors(
             GET_ERRORSSECTOR(copy_index, fi->total_sectors), entry_offset, 
@@ -43,7 +43,7 @@ static int __read_error__(int index, error_code_t* c, fat_data_t* fi, int copy_i
         return 0;
     }
 
-    unpack_memory((const decoded_t*)entry_buffer, (byte_t*)c, sizeof(error_code_t));
+    nft32_unnft32_pack_memory((const decoded_t*)entry_buffer, (byte_t*)c, sizeof(error_code_t));
     return 1;
 } 
 

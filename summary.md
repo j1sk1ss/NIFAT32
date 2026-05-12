@@ -323,10 +323,10 @@ static int _fix_insert(ecache_t** root, ecache_t* z) {
 }
 
 ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, cluster_addr_t ca) {
-    ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
+    ecache_t* z = (ecache_t*)nft32_malloc_s(sizeof(ecache_t));
     if (!z) return root;
 
-    str_memcpy(z->hash, hash, sizeof(ripemd160_t));
+    nft32_str_memcpy(z->hash, hash, sizeof(ripemd160_t));
     z->ca = ca;
     z->l = z->r = z->p = NULL;
     z->color = RED;
@@ -336,18 +336,18 @@ ecache_t* ecache_insert(ecache_t* root, ripemd160_t hash, cluster_addr_t ca) {
 
     while (x) {
         y = x;
-        int cmp = str_memcmp(hash, x->hash, sizeof(ripemd160_t));
+        int cmp = nft32_str_memcmp(hash, x->hash, sizeof(ripemd160_t));
         if (cmp < 0) x = x->l;
         else if (cmp > 0) x = x->r;
         else {
-            free_s(z);
+            nft32_free_s(z);
             return root;
         }
     }
 
     z->p = y;
     if (!y) root = z;
-    else if (str_memcmp(hash, y->hash, sizeof(ripemd160_t)) < 0) y->l = z;
+    else if (nft32_str_memcmp(hash, y->hash, sizeof(ripemd160_t)) < 0) y->l = z;
     else y->r = z;
 
     _fix_insert(&root, z);

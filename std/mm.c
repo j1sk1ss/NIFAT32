@@ -4,7 +4,7 @@ static unsigned char _buffer[ALLOC_BUFFER_SIZE] = { 0 };
 static mm_block_t* _mm_head = (mm_block_t*)_buffer;
 static int _allocated = 0;
 
-int mm_init() {
+int nft32_mm_init() {
     if (_mm_head->magic != MM_BLOCK_MAGIC) {
         print_log("Memory manager init!");
         _mm_head->magic = MM_BLOCK_MAGIC;
@@ -84,13 +84,13 @@ static void* __malloc_s(unsigned int size, unsigned int offset, int prepare_mem)
     return prepare_mem ? NULL : __malloc_s(size, offset, 1);
 }
 
-void* malloc_s(unsigned int size) {
+void* nft32_malloc_s(unsigned int size) {
     void* ptr = __malloc_s(size, NO_OFFSET, 0);
     if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
     return ptr;
 }
 
-int free_s(void* ptr) {
+int nft32_free_s(void* ptr) {
     if (!ptr || ptr < (void*)_buffer || ptr >= (void*)(_buffer + ALLOC_BUFFER_SIZE)) {
         print_mm("ptr=%p is not valid!", ptr);
         return 0;

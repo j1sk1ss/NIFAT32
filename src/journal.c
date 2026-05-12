@@ -4,7 +4,7 @@
 static int __write_journal__(int index, journal_entry_t* entry, fat_data_t* fi, int journal) {
     decoded_t entry_buffer[sizeof(journal_entry_t)] = { 0 };
     cluster_offset_t entry_offset = index * sizeof(entry_buffer);
-    pack_memory((const byte_t*)entry, entry_buffer, sizeof(journal_entry_t));
+    nft32_pack_memory((const byte_t*)entry, entry_buffer, sizeof(journal_entry_t));
     if (
         !DSK_writeoff_sectors(
             GET_JOURNALSECTOR(journal, fi->total_sectors), entry_offset, (const_buffer_t)entry_buffer, sizeof(entry_buffer), 1
@@ -37,7 +37,7 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
         return 0;
     }
 
-    unpack_memory((const decoded_t*)entry_buffer, (byte_t*)entry, sizeof(journal_entry_t));
+    nft32_unnft32_pack_memory((const decoded_t*)entry_buffer, (byte_t*)entry, sizeof(journal_entry_t));
     return 1;    
 } 
 
@@ -78,7 +78,7 @@ static int _squeeze_entry(unsqueezed_entry_t* src, squeezed_entry_t* dst) {
     dst->rca        = src->rca;
     dst->dca        = src->dca;
     dst->file_size  = src->file_size;
-    str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
+    nft32_str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
     return 1;
 }
 
@@ -87,9 +87,9 @@ static int _unsqueeze_entry(squeezed_entry_t* src, unsqueezed_entry_t* dst) {
     dst->rca        = src->rca;
     dst->dca        = src->dca;
     dst->file_size  = src->file_size;
-    str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
-    dst->name_hash = murmur3_x86_32((const_buffer_t)dst->file_name, sizeof(dst->file_name), 0);
-    dst->checksum  = murmur3_x86_32((const_buffer_t)dst, sizeof(unsqueezed_entry_t), 0);
+    nft32_str_memcpy(dst->file_name, src->file_name, sizeof(src->file_name));
+    dst->name_hash = nft32_murmur3_x86_32((const_buffer_t)dst->file_name, sizeof(dst->file_name), 0);
+    dst->checksum  = nft32_murmur3_x86_32((const_buffer_t)dst, sizeof(unsqueezed_entry_t), 0);
     return 1;
 }
 #endif
@@ -121,7 +121,7 @@ int restore_from_journal(fat_data_t* fi) {
             case ADD_OP:
             case EDIT_OP: {
                 decoded_t entry_buffer[sizeof(unsqueezed_entry_t)] = { 0 };
-                pack_memory((const byte_t*)&restored, entry_buffer, sizeof(unsqueezed_entry_t));
+                nft32_pack_memory((const byte_t*)&restored, entry_buffer, sizeof(unsqueezed_entry_t));
                 writeoff_cluster(entry.ca, entry.offset * sizeof(entry_buffer), (const_buffer_t)entry_buffer, sizeof(entry_buffer), fi);
                 break;
             }

@@ -2,14 +2,14 @@
 
 static bitmap_val_t* _bitmap = NULL;
 int fatmap_init(fat_data_t* fi) {
-    _bitmap = (bitmap_val_t*)malloc_s((fi->total_clusters / BITS_PER_WORD) * sizeof(bitmap_val_t));
+    _bitmap = (bitmap_val_t*)nft32_malloc_s((fi->total_clusters / BITS_PER_WORD) * sizeof(bitmap_val_t));
     if (!_bitmap) {
-        print_error("malloc_s() error!");
+        print_error("nft32_malloc_s() error!");
         errors_register_error(MALLOC_ERROR, fi);
         return 0;
     }
 
-    str_memset(_bitmap, 0x00, (fi->total_clusters / BITS_PER_WORD) * sizeof(bitmap_val_t));
+    nft32_str_memset(_bitmap, 0x00, (fi->total_clusters / BITS_PER_WORD) * sizeof(bitmap_val_t));
     return 1;
 }
 
@@ -47,6 +47,6 @@ unsigned int fatmap_find_free(unsigned int offset, int size, fat_data_t* fi) {
 }
 
 int fatmap_unload() {
-    if (_bitmap) free_s(_bitmap);
+    if (_bitmap) nft32_free_s(_bitmap);
     return 1;
 }

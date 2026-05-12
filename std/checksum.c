@@ -13,7 +13,7 @@ static inline unsigned int _fmix32(unsigned int h) {
     return h;
 }
 
-checksum_t murmur3_x86_32(const unsigned char* key, unsigned int len, unsigned int seed) {
+checksum_t nft32_murmur3_x86_32(const unsigned char* key, unsigned int len, unsigned int seed) {
     const unsigned int c1 = 0xcc9e2d51;
     const unsigned int c2 = 0x1b873593;
 

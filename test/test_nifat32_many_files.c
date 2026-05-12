@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
         char target_fatname[128] = { 0 };
         char name_buffer[36] = { 0 };
         _get_name(name_buffer, -1);
-        path_to_fatnames(name_buffer, target_fatname);
+        nft32_path_to_fatnames(name_buffer, target_fatname);
 
         ci_t ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | CR_MODE, FILE_TARGET));
         if (ci >= 0) {
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         char target_fatname[128] = { 0 };
         char name_buffer[36] = { 0 };
         _get_raw_name(name_buffer, ((rand() % (_id - 1)) + 1));
-        path_to_fatnames(name_buffer, target_fatname);
+        nft32_path_to_fatnames(name_buffer, target_fatname);
 
         ci_t ci = -1;
         add_time2timer(MEASURE_TIME_US({

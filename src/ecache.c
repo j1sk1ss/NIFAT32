@@ -80,7 +80,7 @@ static int _fix_insert(ecache_t** root, ecache_t* z) {
 
 ecache_t* ecache_insert(ecache_t* root, checksum_t hash, unsigned char is_dir, cluster_addr_t ca) {
 #ifndef NIFAT32_NO_ECACHE
-    ecache_t* z = (ecache_t*)malloc_s(sizeof(ecache_t));
+    ecache_t* z = (ecache_t*)nft32_malloc_s(sizeof(ecache_t));
     if (!z) return root;
 
     z->hash = hash;
@@ -97,7 +97,7 @@ ecache_t* ecache_insert(ecache_t* root, checksum_t hash, unsigned char is_dir, c
         if (hash < x->hash) x = x->l;
         else if (hash > x->hash) x = x->r;
         else {
-            free_s(z);
+            nft32_free_s(z);
             return root;
         }
     }
@@ -256,7 +256,7 @@ ecache_t* ecache_delete(ecache_t* root, checksum_t hash) {
         SET_ECACHE_COLOR_VAL(y, GET_ECACHE_COLOR(z));
     }
 
-    free_s(z);
+    nft32_free_s(z);
     if (IS_ECACHE_BLACK(y)) {
         _fix_delete(&root, x, x_parent);
     }
@@ -269,7 +269,7 @@ int ecache_free(ecache_t* root) {
     if (!root) return 0;
     ecache_free(root->l);
     ecache_free(root->r);
-    free_s(root);
+    nft32_free_s(root);
 #endif
     return 1;
 }

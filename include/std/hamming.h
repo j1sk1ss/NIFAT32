@@ -23,7 +23,7 @@ Params:
 
 Return pointer to dst.
 */
-void* unpack_memory(const encoded_t* src, byte_t* dst, int l);
+void* nft32_unnft32_pack_memory(const encoded_t* src, byte_t* dst, int l);
 
 /*
 Pack memory function should encode src pointed data to hamming 15,11.
@@ -36,7 +36,7 @@ Params:
 
 Return pointer to dst.
 */
-void* pack_memory(const byte_t* src, decoded_t* dst, int l);
+void* nft32_pack_memory(const byte_t* src, decoded_t* dst, int l);
 
 #ifdef __cplusplus
 }

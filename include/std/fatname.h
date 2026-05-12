@@ -48,7 +48,7 @@ Params:
 
 Return 1.
 */
-int fatname_to_name(const char* fatname, char* name);
+int nft32_fatname_to_name(const char* fatname, char* name);
 
 /*
 Convert default name and ext to fatname 8.3.
@@ -59,7 +59,7 @@ Params:
 
 Return 1.
 */
-int name_to_fatname(const char* name, char* fatname);
+int nft32_name_to_fatname(const char* name, char* fatname);
 
 /*
 Convert path to fatname 8.3.
@@ -70,7 +70,7 @@ Params:
 
 Return 1.
 */
-int path_to_fatnames(const char* path, char* fatnames);
+int nft32_path_to_fatnames(const char* path, char* fatnames);
 
 /*
 Convert path to 8.3 in one memory.
@@ -80,7 +80,7 @@ Params:
 
 Return 1.
 */
-int path_to_83(char* path);
+int nft32_path_to_83(char* path);
 
 /*
 Extract file name from path. 
@@ -92,7 +92,7 @@ Params:
 
 Return 1.
 */
-int extract_name(const char* path, char* name);
+int nft32_extract_name(const char* path, char* name);
 
 /*
 Unpack 8.3 name to name and extention.

@@ -156,7 +156,7 @@ static uint32_t _calculate_fat_size(uint32_t total_sectors) {
         return 1;
     }
 
-    static void* _pack_memory(unsigned char* src, unsigned short* dst, int len) {
+    static void* _nft32_pack_memory(unsigned char* src, unsigned short* dst, int len) {
         for (int i = 0; i < len; i++) _set_byte(dst, i, src[i]);
         return (void*)dst;
     }
@@ -175,7 +175,7 @@ static uint32_t _calculate_fat_size(uint32_t total_sectors) {
         return h;
     }
 
-    unsigned int _murmur3_x86_32(const unsigned char* key, unsigned int len, unsigned int seed) {
+    unsigned int _nft32_murmur3_x86_32(const unsigned char* key, unsigned int len, unsigned int seed) {
         const unsigned int c1 = 0xcc9e2d51;
         const unsigned int c2 = 0x1b873593;
 
@@ -242,11 +242,11 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     memcpy(ext.volume_label, "ROOT_LABEL ", 11);
     memcpy(ext.fat_type_label, "NIFAT32 ", 8);
     ext.checksum = 0;
-    ext.checksum = _murmur3_x86_32((uint8_t*)&ext, sizeof(ext), 0);
+    ext.checksum = _nft32_murmur3_x86_32((uint8_t*)&ext, sizeof(ext), 0);
 
     memcpy(&bs.extended_section, &ext, sizeof(ext));
     bs.checksum = 0;
-    bs.checksum = _murmur3_x86_32((uint8_t*)&bs, sizeof(bs), 0);
+    bs.checksum = _nft32_murmur3_x86_32((uint8_t*)&bs, sizeof(bs), 0);
     fprintf(stdout, "Bootstruct checksum: %u, ext. section: %u\n", bs.checksum, ext.checksum);
 
     int encoded_size = sizeof(encoded_t) * sizeof(nifat32_bootsector_t);
@@ -256,7 +256,7 @@ static int _write_bs(int fd, uint32_t total_sectors, uint32_t fat_size) {
     uint8_t padding[BYTES_PER_SECTOR] = { 0 };
     for (int i = opt.b_bsbc; i < opt.bsbc; i++) {
         unsigned int ca = GET_BOOTSECTOR(i, total_sectors);
-        _pack_memory((unsigned char*)&bs, encoded_bs, sizeof(nifat32_bootsector_t));
+        _nft32_pack_memory((unsigned char*)&bs, encoded_bs, sizeof(nifat32_bootsector_t));
         if (pwrite(fd, padding, sizeof(padding), ca * BYTES_PER_SECTOR) != sizeof(padding)) return 0;
         if (pwrite(fd, encoded_bs, encoded_size, ca * BYTES_PER_SECTOR) != encoded_size) return 0;
         fprintf(stdout, "[i=%i] encoded bootsector has been written at ca=%u/%u!\n", i, ca, total_sectors);
@@ -348,7 +348,7 @@ static int _write_fats(int fd, fat_table_t fat_table, uint32_t fat_size, uint32_
     if (!encoded_fat) return 0;
 
     memset(encoded_fat, 0, fat_bytes);
-    _pack_memory((unsigned char*)fat_table, (unsigned short*)encoded_fat, fat_size * BYTES_PER_SECTOR);
+    _nft32_pack_memory((unsigned char*)fat_table, (unsigned short*)encoded_fat, fat_size * BYTES_PER_SECTOR);
     
     for (int i = 0; i < opt.fc; i++) {
         uint32_t sa = RESERVED_SECTORS + GET_FATSECTOR(i, ts);
@@ -418,11 +418,11 @@ static int _copy_files_to_fs(
             }
 
             _to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
-            root_dir[entry_count].name_hash  = _murmur3_x86_32(root_dir[entry_count].file_name, sizeof(root_dir[entry_count].file_name), 0);
+            root_dir[entry_count].name_hash  = _nft32_murmur3_x86_32(root_dir[entry_count].file_name, sizeof(root_dir[entry_count].file_name), 0);
             root_dir[entry_count].attributes = 0x10;
             root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = 0;
-            root_dir[entry_count].checksum   = _murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
+            root_dir[entry_count].checksum   = _nft32_murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
             fprintf(stdout, "%s checksum: %u\n", entry->d_name, root_dir[entry_count].checksum);
             entry_count++;
         }
@@ -443,24 +443,24 @@ static int _copy_files_to_fs(
             fclose(src_file);
 
             _to_83_name(entry->d_name, (char*)root_dir[entry_count].file_name);
-            root_dir[entry_count].name_hash  = _murmur3_x86_32(root_dir[entry_count].file_name, strlen((char*)root_dir[entry_count].file_name), 0);
+            root_dir[entry_count].name_hash  = _nft32_murmur3_x86_32(root_dir[entry_count].file_name, strlen((char*)root_dir[entry_count].file_name), 0);
             root_dir[entry_count].attributes = 0x20;
             root_dir[entry_count].cluster    = start_cluster;
             root_dir[entry_count].file_size  = file_size;
             root_dir[entry_count].checksum   = 0;
-            root_dir[entry_count].checksum   = _murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
+            root_dir[entry_count].checksum   = _nft32_murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
             fprintf(stdout, "%s checksum: %u\n", entry->d_name, root_dir[entry_count].checksum);
             entry_count++;
         }
     }
 
     root_dir[entry_count].file_name[0] = ENTRY_END;
-    root_dir[entry_count].name_hash  = _murmur3_x86_32((uint8_t*)root_dir[entry_count].file_name, sizeof(root_dir[entry_count].file_name), 0);
+    root_dir[entry_count].name_hash  = _nft32_murmur3_x86_32((uint8_t*)root_dir[entry_count].file_name, sizeof(root_dir[entry_count].file_name), 0);
     root_dir[entry_count].attributes = 0;
     root_dir[entry_count].cluster    = 0;
     root_dir[entry_count].file_size  = 0;
     root_dir[entry_count].checksum   = 0;
-    root_dir[entry_count].checksum   = _murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
+    root_dir[entry_count].checksum   = _nft32_murmur3_x86_32((uint8_t*)&root_dir[entry_count], sizeof(root_dir[entry_count]), 0);
     fprintf(stdout, "END checksum: %u\n", root_dir[entry_count].checksum);
     entry_count++;
 
@@ -472,7 +472,7 @@ static int _copy_files_to_fs(
     }
     
     unsigned short encoded_root_dir[CLUSTER_SIZE] = { 0 };
-    _pack_memory((unsigned char*)root_dir, encoded_root_dir, CLUSTER_SIZE);
+    _nft32_pack_memory((unsigned char*)root_dir, encoded_root_dir, CLUSTER_SIZE);
     if (write(fd, encoded_root_dir, CLUSTER_SIZE) != CLUSTER_SIZE) {
         free(root_dir);
         return 0;
@@ -493,27 +493,27 @@ static int _create_directory(
 
             directory_entry_t entries[3] = { 0 };
             _to_83_name(".", (char*)entries[0].file_name);
-            entries[0].name_hash  = _murmur3_x86_32(entries[0].file_name, sizeof(entries[0].file_name), 0);
+            entries[0].name_hash  = _nft32_murmur3_x86_32(entries[0].file_name, sizeof(entries[0].file_name), 0);
             entries[0].attributes = 0x10;
             entries[0].cluster    = i;
             entries[0].checksum   = 0;
-            entries[0].checksum   = _murmur3_x86_32((uint8_t*)&entries[0], sizeof(entries[0]), 0);
+            entries[0].checksum   = _nft32_murmur3_x86_32((uint8_t*)&entries[0], sizeof(entries[0]), 0);
             fprintf(stdout, ". checksum: %u\n", entries[0].checksum);
 
             _to_83_name("..", (char*)entries[1].file_name);
-            entries[1].name_hash  = _murmur3_x86_32(entries[1].file_name, sizeof(entries[1].file_name), 0);
+            entries[1].name_hash  = _nft32_murmur3_x86_32(entries[1].file_name, sizeof(entries[1].file_name), 0);
             entries[1].attributes = 0x10;
             entries[1].cluster    = 0;
             entries[1].checksum   = 0;
-            entries[1].checksum   = _murmur3_x86_32((uint8_t*)&entries[1], sizeof(entries[1]), 0);
+            entries[1].checksum   = _nft32_murmur3_x86_32((uint8_t*)&entries[1], sizeof(entries[1]), 0);
             fprintf(stdout, ".. checksum: %u\n", entries[1].checksum);
 
             entries[2].file_name[0] = ENTRY_END;
-            entries[2].name_hash  = _murmur3_x86_32(entries[2].file_name, sizeof(entries[2].file_name), 0);
+            entries[2].name_hash  = _nft32_murmur3_x86_32(entries[2].file_name, sizeof(entries[2].file_name), 0);
             entries[2].attributes = 0x10;
             entries[2].cluster    = 0;
             entries[2].checksum   = 0;
-            entries[2].checksum   = _murmur3_x86_32((uint8_t*)&entries[2], sizeof(entries[2]), 0);
+            entries[2].checksum   = _nft32_murmur3_x86_32((uint8_t*)&entries[2], sizeof(entries[2]), 0);
             fprintf(stdout, "END checksum: %u\n", entries[1].checksum);
 
             encoded_t* root_dirs = (encoded_t*)malloc(sizeof(entries) * sizeof(encoded_t));
@@ -521,7 +521,7 @@ static int _create_directory(
                 return 0;
             }
 
-            _pack_memory((unsigned char*)entries, root_dirs, sizeof(entries));
+            _nft32_pack_memory((unsigned char*)entries, root_dirs, sizeof(entries));
             off_t cluster_offset = data_start + (i - ROOT_DIR_CLUSTER) * CLUSTER_SIZE;
             if (
                 pwrite(

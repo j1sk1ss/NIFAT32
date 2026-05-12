@@ -49,21 +49,21 @@ static decoded_t _decode_hamming_15_11(encoded_t encoded) {
     return data;
 }
 
-static byte_t _get_byte(const decoded_t* ptr, int offset) {
+static inline byte_t _get_byte(const decoded_t* ptr, int offset) {
     return (byte_t)_decode_hamming_15_11(ptr[offset]);
 }
 
-static int _set_byte(encoded_t* ptr, int offset, byte_t byte) {
+static inline int _set_byte(encoded_t* ptr, int offset, byte_t byte) {
     ptr[offset] = _encode_hamming_15_11((encoded_t)byte);
     return 1;
 }
 
-void* unpack_memory(const encoded_t* src, byte_t* dst, int l) {
+void* nft32_unnft32_pack_memory(const encoded_t* src, byte_t* dst, int l) {
     for (int i = 0; i < l; i++) dst[i] = _get_byte(src, i);
     return (void*)dst;
 }
 
-void* pack_memory(const byte_t* src, encoded_t* dst, int l) {
+void* nft32_pack_memory(const byte_t* src, encoded_t* dst, int l) {
     for (int i = 0; i < l; i++) _set_byte(dst, i, src[i]);
     return (void*)dst;
 }

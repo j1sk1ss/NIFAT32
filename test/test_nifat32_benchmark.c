@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     while (count-- > 0) {
         const char* target_file = filenames[count % 18];
         char target_fatname[128] = { 0 };
-        path_to_fatnames(target_file, target_fatname);
+        nft32_path_to_fatnames(target_file, target_fatname);
 
         /* Create target file */
         ci_t ci;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
         /* Rename file */
         char name_buffer[12] = { 0 };
         _get_name(name_buffer);
-        name_to_fatname(name_buffer, target_fatname);
+        nft32_name_to_fatname(name_buffer, target_fatname);
         cinfo_t info = { .type = STAT_FILE };
         strcpy(info.full_name, target_fatname);
         add_time2timer(MEASURE_TIME_US({
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
         /* Create another file */
         _get_name(name_buffer);
-        name_to_fatname(name_buffer, target_fatname);
+        nft32_name_to_fatname(name_buffer, target_fatname);
         ci_t dst_ci;
         add_time2timer(MEASURE_TIME_US({
             dst_ci = NIFAT32_open_content(NO_RCI, target_fatname, MODE(W_MODE | R_MODE | CR_MODE, FILE_TARGET));

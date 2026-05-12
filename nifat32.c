@@ -5,7 +5,7 @@
 static fat_data_t _fs_data = { 0 };
 
 int NIFAT32_get_fs_data(fat_data_t* d) {
-    str_memcpy(d, &_fs_data, sizeof(fat_data_t));
+    nft32_str_memcpy(d, &_fs_data, sizeof(fat_data_t));
     return 1;
 }
 
@@ -17,7 +17,7 @@ int NIFAT32_init(nifat32_params_t* params) {
         return 0;
     }
 
-    mm_init();
+    nft32_mm_init();
     if (!DSK_setup(params->disk_io.read_sector, params->disk_io.write_sector, params->disk_io.sector_size)) {
         print_error("DSK_setup() error!");
         return 0;
@@ -38,15 +38,15 @@ int NIFAT32_init(nifat32_params_t* params) {
     }
 
     nifat32_bootsector_t bootstruct;
-    unpack_memory((encoded_t*)&encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
+    nft32_unnft32_pack_memory((encoded_t*)&encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
 
     checksum_t bcheck = bootstruct.checksum;
     bootstruct.checksum = 0;
     checksum_t exbcheck = bootstruct.extended_section.checksum;
     bootstruct.extended_section.checksum = 0;
 
-    bootstruct.extended_section.checksum = murmur3_x86_32((buffer_t)&bootstruct.extended_section, sizeof(nifat32_ext32_bootsector_t), 0);
-    bootstruct.checksum = murmur3_x86_32((buffer_t)&bootstruct, sizeof(nifat32_bootsector_t), 0);
+    bootstruct.extended_section.checksum = nft32_murmur3_x86_32((buffer_t)&bootstruct.extended_section, sizeof(nifat32_ext32_bootsector_t), 0);
+    bootstruct.checksum = nft32_murmur3_x86_32((buffer_t)&bootstruct, sizeof(nifat32_bootsector_t), 0);
     if (bootstruct.checksum != bcheck || bootstruct.extended_section.checksum != exbcheck) {
         print_error(
             "Checksum check error! [bootstruct=%u != %u] or [ext_bootstruct=%u != %u]. Moving to reserved sector!", 
@@ -138,7 +138,7 @@ int NIFAT32_init(nifat32_params_t* params) {
 
 int NIFAT32_repair_bootsectors() {
     nifat32_bootsector_t bs = { .bootjmp = { 0xEB, 0x5B, 0x9 }, .media_type = 0xF8, .sectors_per_track = 63, .head_side_count = 255 };
-    str_memcpy(bs.oem_name, "recover ", 8);
+    nft32_str_memcpy(bs.oem_name, "recover ", 8);
     bs.bytes_per_sector      = _fs_data.bytes_per_sector;
     bs.sectors_per_cluster   = _fs_data.sectors_per_cluster;
     bs.reserved_sector_count = _fs_data.sectors_padd;
@@ -148,14 +148,14 @@ int NIFAT32_repair_bootsectors() {
     nifat32_ext32_bootsector_t ext = { .boot_signature = 0x5A, .drive_number = 0x8, .volume_id = 0x1234 };
     ext.table_size_32 = _fs_data.fat_size;
     ext.root_cluster  = _fs_data.ext_root_cluster;
-    str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
-    str_memcpy(ext.fat_type_label, "NIFAT32 ", 8);
-    ext.checksum = murmur3_x86_32((buffer_t)&ext, sizeof(ext), 0);
-    str_memcpy(&bs.extended_section, &ext, sizeof(ext));
-    bs.checksum = murmur3_x86_32((buffer_t)&bs, sizeof(bs), 0);
+    nft32_str_memcpy(ext.volume_label, "ROOT_LABEL ", 11);
+    nft32_str_memcpy(ext.fat_type_label, "NIFAT32 ", 8);
+    ext.checksum = nft32_murmur3_x86_32((buffer_t)&ext, sizeof(ext), 0);
+    nft32_str_memcpy(&bs.extended_section, &ext, sizeof(ext));
+    bs.checksum = nft32_murmur3_x86_32((buffer_t)&bs, sizeof(bs), 0);
 
     const_buffer_t encoded_bs[sizeof(nifat32_bootsector_t)];
-    pack_memory((const byte_t*)&bs, (decoded_t*)encoded_bs, sizeof(bs));
+    nft32_pack_memory((const byte_t*)&bs, (decoded_t*)encoded_bs, sizeof(bs));
 
     for (int i = 0; i < _fs_data.bs_count; i++) {
         if (!DSK_write_sector(GET_BOOTSECTOR(i, _fs_data.total_sectors), (const_buffer_t)encoded_bs, sizeof(encoded_bs))) {
@@ -187,13 +187,13 @@ static cluster_addr_t _get_cluster_by_path(
 
     unsigned int start = 0;
     directory_entry_t current_entry;
-    for (unsigned int iterator = 0; iterator <= str_strlen(path); iterator++) {
+    for (unsigned int iterator = 0; iterator <= nft32_str_strlen(path); iterator++) {
         if (path[iterator] == PATH_SPLITTER || !path[iterator]) {
             char name_buffer[32]    = { 0 };
             char fatname_buffer[32] = { 0 };
 
-            str_memcpy(name_buffer, path + start, iterator - start);
-            name_to_fatname(name_buffer, fatname_buffer);
+            nft32_str_memcpy(name_buffer, path + start, iterator - start);
+            nft32_name_to_fatname(name_buffer, fatname_buffer);
 
             ecache_t* entry_index = get_content_ecache(curr_ci);
             if (!entry_search(fatname_buffer, active_cluster, entry_index, &current_entry, &_fs_data)) {
@@ -228,7 +228,7 @@ static cluster_addr_t _get_cluster_by_path(
         }
     }
 
-    if (entry) str_memcpy(entry, &current_entry, sizeof(directory_entry_t));
+    if (entry) nft32_str_memcpy(entry, &current_entry, sizeof(directory_entry_t));
     return active_cluster;    
 }
 
@@ -565,7 +565,7 @@ static int _deepcopy_handler(entry_info_t* __restrict info __attribute__((unused
     
     entry->dca = hca;
     entry->checksum = 0;
-    entry->checksum = murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
+    entry->checksum = nft32_murmur3_x86_32((const_buffer_t)entry, sizeof(directory_entry_t), 0);
     if ((entry->attributes & FILE_DIRECTORY) == FILE_DIRECTORY) entry_iterate(hca, _deepcopy_handler, ctx, &_fs_data);
     return 0;
 }
@@ -625,7 +625,7 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
 
             source.rca = get_content_root_ca(dst);
             source.checksum = 0;
-            source.checksum = murmur3_x86_32((const_buffer_t)&source, sizeof(directory_entry_t), 0);
+            source.checksum = nft32_murmur3_x86_32((const_buffer_t)&source, sizeof(directory_entry_t), 0);
 
             if (!entry_edit(source.rca, NO_ECACHE, get_content_name(dst), &source, &_fs_data)) {
                 print_error("Content %i wasn't found and can't be edited!", dst);

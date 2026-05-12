@@ -61,7 +61,7 @@ Init first memory block in memory manager.
 Return -1 if something goes wrong.
 Return 1 if success init.
 */
-int mm_init();
+int nft32_mm_init();
 
 /*
 Allocate memory block.
@@ -73,7 +73,7 @@ Params:
 Return NULL if can't allocate memory.
 Return pointer to allocated memory.
 */
-void* malloc_s(unsigned int size);
+void* nft32_malloc_s(unsigned int size);
 
 /*
 Free allocated memory.
@@ -85,7 +85,7 @@ Params:
 Return -1 if something goes wrong.
 Return 1 if free success.
 */
-int free_s(void* ptr);
+int nft32_free_s(void* ptr);
 
 #ifdef __cplusplus
 }
