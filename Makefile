@@ -13,6 +13,11 @@ MEM_LOGS ?= 0
 LOGGING_LOGS ?= 1
 SPECIAL_LOGS ?= 1
 
+# Build mode flags
+NIFAT32_RO ?= 0
+NO_DEFAULT_MM_MANAGER ?= 0
+ALLOC_BUFFER_SIZE ?=
+
 ########
 # Logger flagså
 ifeq ($(ERROR_LOGS), 1)
@@ -45,6 +50,18 @@ endif
 
 ifeq ($(SPECIAL_LOGS), 1)
     CFLAGS += -DSPECIAL_LOGS
+endif
+
+ifeq ($(NIFAT32_RO), 1)
+    CFLAGS += -DNIFAT32_RO
+endif
+
+ifeq ($(NO_DEFAULT_MM_MANAGER), 1)
+    CFLAGS += -DNO_DEFAULT_MM_MANAGER
+endif
+
+ifneq ($(ALLOC_BUFFER_SIZE),)
+    CFLAGS += -DALLOC_BUFFER_SIZE=$(ALLOC_BUFFER_SIZE)
 endif
 
 OUTPUT = builds/nifat32.so

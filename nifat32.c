@@ -17,7 +17,9 @@ int NIFAT32_init(nifat32_params_t* params) {
         return 0;
     }
 
+    nft32_setup_mm_manager(params->mm_manager.init, params->mm_manager.malloc, params->mm_manager.free);
     nft32_mm_init();
+
     if (!DSK_setup(params->disk_io.read_sector, params->disk_io.write_sector, params->disk_io.sector_size)) {
         print_error("DSK_setup() error!");
         return 0;

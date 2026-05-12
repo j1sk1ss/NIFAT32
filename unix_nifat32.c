@@ -96,7 +96,8 @@ int main(int argc, char* argv[]) {
         .logg_io   = {
             .fd_fprintf  = _mock_fprintf_,
             .fd_vfprintf = _mock_vfprintf_
-        }
+        },
+        .mm_manager = { DEFAULT_MM_MANAGER }
     };
 
     if (!NIFAT32_init(&params)) {

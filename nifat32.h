@@ -67,6 +67,7 @@ typedef struct {
     unsigned char ec;       // error clusters count
     disk_io_t     disk_io;
     log_io_t      logg_io;
+    mm_manager_t  mm_manager;
 } nifat32_params_t;
 
 #define BOOT_MULTIPLIER 2654435761U // Knuth's multiplier (2^32 / φ)
