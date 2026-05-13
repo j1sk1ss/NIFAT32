@@ -62,8 +62,8 @@ typedef struct mm_block {
 
 typedef struct {
     int   (*init)();
-    void* (*malloc)(unsigned int);
-    int   (*free)(void*);
+    void* (*malloc)(unsigned long);
+    void  (*free)(void*);
 } mm_manager_t;
 
 #define DEFAULT_MM_MANAGER NULL, NULL, NULL
@@ -78,7 +78,7 @@ Params:
 
 Returns 1 if init was succeess.
 */
-int nft32_setup_mm_manager(int (*init)(), void* (*malloc)(unsigned int), int (*free)(void*));
+int nft32_setup_mm_manager(int (*init)(), void* (*malloc)(unsigned long), void (*free)(void*));
 
 /*
 Init first memory block in memory manager.
@@ -98,7 +98,7 @@ Params:
 Return NULL if can't allocate memory.
 Return pointer to allocated memory.
 */
-void* nft32_malloc_s(unsigned int size);
+void* nft32_malloc_s(unsigned long size);
 
 /*
 Free allocated memory.
@@ -110,7 +110,7 @@ Params:
 Return -1 if something goes wrong.
 Return 1 if free success.
 */
-int nft32_free_s(void* ptr);
+void nft32_free_s(void* ptr);
 
 #ifdef __cplusplus
 }

@@ -97,7 +97,11 @@ int main(int argc, char* argv[]) {
             .fd_fprintf  = _mock_fprintf_,
             .fd_vfprintf = _mock_vfprintf_
         },
-        .mm_manager = { DEFAULT_MM_MANAGER }
+        .mm_manager = { 
+            .init   = NULL,
+            .malloc = malloc,
+            .free   = free
+        }
     };
 
     if (!NIFAT32_init(&params)) {

@@ -14,6 +14,7 @@ static int _mm_init() {
         _mm_head->free  = 1;
         _mm_head->next  = NULL;
     }
+    return 1;
 #endif
     print_warn("init() uses unimplemented built-in function! Don't provide 'NON_DEFAULT_MM_MANAGER' or provide essential functions!");
     return 1;
@@ -49,7 +50,7 @@ static int __coalesce_memory() {
 lock_t _malloc_lock = NULL_LOCK;
 #endif
 
-static void* __malloc_s(unsigned int size, unsigned int offset, int prepare_mem) {
+static void* __malloc_s(unsigned long size, unsigned int offset, int prepare_mem) {
 #ifndef NON_DEFAULT_MM_MANAGER
     if (!size) return NULL;
     if (prepare_mem) __coalesce_memory();
@@ -96,7 +97,7 @@ static void* __malloc_s(unsigned int size, unsigned int offset, int prepare_mem)
     return NULL;
 }
 
-static void* _malloc_s(unsigned int size) {
+static void* _malloc_s(unsigned long size) {
 #ifndef NON_DEFAULT_MM_MANAGER
     void* ptr = __malloc_s(size, NO_OFFSET, 0);
     if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
@@ -106,47 +107,46 @@ static void* _malloc_s(unsigned int size) {
     return NULL;
 }
 
-void* nft32_malloc_s(unsigned int size) {
+void* nft32_malloc_s(unsigned long size) {
     return _manager.malloc ? _manager.malloc(size) : NULL;
 }
 
-static int _free_s(void* ptr) {
+static void _free_s(void* ptr) {
 #ifndef NON_DEFAULT_MM_MANAGER
     if (!ptr || ptr < (void*)_buffer || ptr >= (void*)(_buffer + ALLOC_BUFFER_SIZE)) {
         print_mm("ptr=%p is not valid!", ptr);
-        return 0;
+        return;
     }
     
     mm_block_t* block = (mm_block_t*)((unsigned char*)ptr - sizeof(mm_block_t));
     if (block->magic != MM_BLOCK_MAGIC) {
         print_mm("ptr=%p point to block with incorrect magic=%u!", ptr, block->magic);
-        return 0;
+        return;
     }
 
     if (block->free) {
         print_mm("ptr=%p point to already freed block!", ptr);
-        return 0;
+        return;
     }
 
     block->free = 1;
     _allocated -= block->size + sizeof(mm_block_t);
     print_mm("Free [%p] with [%i] size / [%i]", ptr, block->size, _allocated);
-    return 1;
+    return;
 #endif
     print_warn("free() uses unimplemented built-in function! Don't provide 'NON_DEFAULT_MM_MANAGER' or provide essential functions!");
-    return 1;
 }
 
-int nft32_free_s(void* ptr) {
-    return _manager.free ? _manager.free(ptr) : NULL;
+void nft32_free_s(void* ptr) {
+    _manager.free ? _manager.free(ptr) : (void)1;
 }
 
-int nft32_setup_mm_manager(int (*init)(), void* (*malloc)(unsigned int), int (*free)(void*)) {
-    if (!init)   _manager.init   = nft32_mm_init;
+int nft32_setup_mm_manager(int (*init)(), void* (*malloc)(unsigned long), void (*free)(void*)) {
+    if (!init)   _manager.init   = _mm_init;
     else         _manager.init   = init;
-    if (!malloc) _manager.malloc = nft32_malloc_s;
+    if (!malloc) _manager.malloc = _malloc_s;
     else         _manager.malloc = malloc;
-    if (!free)   _manager.free   = nft32_free_s;
+    if (!free)   _manager.free   = _free_s;
     else         _manager.free   = free;
     return 1;
 }
