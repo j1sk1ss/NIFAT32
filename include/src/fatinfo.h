@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    FAT filesystem metadata shared across NIFAT32 modules.
+
+Dependencies:
+    - None.
+*/
+
 #ifndef FATINFO_H_
 #define FATINFO_H_
 #ifdef __cplusplus

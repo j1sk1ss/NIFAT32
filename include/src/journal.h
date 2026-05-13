@@ -1,3 +1,23 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Journal entry structures and operations for restoring interrupted metadata changes.
+
+Dependencies:
+    - std/str.h - Memory helpers.
+    - std/logging.h - Logging helpers.
+    - std/checksum.h - Journal checksum type.
+    - std/threading.h - Journal locks.
+    - src/fat.h - Cluster types.
+    - src/disk.h - Sector I/O primitives.
+    - src/errors.h - Error registration.
+    - src/cluster.h - Cluster I/O utilities.
+    - src/fatinfo.h - FAT filesystem metadata.
+*/
+
 #ifndef JOURNAL_H_
 #define JOURNAL_H_
 #ifdef __cplusplus

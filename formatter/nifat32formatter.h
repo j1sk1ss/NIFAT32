@@ -1,3 +1,24 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    NIFAT32 formatter constants, on-disk structures, and formatting helpers.
+
+Dependencies:
+    - dirent.h - Directory traversal.
+    - sys/stat.h - File metadata.
+    - stdio.h - Standard I/O declarations.
+    - unistd.h - POSIX I/O helpers.
+    - fcntl.h - File control options.
+    - stdlib.h - Standard library utilities.
+    - string.h - String utilities.
+    - ctype.h - Character classification.
+    - stdint.h - Fixed-width integer types.
+    - include/options.h - Formatter option parser.
+*/
+
 #ifndef FORMATTER_H_
 #define FORMATTER_H_
 

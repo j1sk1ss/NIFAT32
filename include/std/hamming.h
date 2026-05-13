@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Hamming 15,11 encode/decode helpers and bit macros.
+
+Dependencies:
+    - None.
+*/
+
 #ifndef HAMMING_H_
 #define HAMMING_H_
 #ifdef __cplusplus
@@ -23,7 +35,7 @@ Params:
 
 Return pointer to dst.
 */
-void* nft32_unnft32_pack_memory(const encoded_t* src, byte_t* dst, int l);
+void* nft32_unpack_memory(const encoded_t* src, byte_t* dst, int l);
 
 /*
 Pack memory function should encode src pointed data to hamming 15,11.

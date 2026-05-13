@@ -43,7 +43,7 @@ static int __read_error__(int index, error_code_t* c, fat_data_t* fi, int copy_i
         return 0;
     }
 
-    nft32_unnft32_pack_memory((const decoded_t*)entry_buffer, (byte_t*)c, sizeof(error_code_t));
+    nft32_unpack_memory((const decoded_t*)entry_buffer, (byte_t*)c, sizeof(error_code_t));
     return 1;
 } 
 

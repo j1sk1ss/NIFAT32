@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Minimal memory, string, and character helpers used by NIFAT32.
+
+Dependencies:
+    - std/null.h - NULL definition.
+*/
+
 #ifndef STR_H_
 #define STR_H_
 #ifdef __cplusplus

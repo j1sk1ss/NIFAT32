@@ -1,3 +1,22 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Test helpers and timing macros for NIFAT32 tests.
+
+Dependencies:
+    - ../nifat32.h - Public NIFAT32 API.
+    - stdio.h - Standard I/O declarations.
+    - unistd.h - POSIX I/O helpers.
+    - fcntl.h - File control options.
+    - string.h - String utilities.
+    - stdlib.h - Standard library utilities.
+    - time.h - Time declarations.
+    - sys/time.h - High-resolution time utilities.
+*/
+
 #ifndef NIFAT32_TEST_
 #define NIFAT32_TEST_
 

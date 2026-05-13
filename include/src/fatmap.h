@@ -1,3 +1,21 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Cluster allocation bitmap used to find and mark free clusters.
+
+Dependencies:
+    - std/mm.h - Filesystem memory manager.
+    - std/str.h - Memory helpers.
+    - std/null.h - NULL definition.
+    - std/logging.h - Logging helpers.
+    - std/threading.h - Bitmap locks.
+    - src/errors.h - Error registration.
+    - src/fatinfo.h - FAT filesystem metadata.
+*/
+
 #ifndef FATMAP_H_
 #define FATMAP_H_
 #ifdef __cplusplus

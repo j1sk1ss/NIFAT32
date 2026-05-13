@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Portable NULL definition for C and C++ consumers.
+
+Dependencies:
+    - None.
+*/
+
 #ifndef NULL_H_
 #define NULL_H_
 

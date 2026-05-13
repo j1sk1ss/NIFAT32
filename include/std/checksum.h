@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Checksum type and Murmur3 x86 32-bit checksum function.
+
+Dependencies:
+    - None.
+*/
+
 #ifndef CHECKSUM_H_
 #define CHECKSUM_H_
 #ifdef __cplusplus

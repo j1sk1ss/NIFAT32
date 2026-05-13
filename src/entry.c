@@ -19,7 +19,7 @@ static int _read_encoded_cluster(
         return 0;
     }
 
-    nft32_unnft32_pack_memory((const encoded_t*)enc, dec, dec_size);
+    nft32_unpack_memory((const encoded_t*)enc, dec, dec_size);
     return 1;
 }
 

@@ -1,3 +1,15 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Error code enumeration used by NIFAT32 modules.
+
+Dependencies:
+    - None.
+*/
+
 #ifndef ERRCODES_H_
 #define ERRCODES_H_
 #ifdef __cplusplus

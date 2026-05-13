@@ -1,38 +1,19 @@
 /*
 License:
-    MIT License
-
-    Copyright (c) 2025 Nikolay 
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
 
 Description:
-    This file contains main tools for working with clusters as abstraction above sectors
+    Cluster-level read, write, allocation, and chain utilities above disk sectors.
 
 Dependencies:
-    - fat.h - Reading data from file allocation table and writing.
-    - disk.h - Working with disk sectors.
-    - errors.h - Error logging.
-    - fatinfo.h - Info structure about current FS setup.
-    - null.h - NULL.
-    - logging.h - Logging tools.
-    - threading.h - Locks for IO operations (cluster allocation).
+    - src/fat.h - FAT cluster types and table operations.
+    - src/disk.h - Sector I/O primitives.
+    - src/errors.h - Error registration.
+    - src/fatinfo.h - FAT filesystem metadata.
+    - std/null.h - NULL definition.
+    - std/logging.h - Logging helpers.
+    - std/threading.h - I/O locks.
 */
 
 #ifndef CLUSTER_H_

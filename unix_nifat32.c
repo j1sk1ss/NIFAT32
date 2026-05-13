@@ -391,7 +391,7 @@ upper: {}
                     NIFAT32_read_content2buffer(ci, 0, (buffer_t)cluster_data, 8192);
 
                     unsigned char decoded[4096] = { 0 };
-                    nft32_unnft32_pack_memory((encoded_t*)cluster_data, decoded, sizeof(decoded));
+                    nft32_unpack_memory((encoded_t*)cluster_data, decoded, sizeof(decoded));
 
                     unsigned int entries = (sizeof(cluster_data) / sizeof(short)) / sizeof(directory_entry_t);
                     directory_entry_t* entry = (directory_entry_t*)decoded;

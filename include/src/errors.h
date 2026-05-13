@@ -1,3 +1,18 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Persistent error storage and error registration helpers.
+
+Dependencies:
+    - std/hamming.h - Encoded error data helpers.
+    - std/errcodes.h - Error code enumeration.
+    - src/disk.h - Sector I/O primitives.
+    - src/fatinfo.h - FAT filesystem metadata.
+*/
+
 #ifndef ERRORS_H_
 #define ERRORS_H_
 #ifdef __cplusplus

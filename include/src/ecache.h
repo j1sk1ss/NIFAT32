@@ -1,3 +1,18 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Entry cache tree structures and operations for directory lookup.
+
+Dependencies:
+    - std/mm.h - Filesystem memory manager.
+    - std/str.h - String helpers.
+    - std/checksum.h - Checksum type.
+    - src/fat.h - Cluster address type.
+*/
+
 #ifndef ECACHE_H_
 #define ECACHE_H_
 #ifdef __cplusplus

@@ -1,3 +1,31 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Public NIFAT32 API, mount parameters, and boot sector structures.
+
+Dependencies:
+    - std/mm.h - Filesystem memory manager.
+    - std/str.h - String and memory helpers.
+    - std/null.h - NULL definition.
+    - std/hamming.h - Encoded data helpers.
+    - std/logging.h - Logging helpers.
+    - std/fatname.h - FAT 8.3 name conversion.
+    - std/errcodes.h - Error code enumeration.
+    - std/checksum.h - Checksum type.
+    - std/threading.h - Lock primitives.
+    - src/fat.h - FAT operations.
+    - src/disk.h - Sector I/O primitives.
+    - src/entry.h - Directory entry operations.
+    - src/ecache.h - Entry cache structures.
+    - src/ctable.h - Content table operations.
+    - src/errors.h - Error registration.
+    - src/cluster.h - Cluster I/O utilities.
+    - src/fatinfo.h - FAT filesystem metadata.
+*/
+
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
 #ifdef __cplusplus

@@ -80,7 +80,7 @@ static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
     }
 
     cluster_val_t table_value = 0;
-    nft32_unnft32_pack_memory(table_buffer, (byte_t*)&table_value, sizeof(cluster_val_t));
+    nft32_unpack_memory(table_buffer, (byte_t*)&table_value, sizeof(cluster_val_t));
     return table_value & 0x0FFFFFFF;
 }
 

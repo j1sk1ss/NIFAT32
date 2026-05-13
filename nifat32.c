@@ -40,7 +40,7 @@ int NIFAT32_init(nifat32_params_t* params) {
     }
 
     nifat32_bootsector_t bootstruct;
-    nft32_unnft32_pack_memory((encoded_t*)&encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
+    nft32_unpack_memory((encoded_t*)&encoded_bs, (byte_t*)&bootstruct, sizeof(nifat32_bootsector_t));
 
     checksum_t bcheck = bootstruct.checksum;
     bootstruct.checksum = 0;

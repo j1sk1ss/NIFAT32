@@ -58,7 +58,7 @@ static inline int _set_byte(encoded_t* ptr, int offset, byte_t byte) {
     return 1;
 }
 
-void* nft32_unnft32_pack_memory(const encoded_t* src, byte_t* dst, int l) {
+void* nft32_unpack_memory(const encoded_t* src, byte_t* dst, int l) {
     for (int i = 0; i < l; i++) dst[i] = _get_byte(src, i);
     return (void*)dst;
 }

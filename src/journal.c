@@ -37,7 +37,7 @@ static int __read_journal__(int index, journal_entry_t* entry, fat_data_t* fi, i
         return 0;
     }
 
-    nft32_unnft32_pack_memory((const decoded_t*)entry_buffer, (byte_t*)entry, sizeof(journal_entry_t));
+    nft32_unpack_memory((const decoded_t*)entry_buffer, (byte_t*)entry, sizeof(journal_entry_t));
     return 1;    
 } 
 

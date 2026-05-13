@@ -1,3 +1,17 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Command-line option definitions and parser interface for the formatter.
+
+Dependencies:
+    - stdio.h - Standard I/O declarations.
+    - string.h - String utilities.
+    - stdlib.h - Standard library utilities.
+*/
+
 #ifndef OPTIONS_H_
 #define OPTIONS_H_
 

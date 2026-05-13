@@ -1,38 +1,19 @@
 /*
 License:
-    MIT License
-
-    Copyright (c) 2025 Nikolay 
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
 
 Description:
-    This file contains main tools for working with content table and ci.
+    Content table and content index utilities.
 
 Dependencies:
-    - mm.h - FS memory manager.
-    - null.h - NULL.
-    - threading.h - Locks for table write.
-    - fat.h - Cluster typedef.
-    - entry.h - For directry_entry_t structure.
-    - ecache.h - Ecache is saved in a content entry.
-    - fatinfo.h - FAT information.
+    - std/mm.h - Filesystem memory manager.
+    - std/null.h - NULL definition.
+    - std/threading.h - Table locks.
+    - src/fat.h - Cluster types.
+    - src/entry.h - Directory entry structures.
+    - src/ecache.h - Entry cache structures.
+    - src/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef CTABLE_H_

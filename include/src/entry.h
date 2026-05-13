@@ -1,3 +1,24 @@
+/*
+License:
+    MIT License. See LICENSE file in project root.
+    Copyright (c) 2025 Nikolay
+
+Description:
+    Directory entry structures and operations for create, search, edit, and remove.
+
+Dependencies:
+    - std/mm.h - Filesystem memory manager.
+    - std/logging.h - Logging helpers.
+    - std/hamming.h - Encoded data helpers.
+    - std/fatname.h - FAT 8.3 name conversion.
+    - std/checksum.h - Entry checksum type.
+    - src/ecache.h - Entry cache structures.
+    - src/errors.h - Error registration.
+    - src/fatinfo.h - FAT filesystem metadata.
+    - src/cluster.h - Cluster I/O utilities.
+    - src/journal.h - Journal operations.
+*/
+
 #ifndef ENTRY_H_
 #define ENTRY_H_
 #ifdef __cplusplus
