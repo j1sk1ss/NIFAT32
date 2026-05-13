@@ -142,9 +142,9 @@ int DSK_write_sector(sector_addr_t sa, const unsigned char* data, int data_size)
     }
 
     return 0;
-#else
-    return 1;
 #endif
+    UNUSED(sa, data, data_size);
+    return 1;
 }
 
 int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigned char* data, int data_size, int sc) {
@@ -176,9 +176,9 @@ int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigne
     }
 
     return 0;
-#else
-    return 1;
 #endif
+    UNUSED(sa, offset, data, data_size, sc);
+    return 1;
 }
 
 int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char* buffer, int buff_size) {
@@ -198,9 +198,9 @@ int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char
     }
 
     return 0;
-#else
-    return 1;
 #endif
+    UNUSED(src, dst, sc, buffer, buff_size);
+    return 1;
 }
 
 int DSK_get_sector_size() {

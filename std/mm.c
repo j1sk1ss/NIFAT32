@@ -94,6 +94,8 @@ static void* __malloc_s(unsigned long size, unsigned int offset, int prepare_mem
     THR_release_write(&_malloc_lock, get_thread_num());
     return prepare_mem ? NULL : __malloc_s(size, offset, 1);
 #endif
+    UNUSED(size, offset, prepare_mem);
+    print_warn("__malloc_s() not implemented. Don't provide the 'NIFAT32_RO'!");
     return NULL;
 }
 
@@ -103,6 +105,7 @@ static void* _malloc_s(unsigned long size) {
     if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
     return ptr;
 #endif
+    UNUSED(size);
     print_warn("malloc() uses unimplemented built-in function! Don't provide 'NON_DEFAULT_MM_MANAGER' or provide essential functions!");
     return NULL;
 }
@@ -134,6 +137,7 @@ static void _free_s(void* ptr) {
     print_mm("Free [%p] with [%i] size / [%i]", ptr, block->size, _allocated);
     return;
 #endif
+    UNUSED(ptr);
     print_warn("free() uses unimplemented built-in function! Don't provide 'NON_DEFAULT_MM_MANAGER' or provide essential functions!");
 }
 

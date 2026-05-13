@@ -64,7 +64,6 @@ int NIFAT32_init(nifat32_params_t* params) {
         bootstruct.extended_section.checksum = exbcheck;
     }
 
-    _fs_data.fat_type       = 32;
     _fs_data.journals_count = params->jc;
     _fs_data.fat_count      = bootstruct.table_count;
     _fs_data.total_sectors  = bootstruct.total_sectors_32;
@@ -107,7 +106,7 @@ int NIFAT32_init(nifat32_params_t* params) {
 
     if (params->bs_num > 0) {
         print_warn("%i of boot sector records are incorrect. Attempt to fix...", params->bs_num);
-        for (int i = 0; i < params->bs_count; i++) {
+        for (unsigned char i = 0; i < params->bs_count; i++) {
             if (i == params->bs_num) continue;
             if (!DSK_write_sector(GET_BOOTSECTOR(i, params->ts), (const_buffer_t)encoded_bs, params->disk_io.sector_size)) {
                 print_warn("Attempt for bootsector restore failed!");
@@ -123,6 +122,12 @@ int NIFAT32_init(nifat32_params_t* params) {
         if (params->fat_cache & HARD_CACHE) {
             if (!fat_cache_hload(&_fs_data)) {
                 print_warn("FAT hard cache init error!");
+            }
+        }
+
+        if (params->fat_cache & MAP_CACHE) {
+            if (!fatmap_init(&_fs_data)) {
+                print_warn("FAT map cache init error!");
             }
         }
     }
@@ -248,6 +253,8 @@ ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode) 
         return -1;
     }
 
+    /* Open extendet root directory (Fat32 base directory)
+       as a default content index. */
     directory_entry_t meta = { .dca = _fs_data.ext_root_cluster, .rca = FAT_CLUSTER_BAD };
     if (!path) {
         setup_content(ci, 1, "NIFAT32_DIR", &meta, mode);
@@ -432,13 +439,14 @@ int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_b
         }
     }
 
-    // directory_entry_t entry;
+    // directory_entry_t entry; TODO: calculate total size and update
     // create_entry(get_content_name(ci), 0, get_content_data_ca(ci), total_size + total_written, &entry, &_fs_data);
     // entry_edit(get_content_root_ca(ci), get_content_name(ci), &entry, &_fs_data);
     return total_written;
-#else
-    return 1;
 #endif
+    UNUSED(ci, offset, data, data_size);
+    print_warn("NIFAT32_write_buffer2content() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
@@ -456,9 +464,10 @@ int NIFAT32_change_meta(const ci_t ci, const cinfo_t* info) {
     }
     
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(ci, info);
+    print_warn("NIFAT32_change_meta() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
@@ -496,9 +505,10 @@ int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size) {
     create_entry(get_content_name(ci), 0, start_ca, end_size, &entry);
     entry_edit(get_content_root_ca(ci), NO_ECACHE, get_content_name(ci), &entry, &_fs_data);
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(ci, offset, size);
+    print_warn("NIFAT32_truncate_content() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
@@ -537,9 +547,10 @@ int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve) {
     }
 
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(ci, info, reserve);
+    print_warn("NIFAT32_put_content() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 #ifndef NIFAT32_RO
@@ -646,9 +657,10 @@ int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep) {
     }
 
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(src, dst, deep);
+    print_warn("NIFAT32_copy_content() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 int NIFAT32_delete_content(ci_t ci) {
@@ -662,9 +674,10 @@ int NIFAT32_delete_content(ci_t ci) {
 
     NIFAT32_close_content(ci);
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(ci);
+    print_warn("NIFAT32_delete_content() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }
 
 int NIFAT32_stat_content(const ci_t ci, cinfo_t* info) {

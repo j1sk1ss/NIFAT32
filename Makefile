@@ -1,19 +1,20 @@
 CFLAGS = -fPIC -shared -nostdlib -nodefaultlibs -Iinclude
 # Errors
 CFLAGS += -Wall -Wextra -Wcomment
-CC ?= gcc-14
+CC = gcc-14
 
 # Logger flags
-ERROR_LOGS ?= 1
-WARN_LOGS ?= 1
-INFO_LOGS ?= 1
-DEBUG_LOGS ?= 1
-IO_LOGS ?= 1
+ERROR_LOGS ?= 0
+WARN_LOGS ?= 0
+INFO_LOGS ?= 0
+DEBUG_LOGS ?= 0
+IO_LOGS ?= 0
 MEM_LOGS ?= 0
-LOGGING_LOGS ?= 1
-SPECIAL_LOGS ?= 1
+LOGGING_LOGS ?= 0
+SPECIAL_LOGS ?= 0
 
 # Build mode flags
+NO_HEAP ?= 0
 NIFAT32_RO ?= 0
 NO_DEFAULT_MM_MANAGER ?= 0
 ALLOC_BUFFER_SIZE ?=
@@ -58,6 +59,10 @@ endif
 
 ifeq ($(NO_DEFAULT_MM_MANAGER), 1)
     CFLAGS += -DNO_DEFAULT_MM_MANAGER
+endif
+
+ifeq ($(NO_HEAP), 1)
+    CFLAGS += -DNO_HEAP
 endif
 
 ifneq ($(ALLOC_BUFFER_SIZE),)

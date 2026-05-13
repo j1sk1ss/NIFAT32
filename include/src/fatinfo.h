@@ -17,9 +17,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    char          bs_count;
+    unsigned char bs_count;
     unsigned int  fat_size;
-    unsigned int  fat_type;
     unsigned char fat_count;
     unsigned int  first_data_sector;
     unsigned int  total_sectors;

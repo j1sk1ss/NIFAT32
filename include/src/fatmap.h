@@ -30,8 +30,8 @@ extern "C" {
 #include <src/errors.h>
 #include <src/fatinfo.h>
 
-#define BITMAP_NFREE 0x00000000
-#define BITMAP_IS_FREE(val, pos)    (!(((val) >> (pos)) & 1))
+#define BITMAP_NFREE             0x00000000
+#define BITMAP_IS_FREE(val, pos) (!(((val) >> (pos)) & 1))
 typedef unsigned int bitmap_val_t;
 
 #define BITS_PER_WORD (sizeof(bitmap_val_t) * 8)

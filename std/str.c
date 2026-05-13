@@ -73,7 +73,6 @@ unsigned int nft32_str_strlen(const char* str) {
 
 char* nft32_str_strcpy(char* dst, const char* src) {
     if (!nft32_str_strlen(src)) return NULL;
-
     int i = 0;
     while (src[i]) {
         dst[i] = src[i];

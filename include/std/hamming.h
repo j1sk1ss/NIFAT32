@@ -20,7 +20,7 @@ extern "C" {
 #define SET_BIT(byte, pos, bit) (bit ? (byte | (1 << pos)) : (byte & ~(1 << pos)))
 #define TOGGLE_BIT(byte, pos)   (byte ^ (1 << pos))
 
-typedef unsigned char byte_t;
+typedef unsigned char  byte_t;
 typedef unsigned short encoded_t;
 typedef unsigned short decoded_t;
 

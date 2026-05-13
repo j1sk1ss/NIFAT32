@@ -2,6 +2,7 @@
 
 static cluster_val_t* _fat = NULL;
 int fat_cache_init(fat_data_t* fi) {
+#ifndef NO_FAT_CACHE
     _fat = (cluster_val_t*)nft32_malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
         print_error("nft32_malloc_s() error!");
@@ -11,9 +12,14 @@ int fat_cache_init(fat_data_t* fi) {
 
     for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) _fat[ca] = FAT_CLUSTER_BAD;
     return 1;
+#endif
+    UNUSED(fi);
+    print_warn("fat_cache_init() is not implemented! Don't provide the 'NO_FAT_CACHE'!");
+    return 1;
 }
 
 int fat_cache_hload(fat_data_t* fi) {
+#ifndef NO_FAT_CACHE
     if (!_fat) return 0;
     for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) {
         cluster_val_t cls = read_fat(ca, fi);
@@ -23,11 +29,19 @@ int fat_cache_hload(fat_data_t* fi) {
     }
 
     return 1;
+#endif
+    UNUSED(fi);
+    print_warn("fat_cache_hload() is not implemented! Don't provide the 'NO_FAT_CACHE'!");
+    return 1;
 }
 
 int fat_cache_unload() {
+#ifndef NO_FAT_CACHE
     if (_fat) nft32_free_s(_fat);
     else return 0;
+    return 1;
+#endif
+    print_warn("fat_cache_unload() is not implemented! Don't provide the 'NO_FAT_CACHE'!");
     return 1;
 }
 
@@ -61,9 +75,9 @@ int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
 
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(ca, value, fi);
+    return 1;
 }
 
 static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
@@ -109,7 +123,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
         }
     }
 
-    _fat[ca] = table_value;
+    if (_fat) _fat[ca] = table_value;
     if (table_value == FAT_CLUSTER_FREE) fatmap_set(ca);
     else fatmap_unset(ca);
 

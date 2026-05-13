@@ -24,9 +24,9 @@ extern "C" {
 #include <std/checksum.h>
 #include <src/fat.h>
 
-#define ECACHE_BLACK   0b00000001
-#define ECACHE_FILE    0b00000010
-#define ECACHE_DIR     0b00000100
+#define ECACHE_BLACK 0b00000001
+#define ECACHE_FILE  0b00000010
+#define ECACHE_DIR   0b00000100
 
 #define IS_ECACHE_RED(n)     (((n) != NULL) && (((n)->flags & ECACHE_BLACK) == 0))
 #define IS_ECACHE_BLACK(n)   (((n) != NULL) && (((n)->flags & ECACHE_BLACK) != 0))
@@ -39,11 +39,11 @@ extern "C" {
 #define SET_ECACHE_DIR(n)    do { if (n) (n)->flags |= ECACHE_DIR; } while (0)
 
 #define GET_ECACHE_COLOR(n) (((n) != NULL) ? ((n)->flags & ECACHE_BLACK) : ECACHE_BLACK)
-#define SET_ECACHE_COLOR_VAL(n, val) do { \
-    if (n) { \
+#define SET_ECACHE_COLOR_VAL(n, val) do {            \
+    if (n) {                                         \
         if (val & ECACHE_BLACK) SET_ECACHE_BLACK(n); \
-        else SET_ECACHE_RED(n); \
-    } \
+        else SET_ECACHE_RED(n);                      \
+    }                                                \
 } while (0)
 
 typedef struct ecache {

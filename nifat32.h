@@ -86,10 +86,11 @@ typedef struct fat_BS {
 #define NO_CACHE   0b00000000
 #define CACHE      0b00000001
 #define HARD_CACHE 0b00000010
+#define MAP_CACHE  0b00000100
 typedef struct {
-    char          fat_cache;
-    char          bs_num;   // bootsectors number
-    char          bs_count; // bootsector count
+    char          fat_cache : 3;
+    unsigned char bs_num;   // bootsectors number
+    unsigned char bs_count; // bootsector count
     unsigned int  ts;       // total sectors
     unsigned char jc;       // journals count
     unsigned char ec;       // error clusters count
@@ -100,6 +101,12 @@ typedef struct {
 
 #define BOOT_MULTIPLIER 2654435761U // Knuth's multiplier (2^32 / φ)
 #define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 2))
+
+#ifdef NO_HEAP
+    #define NIFAT32_NO_ECACHE
+    #define NO_FAT_CACHE
+    #define NO_FAT_MAP
+#endif
 
 /*
 Load general information.

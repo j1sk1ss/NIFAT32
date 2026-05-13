@@ -29,14 +29,16 @@ typedef unsigned int sector_addr_t;
 #define READ_LOCK  1
 typedef struct {
     sector_addr_t start;
-    int count;
-    int ro;
+    int           count;
+    int           ro;
 } io_area_t;
 
-#define IO_THREADS_MAX 50
+#ifndef IO_THREADS_MAX
+    #define IO_THREADS_MAX 25
+#endif
 typedef struct {
     io_area_t areas[IO_THREADS_MAX];
-    lock_t lock;
+    lock_t    lock;
 } io_thread_t;
 
 typedef struct {

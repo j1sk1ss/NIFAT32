@@ -155,9 +155,9 @@ int entry_edit(
     int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
     journal_solve_operation(context.ji, fi);
     return result;
-#else
-    return 1;
 #endif
+    UNUSED(ca, cache, name, meta, fi);
+    return 1;
 }
 
 int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi) {
@@ -237,9 +237,9 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
         ca = nca;
     } while (!is_cluster_end(ca));
     return -1;
-#else
-    return 1;
 #endif
+    UNUSED(ca, meta, cache, fi);
+    return 1;
 }
 
 #ifndef NIFAT32_RO
@@ -316,9 +316,9 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __res
     int result = entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
     journal_solve_operation(ctx.ji, fi);
     return result;
-#else
-    return 1;
 #endif
+    UNUSED(ca, name, cache, fi);
+    return 1;
 }
 
 int create_entry(

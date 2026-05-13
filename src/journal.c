@@ -134,9 +134,9 @@ int restore_from_journal(fat_data_t* fi) {
 
     _journal_index = 0;
     return 1;
-#else
-    return 1;
 #endif
+    UNUSED(fi);
+    return 1;
 }
 
 lock_t _journal_lock = NULL_LOCK;
@@ -166,9 +166,10 @@ int journal_add_operation(unsigned char op, cluster_addr_t ca, int offset, unsqu
     _write_journal(entry_index, &j_entry, fi);
     
     return entry_index;
-#else
-    return -1;
 #endif
+    UNUSED(op, ca, offset, entry, fi);
+    print_warn("journal_add_operation() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return -1;
 }
 
 int journal_solve_operation(int index, fat_data_t* fi) {
@@ -177,7 +178,8 @@ int journal_solve_operation(int index, fat_data_t* fi) {
     print_debug("journal_solve_operation(index=%i)", index);
     journal_entry_t solved = { 0x00 };
     return _write_journal(index, &solved, fi);
-#else
-    return 1;
 #endif
+    UNUSED(index, fi);
+    print_warn("journal_solve_operation() not implemented. Don't provide the 'NIFAT32_RO'!");
+    return 1;
 }

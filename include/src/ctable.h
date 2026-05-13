@@ -30,17 +30,19 @@ extern "C" {
 #include <src/ecache.h>
 #include <src/fatinfo.h>
 
-#define CONTENT_TABLE_SIZE 50
+#ifndef CONTENT_TABLE_SIZE
+    #define CONTENT_TABLE_SIZE 50
+#endif
 
 /* Content Index - ci */
 typedef int ci_t;
 
-typedef struct fat_file {
+typedef struct {
     char name[9];
     char extension[4];
 } file_t;
 
-typedef struct fat_directory {
+typedef struct {
     char name[12];
 } directory_t;
 

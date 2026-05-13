@@ -419,7 +419,10 @@ There are several compile flags for changing library behaviour:
 | Make variable | C macro | Description |
 |-|-|-|
 | NIFAT32_RO | NIFAT32_RO | Builds the library in Read-Only mode. Write operations, content creation, copy, truncate and delete won't change the image. |
-| NIFAT32_NO_ECACHE | NIFAT32_NO_ECACHE | Excludes from an instance all code for indexation. Operation index content won't do anything | 
+| - | NO_HEAP | Exclude from an instance any code which involves heap usage (mallocs) |
+| - | NIFAT32_NO_ECACHE | Excludes from an instance all code for indexation. Operation index content won't do anything | 
+| - | NO_FAT_CACHE | Excludes from an instance all code for fat caching |
+| - | NO_FAT_MAP | Excludes from an instance all code for fat map |
 | NO_DEFAULT_MM_MANAGER | NO_DEFAULT_MM_MANAGER | Excludes the default built-in memory manager. Use it when you provide your own `mm_manager` functions in `nifat32_params_t`. |
 | ALLOC_BUFFER_SIZE | ALLOC_BUFFER_SIZE | Changes the static buffer size for the default memory manager. This value is used only when the default manager is enabled. |
 
