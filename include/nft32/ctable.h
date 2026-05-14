@@ -104,7 +104,7 @@ Params:
 Returns 1 if succeeds. Otherwise will return 0.
 */
 int setup_content(
-    ci_t ci, int is_dir, const char* __restrict name83, directory_entry_t* __restrict meta, unsigned char mode
+    ci_t ci, int is_dir, const char* name83, directory_entry_t* meta, unsigned char mode
 );
 
 /*

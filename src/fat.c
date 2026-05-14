@@ -67,14 +67,19 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
 #ifndef NIFAT32_RO
     print_debug("write_fat(ca=%u, value=%u)", ca, value);
-    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
+    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) {
+        print_error("Can't write cluster! Wrong cluster address! %u", ca);
+        errors_register_error(WRITE_FAT_ERROR, fi);
+        return 0;
+    }
     
     if (_fat) _fat[ca] = value;
     if (value == FAT_CLUSTER_FREE) fatmap_set(ca);
     else fatmap_unset(ca);
 
-    for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
-    return 1;
+    int result = 1;
+    for (int i = 0; i < fi->fat_count; i++) result = __write_fat__(ca, value, fi, i) && result;
+    return result;
 #endif
     UNUSED(ca, value, fi);
     return 1;
@@ -100,7 +105,12 @@ static cluster_val_t __read_fat__(cluster_addr_t ca, fat_data_t* fi, int fat) {
 
 cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
     print_debug("read_fat(ca=%u)", ca);
-    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return FAT_CLUSTER_BAD;
+    if (ca < fi->ext_root_cluster || ca > fi->total_clusters) {
+        print_error("Can't read cluster! Wrong cluster address! %u", ca);
+        errors_register_error(READ_FAT_ERROR, fi);
+        return FAT_CLUSTER_BAD;
+    }
+
     if (_fat && _fat[ca] != FAT_CLUSTER_BAD) {
         print_debug("cached read_fat(ca=%u) -> %u", ca, _fat[ca]);
         return _fat[ca];

@@ -4,8 +4,11 @@ static int _validate_entry(directory_entry_t* entry) {
 #ifndef NO_ENTRY_VALIDATION
     checksum_t entry_checksum = entry->checksum;
     entry->checksum = 0;
-    if (nft32_murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) != entry_checksum) return 0;
-    else entry->checksum = entry_checksum;
+    if (nft32_murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) == entry_checksum) entry->checksum = entry_checksum;
+    else {
+        print_error("Entry validation error! Checksums aren't the same!");
+        return 0;
+    }
 #endif
     return 1;
 }
@@ -14,7 +17,12 @@ static int _read_encoded_cluster(
     cluster_addr_t ca, buffer_t __restrict enc, int enc_size, buffer_t __restrict dec, int dec_size, fat_data_t* __restrict fi
 ) {
     print_debug("_read_encoded_cluster(ca=%u)", ca);
-    if (!enc || !dec || is_cluster_bad(ca)) return 0;
+    if (!enc || !dec || is_cluster_bad(ca)) {
+        print_error("read_cluster() encountered an error. ecn == NULL, dec == NULL or ca is bad! Aborting...");
+        errors_register_error(BAD_CLUSTER_ERROR, fi);
+        return 0;
+    }
+
     if (!read_cluster(ca, enc, enc_size, fi)) {
         print_error("read_cluster() encountered an error. Aborting...");
         errors_register_error(READ_CLUSTER_ERROR, fi);
@@ -60,7 +68,7 @@ int entry_iterate(
     return exit;
 }
 
-static int _index_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* entry, void* ctx) {
+static int _index_handler(entry_info_t* info __attribute__((unused)), directory_entry_t* __restrict entry, void* __restrict ctx) {
     ecache_t** context = (ecache_t**)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) {
         return 0;
@@ -100,7 +108,7 @@ static int _search_handler(entry_info_t* info, directory_entry_t* entry, void* c
 }
 
 int entry_search(
-    const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+    const char* name, cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* meta, fat_data_t* __restrict fi
 ) {
     print_debug("entry_search(name=%s, ca=%u, cache=%s)", name, ca, cache != NO_ECACHE ? "YES" : "NO");
     if (cache != NO_ECACHE) {
@@ -143,19 +151,19 @@ static int _edit_handler(entry_info_t* info, directory_entry_t* entry, void* ctx
 #endif
 
 int entry_edit(
-    cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+    cluster_addr_t ca, ecache_t* __restrict cache, const char* name, const directory_entry_t* meta, fat_data_t* __restrict fi
 ) {
 #ifndef NIFAT32_RO
     print_debug("entry_edit(cluster=%u, name=%.11s, cache=%s)", ca, name, cache != NO_ECACHE ? "YES" : "NO");
     entry_ctx_t context = { 
-        .meta = (directory_entry_t*)meta, 
-        .name = name, 
+        .meta      = (directory_entry_t*)meta, 
+        .name      = name, 
         .name_hash = nft32_murmur3_x86_32((const_buffer_t)name, 11, 0), 
-        .index = cache, .fi = fi 
+        .index     = cache, .fi = fi, .ji = -1
     };
 
     int result = entry_iterate(ca, _edit_handler, (void*)&context, fi);
-    journal_solve_operation(context.ji, fi);
+    if (context.ji >= 0) journal_solve_operation(context.ji, fi);
     return result;
 #endif
     UNUSED(ca, cache, name, meta, fi);
@@ -290,7 +298,7 @@ static int _entry_erase_rec(cluster_addr_t ca, int file, fat_data_t* fi) {
     return -2;
 }
 
-static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* ctx) {
+static int _remove_handler(entry_info_t* __restrict info, directory_entry_t* __restrict entry, void* __restrict ctx) {
     entry_ctx_t* context = (entry_ctx_t*)ctx;
     if (!_validate_entry(entry) || entry->file_name[0] == ENTRY_FREE) return 0;
     if (nft32_str_strncmp((char*)entry->file_name, context->name, 11)) return 0;
@@ -313,12 +321,12 @@ static int _remove_handler(entry_info_t* info, directory_entry_t* entry, void* c
 }
 #endif
 
-int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi) {
+int entry_remove(cluster_addr_t ca, const char* name, ecache_t* __restrict cache, fat_data_t* __restrict fi) {
 #ifndef NIFAT32_RO
     print_debug("entry_remove(cluster=%u, name=%.11s, cache=%s)", ca, name, cache != NO_ECACHE ? "YES" : "NO");
-    entry_ctx_t ctx = { .name = name, .fi = fi, .index = cache };
-    int result = entry_iterate(ca, _remove_handler, (void*)&ctx, fi);
-    journal_solve_operation(ctx.ji, fi);
+    entry_ctx_t context = { .name = name, .fi = fi, .index = cache, .ji = -1 };
+    int result = entry_iterate(ca, _remove_handler, (void*)&context, fi);
+    if (context.ji >= 0) journal_solve_operation(context.ji, fi);
     return result;
 #endif
     UNUSED(ca, name, cache, fi);
@@ -327,7 +335,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __res
 }
 
 int create_entry(
-    const char* __restrict fullname, char is_dir, cluster_addr_t first_cluster, unsigned int file_size, directory_entry_t* __restrict entry
+    const char* fullname, char is_dir, cluster_addr_t first_cluster, unsigned int file_size, directory_entry_t* entry
 ) {
     entry->checksum = 0;
     entry->rca = FAT_CLUSTER_BAD;

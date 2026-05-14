@@ -64,7 +64,8 @@ typedef enum {
     WRITELOCK_SECTOR_ERROR,
     WRITELOCK_CLUSTER_ERROR,
     DISK_IO_WRITE_ERROR,
-    DISK_IO_READ_ERROR
+    DISK_IO_READ_ERROR,
+    BAD_CLUSTER_ERROR
 } error_code_t;
 
 #ifdef __cplusplus

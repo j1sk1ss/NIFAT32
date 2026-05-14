@@ -80,8 +80,8 @@ Return 1 if entry data generation complete.
 Return 0 if something goes wrong.
 */
 int create_entry(
-    const char* __restrict fullname, char is_dir, cluster_addr_t dca, 
-    unsigned int file_size, directory_entry_t* __restrict entry
+    const char* fullname, char is_dir, cluster_addr_t dca, 
+    unsigned int file_size, directory_entry_t* entry
 );
 
 /*
@@ -127,8 +127,8 @@ Return -1 if something goes wrong.
 Return -4 if wntry wasn't found.
 */
 int entry_search(
-    const char* __restrict name, cluster_addr_t ca, ecache_t* __restrict cache,
-    directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+    const char* name, cluster_addr_t ca, ecache_t* __restrict cache,
+    directory_entry_t* meta, fat_data_t* __restrict fi
 );
 
 /*
@@ -156,8 +156,8 @@ Returns 1 if edit was succeed.
 Returns 0 if something went wrong.
 */
 int entry_edit(
-    cluster_addr_t ca, ecache_t* __restrict cache, const char* __restrict name, 
-    const directory_entry_t* __restrict meta, fat_data_t* __restrict fi
+    cluster_addr_t ca, ecache_t* __restrict cache, const char* name, 
+    const directory_entry_t* meta, fat_data_t* __restrict fi
 );
 
 /*
@@ -170,7 +170,7 @@ Entry remove just mark entry as free without erasing data.
 Return 1 if delete success.
 Return 0 if something goes wrong.
 */
-int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __restrict cache, fat_data_t* __restrict fi);
+int entry_remove(cluster_addr_t ca, const char* name, ecache_t* __restrict cache, fat_data_t* __restrict fi);
 
 #ifdef __cplusplus
 }

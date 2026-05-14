@@ -21,7 +21,7 @@ extern "C" {
 /*
 Memory special functions. 
 */
-void* nft32_str_memcpy(void* destination, const void* source, unsigned int num);
+void* nft32_str_memcpy(void* __restrict destination, const void* __restrict source, unsigned int num);
 void* nft32_str_memset(void* pointer, unsigned char value, unsigned int num);
 int nft32_str_memcmp(const void* firstPointer, const void* secondPointer, unsigned int num);
 
