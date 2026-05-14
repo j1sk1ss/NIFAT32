@@ -10,10 +10,10 @@ Dependencies:
     - std/mm.h - Filesystem memory manager.
     - std/null.h - NULL definition.
     - std/threading.h - Table locks.
-    - src/fat.h - Cluster types.
-    - src/entry.h - Directory entry structures.
-    - src/ecache.h - Entry cache structures.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/fat.h - Cluster types.
+    - nft32/entry.h - Directory entry structures.
+    - nft32/ecache.h - Entry cache structures.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef CTABLE_H_
@@ -25,10 +25,10 @@ extern "C" {
 #include <std/mm.h>
 #include <std/null.h>
 #include <std/threading.h>
-#include <src/fat.h>
-#include <src/entry.h>
-#include <src/ecache.h>
-#include <src/fatinfo.h>
+#include <nft32/fat.h>
+#include <nft32/entry.h>
+#include <nft32/ecache.h>
+#include <nft32/fatinfo.h>
 
 #ifndef CONTENT_TABLE_SIZE
     #define CONTENT_TABLE_SIZE 50

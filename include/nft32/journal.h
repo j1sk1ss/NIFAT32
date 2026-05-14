@@ -11,11 +11,11 @@ Dependencies:
     - std/logging.h - Logging helpers.
     - std/checksum.h - Journal checksum type.
     - std/threading.h - Journal locks.
-    - src/fat.h - Cluster types.
-    - src/disk.h - Sector I/O primitives.
-    - src/errors.h - Error registration.
-    - src/cluster.h - Cluster I/O utilities.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/fat.h - Cluster types.
+    - nft32/disk.h - Sector I/O primitives.
+    - nft32/errors.h - Error registration.
+    - nft32/cluster.h - Cluster I/O utilities.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef JOURNAL_H_
@@ -28,11 +28,11 @@ extern "C" {
 #include <std/logging.h>
 #include <std/checksum.h>
 #include <std/threading.h>
-#include <src/fat.h>
-#include <src/disk.h>
-#include <src/errors.h>
-#include <src/cluster.h>
-#include <src/fatinfo.h>
+#include <nft32/fat.h>
+#include <nft32/disk.h>
+#include <nft32/errors.h>
+#include <nft32/cluster.h>
+#include <nft32/fatinfo.h>
 
 #define JOURNAL_MULTIPLIER 12983229U
 #define GET_JOURNALSECTOR(n, ts) (((((n) + 35) * JOURNAL_MULTIPLIER) >> 3) % (ts - 2))

@@ -12,8 +12,8 @@ Dependencies:
     - std/null.h - NULL definition.
     - std/logging.h - Logging helpers.
     - std/threading.h - Bitmap locks.
-    - src/errors.h - Error registration.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/errors.h - Error registration.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef FATMAP_H_
@@ -27,8 +27,8 @@ extern "C" {
 #include <std/null.h>
 #include <std/logging.h>
 #include <std/threading.h>
-#include <src/errors.h>
-#include <src/fatinfo.h>
+#include <nft32/errors.h>
+#include <nft32/fatinfo.h>
 
 #define BITMAP_NFREE             0x00000000
 #define BITMAP_IS_FREE(val, pos) (!(((val) >> (pos)) & 1))

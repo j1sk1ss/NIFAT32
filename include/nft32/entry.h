@@ -12,11 +12,11 @@ Dependencies:
     - std/hamming.h - Encoded data helpers.
     - std/fatname.h - FAT 8.3 name conversion.
     - std/checksum.h - Entry checksum type.
-    - src/ecache.h - Entry cache structures.
-    - src/errors.h - Error registration.
-    - src/fatinfo.h - FAT filesystem metadata.
-    - src/cluster.h - Cluster I/O utilities.
-    - src/journal.h - Journal operations.
+    - nft32/ecache.h - Entry cache structures.
+    - nft32/errors.h - Error registration.
+    - nft32/fatinfo.h - FAT filesystem metadata.
+    - nft32/cluster.h - Cluster I/O utilities.
+    - nft32/journal.h - Journal operations.
 */
 
 #ifndef ENTRY_H_
@@ -30,11 +30,11 @@ extern "C" {
 #include <std/hamming.h>
 #include <std/fatname.h>
 #include <std/checksum.h>
-#include <src/ecache.h>
-#include <src/errors.h>
-#include <src/fatinfo.h>
-#include <src/cluster.h>
-#include <src/journal.h>
+#include <nft32/ecache.h>
+#include <nft32/errors.h>
+#include <nft32/fatinfo.h>
+#include <nft32/cluster.h>
+#include <nft32/journal.h>
 
 #define FILE_LAST_LONG_ENTRY 0x40
 #define ENTRY_FREE           0xE5

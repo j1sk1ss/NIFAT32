@@ -1,4 +1,4 @@
-#include <src/ecache.h>
+#include <nft32/ecache.h>
 
 #ifndef NIFAT32_NO_ECACHE
 static int _rotate_left(ecache_t** root, ecache_t* x) {

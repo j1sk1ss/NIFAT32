@@ -9,8 +9,8 @@ Description:
 Dependencies:
     - std/hamming.h - Encoded error data helpers.
     - std/errcodes.h - Error code enumeration.
-    - src/disk.h - Sector I/O primitives.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/disk.h - Sector I/O primitives.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef ERRORS_H_
@@ -21,8 +21,8 @@ extern "C" {
 
 #include <std/hamming.h>
 #include <std/errcodes.h>
-#include <src/disk.h>
-#include <src/fatinfo.h>
+#include <nft32/disk.h>
+#include <nft32/fatinfo.h>
 
 #define PACK_INFO_ENTRY(f, c) (((unsigned int)(f) << 16) | ((unsigned int)(c) & 0xFFFF))
 #define GET_FIRST_ERROR(e)    ((unsigned short)((e) >> 16))

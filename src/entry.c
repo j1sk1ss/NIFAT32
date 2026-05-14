@@ -1,10 +1,12 @@
-#include <src/entry.h>
+#include <nft32/entry.h>
 
 static int _validate_entry(directory_entry_t* entry) {
+#ifndef NO_ENTRY_VALIDATION
     checksum_t entry_checksum = entry->checksum;
     entry->checksum = 0;
     if (nft32_murmur3_x86_32((buffer_t)entry, sizeof(directory_entry_t), 0) != entry_checksum) return 0;
     else entry->checksum = entry_checksum;
+#endif
     return 1;
 }
 
@@ -157,6 +159,7 @@ int entry_edit(
     return result;
 #endif
     UNUSED(ca, cache, name, meta, fi);
+    print_warn("entry_edit() is not implemented! Don't provide the 'NIFAT32_RO'!");
     return 1;
 }
 
@@ -239,6 +242,7 @@ int entry_add(cluster_addr_t ca, ecache_t* __restrict cache, directory_entry_t* 
     return -1;
 #endif
     UNUSED(ca, meta, cache, fi);
+    print_warn("entry_add() is not implemented! Don't provide the 'NIFAT32_RO'!");
     return 1;
 }
 
@@ -318,6 +322,7 @@ int entry_remove(cluster_addr_t ca, const char* __restrict name, ecache_t* __res
     return result;
 #endif
     UNUSED(ca, name, cache, fi);
+    print_warn("entry_remove() is not implemented! Don't provide the 'NIFAT32_RO'!");
     return 1;
 }
 

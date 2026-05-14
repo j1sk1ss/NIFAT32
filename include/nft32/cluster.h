@@ -7,10 +7,10 @@ Description:
     Cluster-level read, write, allocation, and chain utilities above disk sectors.
 
 Dependencies:
-    - src/fat.h - FAT cluster types and table operations.
-    - src/disk.h - Sector I/O primitives.
-    - src/errors.h - Error registration.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/fat.h - FAT cluster types and table operations.
+    - nft32/disk.h - Sector I/O primitives.
+    - nft32/errors.h - Error registration.
+    - nft32/fatinfo.h - FAT filesystem metadata.
     - std/null.h - NULL definition.
     - std/logging.h - Logging helpers.
     - std/threading.h - I/O locks.
@@ -22,10 +22,10 @@ Dependencies:
 extern "C" {
 #endif
 
-#include <src/fat.h>
-#include <src/disk.h>
-#include <src/errors.h>
-#include <src/fatinfo.h>
+#include <nft32/fat.h>
+#include <nft32/disk.h>
+#include <nft32/errors.h>
+#include <nft32/fatinfo.h>
 #include <std/null.h>
 #include <std/logging.h>
 #include <std/threading.h>

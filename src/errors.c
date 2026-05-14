@@ -1,4 +1,4 @@
-#include <src/errors.h>
+#include <nft32/errors.h>
 
 static errors_t _errors = {
     .first_error = 1,

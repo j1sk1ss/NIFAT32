@@ -12,10 +12,10 @@ Dependencies:
     - std/hamming.h - Encoded FAT value helpers.
     - std/logging.h - Logging helpers.
     - std/threading.h - FAT locks.
-    - src/disk.h - Sector I/O primitives.
-    - src/fatmap.h - Free cluster bitmap.
-    - src/errors.h - Error registration.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/disk.h - Sector I/O primitives.
+    - nft32/fatmap.h - Free cluster bitmap.
+    - nft32/errors.h - Error registration.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef FAT_H_
@@ -29,10 +29,10 @@ extern "C" {
 #include <std/hamming.h>
 #include <std/logging.h>
 #include <std/threading.h>
-#include <src/disk.h>
-#include <src/fatmap.h>
-#include <src/errors.h>
-#include <src/fatinfo.h>
+#include <nft32/disk.h>
+#include <nft32/fatmap.h>
+#include <nft32/errors.h>
+#include <nft32/fatinfo.h>
 
 #define FAT_CLUSTER_FREE     0x00000000
 #define FAT_CLUSTER_BAD      0x0FFFFFF7

@@ -1,4 +1,4 @@
-#include <src/disk.h>
+#include <nft32/disk.h>
 
 static disk_io_t _disk_io = {
     .read_sector  = NULL,

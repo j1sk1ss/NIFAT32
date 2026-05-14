@@ -16,14 +16,14 @@ Dependencies:
     - std/errcodes.h - Error code enumeration.
     - std/checksum.h - Checksum type.
     - std/threading.h - Lock primitives.
-    - src/fat.h - FAT operations.
-    - src/disk.h - Sector I/O primitives.
-    - src/entry.h - Directory entry operations.
-    - src/ecache.h - Entry cache structures.
-    - src/ctable.h - Content table operations.
-    - src/errors.h - Error registration.
-    - src/cluster.h - Cluster I/O utilities.
-    - src/fatinfo.h - FAT filesystem metadata.
+    - nft32/fat.h - FAT operations.
+    - nft32/disk.h - Sector I/O primitives.
+    - nft32/entry.h - Directory entry operations.
+    - nft32/ecache.h - Entry cache structures.
+    - nft32/ctable.h - Content table operations.
+    - nft32/errors.h - Error registration.
+    - nft32/cluster.h - Cluster I/O utilities.
+    - nft32/fatinfo.h - FAT filesystem metadata.
 */
 
 #ifndef NIFAT32_H_
@@ -41,14 +41,14 @@ extern "C" {
 #include <std/errcodes.h>
 #include <std/checksum.h>
 #include <std/threading.h>
-#include <src/fat.h>
-#include <src/disk.h>
-#include <src/entry.h>
-#include <src/ecache.h>
-#include <src/ctable.h>
-#include <src/errors.h>
-#include <src/cluster.h>
-#include <src/fatinfo.h>
+#include <nft32/fat.h>
+#include <nft32/disk.h>
+#include <nft32/entry.h>
+#include <nft32/ecache.h>
+#include <nft32/ctable.h>
+#include <nft32/errors.h>
+#include <nft32/cluster.h>
+#include <nft32/fatinfo.h>
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {

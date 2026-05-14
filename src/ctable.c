@@ -1,4 +1,4 @@
-#include <src/ctable.h>
+#include <nft32/ctable.h>
 
 static content_t _content_table[CONTENT_TABLE_SIZE];
 

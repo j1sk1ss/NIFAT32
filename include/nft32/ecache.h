@@ -10,7 +10,7 @@ Dependencies:
     - std/mm.h - Filesystem memory manager.
     - std/str.h - String helpers.
     - std/checksum.h - Checksum type.
-    - src/fat.h - Cluster address type.
+    - nft32/fat.h - Cluster address type.
 */
 
 #ifndef ECACHE_H_
@@ -22,7 +22,7 @@ extern "C" {
 #include <std/mm.h>
 #include <std/str.h>
 #include <std/checksum.h>
-#include <src/fat.h>
+#include <nft32/fat.h>
 
 #define ECACHE_BLACK 0b00000001
 #define ECACHE_FILE  0b00000010
